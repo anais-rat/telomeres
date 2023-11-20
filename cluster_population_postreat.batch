@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --job-name=popl+10
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=anais.rat@gmail.com
+#SBATCH --time=1-00:00:00
+#SBATCH --output=%x.out.%j 
+#SBATCH --error=%x.err.%j
+#SBATCH --partition=cpu_devel
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+
+python population_main_compute.py
