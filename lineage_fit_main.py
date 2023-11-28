@@ -249,6 +249,7 @@ def cost_function(point, is_plotted=False):
     exp_data = exp_data['OrdtryT528total160831']
     exp_data = sim.postreat_experimental_lineages(exp_data, par.THRESHOLD,
                                                   par.GEN_COUNT_BY_LINEAGE_MIN)
+    p_update = {'parameters': parameters}
     sum_costs = 0
     btype_prop = 0
     for i in range(len(CHARAC_S)):
@@ -256,7 +257,7 @@ def cost_function(point, is_plotted=False):
         cost = pl.compute_n_plot_gcurve_error(exp_data,
                                               LINEAGE_COUNT_ON_ALL_SIM_MIN,
                                               [gcurve], CHARAC_S[i],
-                                              parameters=parameters,
+                                              par_update=p_update,
                                               error_types=[0, 1],
                                               is_plotted=is_plotted)[gcurve]
         btype_prop = max(btype_prop, cost[1])
@@ -279,7 +280,7 @@ def cost_function(point, is_plotted=False):
              cost = pl.compute_n_plot_gcurve_error(exp_data,
                                                    lineage_count_on_all_simu,
                                                    [gcurve], CHARAC_S[i],
-                                                   parameters=parameters,
+                                                   par_update=p_update,
                                                    error_types=[0, 1],
                                                  is_plotted=is_plotted)[gcurve]
              btype_prop = max(btype_prop, cost[1])
@@ -393,13 +394,14 @@ def compute_n_plot_gcurves(point, kwarg, is_plotted=True, proc_count=1,
     exp_data = exp_data['OrdtryT528total160831']
     exp_data = sim.postreat_experimental_lineages(exp_data, par.THRESHOLD,
                                                   par.GEN_COUNT_BY_LINEAGE_MIN)
+    p_update = {'parameters': parameters}
     sum_costs = 0
     btype_prop = 0
     for i in range(len(CHARAC_S)):
         gcurve = sim.type_of_sort_from_characteristics(CHARAC_S[i])
         cost = pl.compute_n_plot_gcurve_error(exp_data,
                    LINEAGE_COUNT_ON_ALL_SIM_TO_PLOT, [gcurve], CHARAC_S[i],
-                   parameters=parameters, error_types=[0, 1],
+                   par_update=p_update, error_types=[0, 1],
                    is_plotted=is_plotted, simulation_count=simulation_count,
                    proc_count=proc_count)[gcurve]
         btype_prop = max(btype_prop, cost[1])

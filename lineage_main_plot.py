@@ -52,7 +52,7 @@ np.random.seed(1)
 # ----------
 
 IS_SAVED = True
-FORMAT = 'manuscript' # 'manuscript' or 'article'.
+FORMAT = 'article' # 'manuscript' or 'article'.
 # WARNING this variable MIGHT need to be changed in 'lineages_plot.py' as well.
 
 SIMU_COUNT = 1000
@@ -133,7 +133,7 @@ DATA_EXP_MUTANT = sim.postreat_experimental_lineages(DATA_EXP_MUTANT,
                                                      par.THRESHOLD, 2)
 
 DATA_EXP_MUTANT_SEN = sim.select_exp_lineages(DATA_EXP_MUTANT, ['senescent'])
-# DATA_EXP_MUTANT_SEN = sim.sort_lineages(DATA_EXP_MUTANT_SEN, 'gsen')
+DATA_EXP_MUTANT_SEN = sim.sort_lineages(DATA_EXP_MUTANT_SEN, 'gsen')
 GSEN_EXP_MUTANT = DATA_EXP_MUTANT_SEN[1]['sen']
 
 
@@ -157,28 +157,28 @@ IS_EXP = True
 cycles_exp = DATA_EXP[0]['cycle']
 GMAX = np.shape(cycles_exp)[1]
 
-# # Sorted dataset.
-# pd.plot_cycles_from_dataset(fig_dir)
+# # Distributions of dycle duration time (cdt) per category.
+# pd.plot_cycles_from_dataset(fig_dir, IS_SAVED)
 
-# # Raw dataset.
-# if FORMAT == 'manuscript': # With legend for types.
-#     pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir, FONT_SIZE,
-#                             lineage_types=DATA_EXP[2], gmax=GMAX,
-#                             fig_size=FIG_SIZE)
-#     pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir,
-#                             sns.plotting_context()['axes.labelsize'],
-#                             is_dead=DATA_EXP[1]['death'], gmax=GMAX,
-#                             fig_size=(5.8, 9.5))
-# else: # without legend.
-#     pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir, FONT_SIZE, gmax=GMAX,
-#                             fig_size=FIG_SIZE)
-#     cycles_exp_mutant = DATA_EXP_MUTANT[0]['cycle']
-#     cycles_exp_mutant_sen = DATA_EXP_MUTANT_SEN[0]['cycle']
-#     GMAX_MUTANT = np.shape(cycles_exp_mutant)[1]
-#     pl.plot_lineages_cycles(cycles_exp_mutant, IS_EXP, fig_dir, FONT_SIZE,
-#                             gmax=None, add_to_name='rad51', fig_size=FIG_SIZE)
-#     pl.plot_lineages_cycles(cycles_exp_mutant_sen, IS_EXP, fig_dir, FONT_SIZE,
-#                             gmax=None, add_to_name='rad51_sen', fig_size=FIG_SIZE)
+# Cycle duration times in generation and lineage.
+if FORMAT == 'manuscript': # With legend for types.
+    pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir, FONT_SIZE,
+                            lineage_types=DATA_EXP[2], gmax=GMAX,
+                            fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir,
+                            sns.plotting_context()['axes.labelsize'],
+                            is_dead=DATA_EXP[1]['death'], gmax=GMAX,
+                            fig_size=(5.8, 9.5))
+else: # without legend.
+    pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir, FONT_SIZE, gmax=GMAX,
+                            fig_size=FIG_SIZE)
+    cycles_exp_mutant = DATA_EXP_MUTANT[0]['cycle']
+    cycles_exp_mutant_sen = DATA_EXP_MUTANT_SEN[0]['cycle']
+    GMAX_MUTANT = np.shape(cycles_exp_mutant)[1]
+    pl.plot_lineages_cycles(cycles_exp_mutant, IS_EXP, fig_dir, FONT_SIZE,
+                            gmax=None, add_to_name='rad51', fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(cycles_exp_mutant_sen, IS_EXP, fig_dir, FONT_SIZE,
+                            gmax=None, add_to_name='rad51_sen', fig_size=FIG_SIZE)
 
 # # > Simulated.
 # IS_EXP = False
@@ -285,10 +285,10 @@ CHARACTERISTICS = ['senescent']
 # Generation curves wrt experimental
 # ----------------------------------
 
-# CHARACTERISTICS_S = [['btype'],
-#                       ['atype','senescent'],
-#                       ['senescent'],
-#                       ['btype','senescent']]
+CHARACTERISTICS_S = [['btype'],
+                      ['atype','senescent'],
+                      ['senescent'],
+                      ['btype','senescent']]
 
 # if FORMAT == 'manuscript':
 #     LABELS = [r'$G^{-1}_{{nta}}$', r'$G^{-1}_{{sen_A}}$',
@@ -305,8 +305,8 @@ CHARACTERISTICS = ['senescent']
 # # Print proportion of type B among senescent.
 # if FORMAT == 'manuscript':
 #     pl.compute_n_plot_gcurve_error(DATA_EXP, None, ['gsen'], ['senescent'],
-#                                     is_plotted=False, error_types=[1],
-#                                     simulation_count=SIMU_COUNT)
+#                                    is_printed=True, error_types=[1],
+#                                    simulation_count=SIMU_COUNT)
 
 
 # Histograms
@@ -587,9 +587,9 @@ for lmode_add in LMODE_S:
         curve_labels.append(str(lmode_add))
     else:
         curve_labels.append('+' + str(lmode_add))
-pd.plot_linit_wrt_par(ltrans=ltrans+LMODE_S, l0=l0-LMODE_S, l1=l1-LMODE_S,
-                      labels=curve_labels, legend_key='lall',
-                      fig_supdirectory=fig_dir, fig_size=FIG_SIZE)
+# pd.plot_linit_wrt_par(ltrans=ltrans+LMODE_S, l0=l0-LMODE_S, l1=l1-LMODE_S,
+#                       labels=curve_labels, legend_key='lall',
+#                       fig_supdirectory=fig_dir, fig_size=FIG_SIZE)
 # pl.plot_gcurves_wrt_par(DATA_EXP, SIMU_COUNT, CHARAC_NTA, par_updates,
 #                         'ltrans', fig_dir, curve_labels=curve_labels,
 #                         linestyles=LINESTYLES, fig_size=FIG_SIZE)
@@ -600,7 +600,7 @@ pd.plot_linit_wrt_par(ltrans=ltrans+LMODE_S, l0=l0-LMODE_S, l1=l1-LMODE_S,
 #                                 par_updates, 'ltrans', fig_dir,
 #                                 texts=TEXTS, curve_labels=curve_labels,
 #                                 linestyles=LINESTYLES, fig_size=FIG_SIZE2)
-stop
+# stop
 
 # > Variable ltrans.
 # ..................
@@ -628,61 +628,61 @@ for ltrans_add in LTRANS_S:
 # pl.plot_gcurves_wrt_par(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S[0], par_updates,
 #                         'ltrans', fig_dir, curve_labels=curve_labels,
 #                         linestyles=LINESTYLES, fig_size=FIG_SIZE)
-pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
-                                par_updates, 'ltrans', fig_dir,
-                                texts=TEXTS, curve_labels=curve_labels,
-                                linestyles=LINESTYLES, fig_size=FIG_SIZE2)
+# pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
+#                                 par_updates, 'ltrans', fig_dir,
+#                                 texts=TEXTS, curve_labels=curve_labels,
+#                                 linestyles=LINESTYLES, fig_size=FIG_SIZE2)
 
 # > Variable l0.
 # ..............
 
-L0_S = np.array([-40, -20, -10, 0, 10, 20])
-LINESTYLES = ['-', '-', '-', '--', '-', '-']
+# L0_S = np.array([-40, -20, -10, 0, 10, 20])
+# LINESTYLES = ['-', '-', '-', '--', '-', '-']
 
-parameters = deepcopy(par.PAR)
-par_updates = []
-curve_labels = []
-for l0_add in L0_S:
-    parameters[2][1] = l0 + l0_add
-    par_updates.append({'parameters': deepcopy(parameters),
-                        'is_htype_seen': False})
-    if l0_add <= 0:
-        curve_labels.append(str(l0_add))
-    else:
-        curve_labels.append('+' + str(l0_add))
-pd.plot_linit_wrt_par(ltrans=ltrans, l0=l0 + L0_S, l1=l1,
-                        labels=curve_labels, legend_key='l0',
-                        fig_supdirectory=fig_dir, fig_size=FIG_SIZE)
+# parameters = deepcopy(par.PAR)
+# par_updates = []
+# curve_labels = []
+# for l0_add in L0_S:
+#     parameters[2][1] = l0 + l0_add
+#     par_updates.append({'parameters': deepcopy(parameters),
+#                         'is_htype_seen': False})
+#     if l0_add <= 0:
+#         curve_labels.append(str(l0_add))
+#     else:
+#         curve_labels.append('+' + str(l0_add))
+# pd.plot_linit_wrt_par(ltrans=ltrans, l0=l0 + L0_S, l1=l1,
+#                         labels=curve_labels, legend_key='l0',
+#                         fig_supdirectory=fig_dir, fig_size=FIG_SIZE)
 # pl.plot_gcurves_wrt_par(DATA_EXP, SIMU_COUNT, CHARAC_NTA, par_updates,
 #                         'l0', fig_dir, curve_labels=curve_labels,
 #                         linestyles=LINESTYLES, fig_size=FIG_SIZE)
 # pl.plot_gcurves_wrt_par(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S[0], par_updates,
 #                         'l0', fig_dir, curve_labels=curve_labels,
 #                         linestyles=LINESTYLES, fig_size=FIG_SIZE)
-pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
-                                par_updates, 'l0', fig_dir, texts=TEXTS,
-                                curve_labels=curve_labels,
-                                linestyles=LINESTYLES, fig_size=FIG_SIZE2)
+# pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
+#                                 par_updates, 'l0', fig_dir, texts=TEXTS,
+#                                 curve_labels=curve_labels,
+#                                 linestyles=LINESTYLES, fig_size=FIG_SIZE2)
 
 # > Variable l1.
 # ..............
 
-L1_S = np.array([-168, -84, -42, 0, 42, 84])
-LINESTYLES = ['-', '-', '-', '--', '-', '-']
-# l1_s = np.array([-80, -40, -20, -10, 0, 10, 20])
+# L1_S = np.array([-168, -84, -42, 0, 42, 84])
+# LINESTYLES = ['-', '-', '-', '--', '-', '-']
+# # l1_s = np.array([-80, -40, -20, -10, 0, 10, 20])
 
 
-parameters = deepcopy(par.PAR)
-par_updates = []
-curve_labels = []
-for l1_add in L1_S:
-    parameters[2][2] = l1 + l1_add
-    par_updates.append({'parameters': deepcopy(parameters),
-                        'is_htype_seen': False})
-    if l1_add <= 0:
-        curve_labels.append(str(l1_add))
-    else:
-        curve_labels.append('+' + str(l1_add))
+# parameters = deepcopy(par.PAR)
+# par_updates = []
+# curve_labels = []
+# for l1_add in L1_S:
+#     parameters[2][2] = l1 + l1_add
+#     par_updates.append({'parameters': deepcopy(parameters),
+#                         'is_htype_seen': False})
+#     if l1_add <= 0:
+#         curve_labels.append(str(l1_add))
+#     else:
+#         curve_labels.append('+' + str(l1_add))
 # pd.plot_linit_wrt_par(ltrans=ltrans, l0=l0, l1=l1 + L1_S,
 #                       labels=curve_labels, legend_key='l1',
 #                       fig_supdirectory=fig_dir, fig_size=FIG_SIZE)
@@ -692,11 +692,11 @@ for l1_add in L1_S:
 # pl.plot_gcurves_wrt_par(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S[0], par_updates,
 #                         'l1', fig_dir, curve_labels=curve_labels,
 #                         linestyles=LINESTYLES, fig_size=FIG_SIZE)
-pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
-                                par_updates, 'l1', fig_dir, texts=TEXTS,
-                                curve_labels=curve_labels,
-                                linestyles=LINESTYLES, fig_size=FIG_SIZE2)
-stop
+# pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
+#                                 par_updates, 'l1', fig_dir, texts=TEXTS,
+#                                 curve_labels=curve_labels,
+#                                 linestyles=LINESTYLES, fig_size=FIG_SIZE2)
+# stop
 
 
 # Results from parameters estimation
@@ -752,18 +752,17 @@ for key, fits in lfitr.FITS.items():
         parameters = par_sensitivity[np.argmin(scores)]
         if FORMAT == 'manuscript':
             if key == '10':
+                FIG_SIZE = (5.5, 11)
+                bbox_to_anchor = None
                 FIG_SIZE_PARS = (5.5, 3)
             parf.plot_laws(parameters, is_par_plot=True, fig_name=key,
                             fig_supdirectory=fig_dir, fig_size=FIG_SIZE_PARS)
         # parf.plot_laws(parameters, is_par_plot=False, fig_name=key,
         #                 fig_supdirectory=fig_dir)
-        # par_update = {'parameters': parameters}
-        # if key == '10':
-        #     FIG_SIZE = (5.5, 11)
-        #     bbox_to_anchor = None
-        # pl.compute_n_plot_gcurves_wrt_charac(DATA_EXP, SIMU_COUNT,
-        #                                       CHARACTERISTICS_S, fig_dir,
-        #                                       par_update=par_update,
-        #                                       labels=LABELS, path=PATH,
-        #                                       bbox_to_anchor=bbox_to_anchor,
-        #                                       fig_size=FIG_SIZE)
+        par_update = {'parameters': parameters}
+        pl.compute_n_plot_gcurves_wrt_charac(DATA_EXP, SIMU_COUNT,
+                                              CHARACTERISTICS_S, fig_dir,
+                                              par_update=par_update,
+                                              labels=LABELS, path=PATH,
+                                              bbox_to_anchor=bbox_to_anchor,
+                                              fig_size=FIG_SIZE)

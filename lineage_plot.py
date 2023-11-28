@@ -234,10 +234,10 @@ LABEL_ERRORS = [r"$L^2$-error for ",
 # -------------------------------------
 
 def compute_n_plot_gcurve_error(exp_data_raw, lineage_count_on_all_simu,
-                                gcurves, characteristics, parameters=par.PAR,
+                                gcurves, characteristics, par_update=None,
                                 is_plotted=False, error_types=[0, 1, 2],
                                 distance=distance_l2, simulation_count=None,
-                                proc_count=1):
+                                proc_count=1, is_printed=False):
     """ Warning: the number of experimental lineages having the given
     characteristics must be identical to all the types of sort given.
 
@@ -259,12 +259,13 @@ def compute_n_plot_gcurve_error(exp_data_raw, lineage_count_on_all_simu,
     lineages = np.arange(lineage_count)
     if isinstance(simulation_count, type(None)):
         simulation_count = int(lineage_count_on_all_simu / lineage_count)
+    p_update = deepcopy(par_update) or {}
+    p_update['is_htype_seen'] = is_htype_seen
 
     # > Simulation.
-    par_update = {'parameters': parameters, 'is_htype_seen': is_htype_seen}
     sim_data_s = sim.simulate_n_average_lineages(lineage_count,
                     simulation_count, gcurves, characteristics,
-                    par_update=par_update, parameters_comput=PARAMETERS_COMPUT,
+                    par_update=p_update, parameters_comput=PARAMETERS_COMPUT,
                     proc_count=proc_count)
     # Computation of error for all types of sort.
     error_s = {}
@@ -299,7 +300,7 @@ def compute_n_plot_gcurve_error(exp_data_raw, lineage_count_on_all_simu,
             if 1 in error_types:
                 exp_bprop = np.mean(exp_data[2][~np.isnan(exp_data[2])] == 1)
                 sim_bprop = sim_data[2][1]['btype']
-                if is_plotted:
+                if is_printed:
                     print('bprop exp/sim: ', exp_bprop, sim_bprop['mean'])
                     print('percentile bprop sim: ', sim_bprop['per'])
                     print('extremum bprop sim: ', sim_bprop['ext'])
@@ -313,22 +314,24 @@ def compute_n_plot_gcurve_error(exp_data_raw, lineage_count_on_all_simu,
                 w, h = plt.figaspect(.6) + .3
                 plt.figure(figsize=(w,h))
                 plt.xlabel(LABELS[gcurve], labelpad=6)
-                plt.ylabel(LABELS['ax_lin'], labelpad=8) # write_ylabel(gcurve))
-                sim_label = write_simlabel_w_count(simulation_count)
-                plt.plot(sim_gtrigs[gtrig]['mean'], lineages, label=sim_label)
-                plt.plot(exp_gtrigs[gtrig], lineages, label=LABELS['exp'],
+                plt.ylabel(LABELS['ax_lin'], labelpad=8)
+                plt.plot(exp_gtrigs, lineages, '--', label=LABELS['exp'],
                          color='black')
+                sim_label = write_simlabel_w_count(simulation_count)
+                plt.plot(sim_gtrigs['mean'], lineages, label=sim_label,
+                         color='darkorange')
+                plt.fill_betweenx(lineages, sim_gtrigs['perdown'],
+                                  sim_gtrigs['perup'], alpha=fp.ALPHA,
+                                  label=LABELS['per'], color='darkorange')
+                plt.legend(loc='lower right')
                 # xfit = np.linspace(0, max(exp_gtrigs[gtrig]), 100)
                 # plt.plot(xfit, np.poly1d(exp_fit)(xfit))
                 # plt.plot(xfit, sim_fit[1] + xfit * sim_fit[0])
                 ax = plt.gca()
-                plt.text(.01, .97, parf.write_laws(parameters),
-                         transform=ax.transAxes, horizontalalignment='left',
-                         verticalalignment='top')
-                plt.fill_betweenx(lineages, sim_gtrigs[gtrig]['perdown'],
-                                  sim_gtrigs[gtrig]['perup'],
-                                  alpha=fp.ALPHA, label=LABELS['per'])
-                plt.legend(loc='lower right')
+                plt.text(.01, .97, parf.write_laws(p_update['parameters']),
+                          transform=ax.transAxes, horizontalalignment='left',
+                          verticalalignment='top')
+                sns.despine()
                 plt.show()
     return error_s
 
@@ -493,7 +496,7 @@ def plot_lineage_avg_proportions(props, is_exp, fig_supdirectory, font_size,
 
 def plot_gcurves_exp(exp_data, characteristics_s, fig_supdirectory,
                      labels=None, is_gathered=False, add_to_name=None,
-                     fig_size=(6.4, 4.8)):
+                     fig_size=(6.4, 4.8), title=None):
     char_count = len(characteristics_s)
     labels = labels or [''] * char_count
 
@@ -529,6 +532,7 @@ def plot_gcurves_exp(exp_data, characteristics_s, fig_supdirectory,
         axes[0].legend()
         axes[1].legend()
         fig.add_subplot(111, frameon=False)
+        plt.title(title)
         plt.tick_params(labelcolor='none', which='both', top=False, 
                         bottom=False, left=False, right=False)
         plt.grid(False)
@@ -541,6 +545,7 @@ def plot_gcurves_exp(exp_data, characteristics_s, fig_supdirectory,
         plt.show()
     else:
         plt.figure(figsize=fig_size)
+        plt.title(title)
         for i in range(char_count):
             plt.plot(gtrigs_s[i], np.arange(lineage_counts[i]),
                      color=colors[i], label=labels[i])
@@ -555,6 +560,7 @@ def plot_gcurves_exp(exp_data, characteristics_s, fig_supdirectory,
         plt.show()
 
         plt.figure(figsize=fig_size)
+        plt.title(title)
         for i in range(char_count):
             plt.plot(gtrigs_s[i],
                      np.arange(lineage_counts[i]) / lineage_counts[i],
@@ -575,7 +581,8 @@ def plot_gcurves_exp(exp_data, characteristics_s, fig_supdirectory,
 def compute_n_plot_gcurve(exp_data, simu_count, characteristics,
                           fig_supdirectory, gcurve=None, type_of_sort=None,
                           par_update=None, is_exp_plotted=False,
-                          bbox_to_anchor=None, title=None):
+                          bbox_to_anchor=None, title=None, is_propB=False,
+                          proc_count=1):
     p_update = {'is_htype_seen': False}
     p_update.update(par_update or {})
 
@@ -584,8 +591,10 @@ def compute_n_plot_gcurve(exp_data, simu_count, characteristics,
     type_of_sort = type_of_sort or gtrig
 
     # Compute.
-    lineages, gtrigs_exp, gtrigs_sim = sim.compute_gtrigs(exp_data, simu_count,
-        characteristics, gcurve, type_of_sort, p_update)
+    out = sim.compute_gtrigs(exp_data, simu_count, characteristics, gcurve,
+                             type_of_sort, par_update=p_update,
+                             is_propB=is_propB, proc_count=proc_count)
+    lineages, gtrigs_exp, gtrigs_sim = out[:3]
 
     # Plot.
     w, h = plt.figaspect(.6) + .3
@@ -604,7 +613,11 @@ def compute_n_plot_gcurve(exp_data, simu_count, characteristics,
     plt.fill_betweenx(lineages, gtrigs_sim['perdown'], gtrigs_sim['perup'],
                       alpha=fp.ALPHA, label=LABELS['per'], color='darkorange')
     plt.legend(loc='lower right', bbox_to_anchor=bbox_to_anchor)
-    plt.title(title)
+    if is_propB:
+        plt.title(title + rf"\quad $r_{{B\% , exp}}={out[3][0]:3.2f}, \quad"
+                   rf" r_{{B \%,sim}}={out[3][1]:3.2f}$")
+    else:
+        plt.title(title)
     sns.despine()
     if not isinstance(fig_supdirectory, type(None)):
         # p_update['is_htype_seen'] = True

@@ -30,7 +30,7 @@ imp.reload(par)
 # ----------
 
 
-IS_SAVED = False
+IS_SAVED = True
 FORMAT = 'manuscript' # 'manuscript' or 'article'.
 # WARNING this variable MIGHT need to be changed in 'lineages_plot.py' as well.
 
@@ -102,15 +102,22 @@ else:
     labels = ["(Bourgeron et al., 2015)", r'$f_{init}$']
 
 # # Daily concentrations.
-# if FORMAT == 'manuscript':
-#     pd.plot_data_exp_concentration_curves_final(par.C_AVG_M1, par.C_STD_M1,
-#                                                 par.C_AVG_P1, par.C_STD_P1,
-#                                                 fig_dir,
-#                                                 bbox_to_anchor=bbox_to_anchor1)
-#     pd.plot_data_exp_concentration_curves_final(par.C_AVG_M2, par.C_STD_M2,
-#                                                 par.C_AVG_P2, par.C_STD_P2,
-#                                                 None,
-#                                                 bbox_to_anchor=bbox_to_anchor1)
+if FORMAT == 'manuscript':
+    # pd.plot_data_exp_concentration_curves_final(par.C_AVG_M1, par.C_STD_M1,
+    #                                             par.C_AVG_P1, par.C_STD_P1,
+    #                                             fig_dir,
+    #                                             bbox_to_anchor=bbox_to_anchor1)
+    # pd.plot_data_exp_concentration_curves_final(par.C_AVG_M2, par.C_STD_M2,
+    #                                             par.C_AVG_P2, par.C_STD_P2,
+    #                                             None,
+    #                                             bbox_to_anchor=bbox_to_anchor1)
+
+    pd.plot_data_exp_concentration_curves_final(par.C_AVG_M3, par.C_STD_M3,
+                                                par.C_AVG_P3, par.C_STD_P3,
+                                                fig_dir,
+                                                ylabel=fp.LABELS['ax_OD'],
+                                                bbox_to_anchor=None,
+                                                fig_name='concentration_OD')
 # else:
 #     pd.plot_data_exp_concentration_curves_final(par.C_AVG_M3, par.C_STD_M3,
 #                                                 par.C_AVG_P3, par.C_STD_P3,
