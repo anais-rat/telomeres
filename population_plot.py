@@ -333,13 +333,13 @@ def plot_hist_lmin_at_sen(cell_count, para_count, simu_count, fig_supdirectory,
     y_s, yday_s, sup_idx = {}, {}, {}
     xmax = 120
     for key in ks.type_keys: # Iteration on types.
-        x_ax, y_ax = fct.change_width_int_hist(x_axis, hist[key]['mean'],width)
+        x_ax, y_ax = fct.rescale_histogram_bin(x_axis, hist[key]['mean'],width)
         y_s[key] = y_ax[x_ax < xmax]
         sup_idx[key] = len(y_ax) - np.argmax(y_ax[::-1] > 0)
         # tmp_idx  = 0
         yday_s[key] = []
         for d in days:
-            x_tmp, y_tmp = fct.change_width_int_hist(x_axis,
+            x_tmp, y_tmp = fct.rescale_histogram_bin(x_axis,
                                                      hist_day[key][d]['mean'],
                                                      width)
             # tmp_idx = max(tmp_idx, len(y_tmp) - np.argmax(y_tmp[::-1] > 0))
@@ -530,14 +530,13 @@ def plot_evo_c_n_p_pcfixed_from_stat(c, p, simu_count, fig_supdirectory, t_max,
     # > Days arrays.
     days_exp = np.arange(1 , len(par.Y[:, 0]) + 1)
     idxs_bf_dil = np.array([np.where(times == day)[0][0] - 1 for day in
-                            days_exp[days_exp <= times[-1]]])
+                            days_exp[days_exp <= times[-1]]]).astype('int')
     if len(days_exp) > len(idxs_bf_dil):
         days_sim = days_exp[:len(idxs_bf_dil)]
     else:
         days_sim = days_exp
     # > Extraction simulated data in the dictionary `d`.
     d = np.load(stat_data_path, allow_pickle='TRUE').item()
-
     # ..... Plot .....
     # Day-to-day evolution of the concentration.
     # ---------------------------------
@@ -555,7 +554,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(c, p, simu_count, fig_supdirectory, t_max,
                   color=fp.COLORS_SIM_VS_EXP[0], label=LABELS['sim'])
     ax1.tick_params(axis='y', labelcolor=fp.COLORS_SIM_VS_EXP[0])
     ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0),
-                          useMathText=True)
+                         useMathText=True)
     # >> Left axis: experimental data.
     y_exp, y_err = par.C_AVG_P1, par.C_STD_P1
     # ysat_exp = np.mean([*y_exp[:2], y_exp[3]])
@@ -563,12 +562,12 @@ def plot_evo_c_n_p_pcfixed_from_stat(c, p, simu_count, fig_supdirectory, t_max,
     ax2 = ax1.twinx()
     ax2.set_ylim(ymax=ymax_exp)
     ax2.set_ylabel(LABELS['ax_cexp'], color=fp.COLORS_SIM_VS_EXP[1],
-                    labelpad=9)
+                   labelpad=9)
     ax2.errorbar(days_exp, y_exp, yerr=y_err, capsize=2, fmt='-',
                   color=fp.COLORS_SIM_VS_EXP[1], label=LABELS['exp'])
     ax2.tick_params(axis='y', labelcolor=fp.COLORS_SIM_VS_EXP[1])
     ax2.ticklabel_format(style='sci', axis='y', scilimits=(0,0),
-                          useMathText=True)
+                         useMathText=True)
     ax2.grid(False)
     # mpl_axes_aligner.align.yaxes(ax1, ysat_sim, ax2, ysat_exp, 0.9)
     mpl_axes_aligner.align.yaxes(ax1, 0, ax2, 0, 0.05)
@@ -934,7 +933,7 @@ def plot_evo_p_anc_pcfixed_from_stat(c, p, simu_count, group_count,
     # > Legends.
     if group_count > c:
         raise Exception("`group_count` is too big for the number of cells "
-                        " given in argument.")
+                        " given as argument.")
     group_size = c // group_count
     ALABELS = [f'{i*group_size+1} to {(i+1)*group_size}' for i in
                range(group_count)]
@@ -1194,9 +1193,9 @@ def plot_sat_pfixed(cell_counts, simu_counts, fig_supdirectory, para_count=1,
     dsat_count = np.max([len(tsat_s[i]['mean']) for i in idxs])
     if not isinstance(dsat_count_max, type(None)):
         dsat_count = min(dsat_count_max, dsat_count)
-    tsat_s_avg = np.transpose([fct.reshape1D_with_nan(tsat_s[i]['mean'],
+    tsat_s_avg = np.transpose([fct.reshape_with_nan(tsat_s[i]['mean'],
                                dsat_count) for i in idxs])
-    tsat_s_std = np.transpose([fct.reshape1D_with_nan(tsat_s[i]['std'],
+    tsat_s_std = np.transpose([fct.reshape_with_nan(tsat_s[i]['std'],
                                dsat_count) for i in idxs])
 
     legends = {i: f"{i+1}" for i in range(dsat_count)}
@@ -1256,7 +1255,6 @@ def plot_hls_pfixed(cell_counts, simu_counts, fig_supdirectory, para_count=1,
     simu_counts = simu_counts.astype(int)
     
     
-    
     sim_paths = [wp.write_simu_pop_subdirectory(c, para_count, par_update)
                  for c in cell_counts]
     stat_paths = [wp.write_sim_pop_postreat_average(sim_paths[i],
@@ -1293,9 +1291,9 @@ def plot_hls_pfixed(cell_counts, simu_counts, fig_supdirectory, para_count=1,
     dsat_count = np.max([len(tsat_s[i]['mean']) for i in idxs])
     if not isinstance(dsat_count_max, type(None)):
         dsat_count = min(dsat_count_max, dsat_count)
-    tsat_s_avg = np.transpose([fct.reshape1D_with_nan(tsat_s[i]['mean'],
+    tsat_s_avg = np.transpose([fct.reshape_with_nan(tsat_s[i]['mean'],
                                dsat_count) for i in idxs])
-    tsat_s_std = np.transpose([fct.reshape1D_with_nan(tsat_s[i]['std'],
+    tsat_s_std = np.transpose([fct.reshape_with_nan(tsat_s[i]['std'],
                                dsat_count) for i in idxs])
 
     legends = {i: f"{i+1}" for i in range(dsat_count)}

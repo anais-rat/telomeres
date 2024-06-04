@@ -20,7 +20,7 @@ SIMU_COUNT = 1000
 IS_SAVED = True
 # ..............
 if IS_SAVED:
-    FIG_DIRECTORY = "figures_manuscript"
+    FIG_DIRECTORY = "figures/manuscript"
 # ..............
 else:
     FIG_DIRECTORY = None
@@ -214,7 +214,7 @@ FITS['8_2'] = [[0.0335402759396807, 0.5592098334257327, 0.9550179823818613,
                [0.0346671492, 0.583057834, 0.221637096, 0.284716527, 20.0,
                 0.00032902313, 0.0925905135, 0.0], # 8_6 new
                [0.02706138811179183, 0.20738590117335168, 0.010039528985475827,
-                0.014525433442926361, 20.0, 4.371659520047529e-07, 
+                0.014525433442926361, 20.0, 4.371659520047529e-07,
                 0.07634533773721339, 0.0], # 8_7 new
                [0.0357026564, 0.594344344, 0.995423828, 0.626655447, 20.0,
                 5.42294461e-06, 0.0881984979, 0.0]] # 8_8 new
@@ -391,7 +391,8 @@ lengths = [len(FITS['5']), len(FITS['6']), len(FITS['7']), len(FITS['8']),
 
 # Parameters for the job array. `idx` should ran from 0 to `job_count -1`.
 job_count = sum(lengths)
-print(f"SLURM_ARRAY_TASK_ID should ran from 0 to {job_count -1}")
+if __name__ == "__main__":
+    print(f"SLURM_ARRAY_TASK_ID should ran from 0 to {job_count -1}")
 is_run_in_parallel_from_slurm = "SLURM_ARRAY_TASK_ID" in os.environ.keys()
 
 # If parallel computation run from sbacth command, only one idx computed.
@@ -403,7 +404,7 @@ else:
     idxs = np.array([])
     if __name__ == "__main__":
         idxs = np.arange(job_count)
-    
+
 
 
 # Iteration on all jobs to run.

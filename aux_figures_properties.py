@@ -4,50 +4,35 @@
 Created on Wed Dec  8 15:21:50 2021
 
 @author: arat
+
+Global parameters of the figures, which are common to all plots or should not
+be changed locally, are defined below. Other global parameters are also defined
+at the beginning of `*_plot.py` scripts; more versatile ones are defined at the
+beginning of `main_plot_*.py` scripts.
+
 """
 
 import matplotlib
-from  matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-# Classical parameters for plots.
-# -------------------------------
-
-PERCENT = 95 # Percentage of data to include in the percentile interval.
-# ------------------------------
-P_DOWN = (100 - PERCENT) / 2 # First percentile to compute.
-P_UP = 100 - (100 - PERCENT) / 2 # Second percentile.
+# Classical parameters for plots
 # ------------------------------
 
-DPI = 600 # Resolution of plottings.
+PERCENT = 95  # Percentage of data to include in the percentile interval.
+# ------------------------------
+P_DOWN = (100 - PERCENT) / 2  # First percentile to compute.
+P_UP = 100 - (100 - PERCENT) / 2  # Second percentile.
+# ------------------------------
+
+DPI = 600  # Resolution of plots.
 ALPHA = 0.25 # Transparency to fill gaps btw extremum values, std, percentiles.
 
-PAR_LENGTH = 3 # Maximal length of  thfloats printed on plots.
 
-
-# Seaborn classical settings.
-# ---------------------------
-
-# > Latex font for plots and figure + auto-sizing.
-# NB: for recall, the usual font is obtained through r'$\mathrm{coucou~toi}$'.
-# plt.rcParams.update({#'text.usetex': True, #ok!!!!!!!!!!!!!!!
-                     # 'text.latex.preamble': r'\usepackage{amsfonts, dsfont}'}), #ok!!!!!!!!!!
-                      # 'font.family': "sans-serif", # rm .?????
-                      # 'font.sans-serif': ["Arial"]})  # rm .????? Helvetica
-                     # 'figure.autolayout': True}) Flingue tout !! pout legend outside
-
-# > A few settings for seaborn theme.
-# FONT_SCALE = 1.2
-# CONTEXT = "notebook"
-# sns.set_context(CONTEXT, font_scale=FONT_SCALE)
-# sns.set_style("darkgrid", {"axes.facecolor": ".94"})
-PALETTE = 'viridis'
-
-
-# Colors management.
-# ------------------
+# Colors management
+# -----------------
 
 # Creation of a color map for lineages cycles duration times.
 c = ["chartreuse", "limegreen", "red", "r"]
@@ -68,55 +53,42 @@ MY_COLORS_2_ROCKET = [color_map_rocket(.15), color_map_rocket(.61)]
 MY_COLORS_3_ROCKET = [color_map_rocket(.18), color_map_rocket(.48),
                       color_map_rocket(.69)]
 
-# Colors for sim vs exp.
-COLORS_SIM_VS_EXP = MY_COLORS[:2]
-
 # > Associated palettes.
 MY_PALETTE_2 = sns.color_palette(MY_COLORS_2_ROCKET)
 MY_PALETTE_3 = sns.color_palette(MY_COLORS_3)
 MY_PALETTE_5 = sns.color_palette(MY_COLORS_5, desat=0.9)
 MY_PALETTE = sns.color_palette(MY_COLORS, desat=0.9)
-# > Definition and display of the current palette.
+# Definition and display of the current palette.
 sns.set_palette(MY_PALETTE)
 if __name__ == "__main__":
-    # Here vizualize desired palettes.
-    sns.palplot(sns.color_palette()) # Default palette.
+    # Here vizualize desired palettes with command sns.palplot(`PALETTE_NAME`).
+    sns.palplot(sns.color_palette())  # Default palette.
 
     sns.palplot(MY_COLORS_2_ROCKET)
     sns.palplot(sns.color_palette('rocket', n_colors=2))
     sns.palplot(MY_COLORS_3_ROCKET)
     sns.palplot(sns.color_palette('rocket', n_colors=3))
-
     sns.palplot(MY_COLORS_3)
     sns.palplot(sns.color_palette('viridis', n_colors=3))
 
-    # sns.palplot(sns.color_palette('viridis', n_colors=5))
-    # sns.palplot(sns.color_palette('viridis', n_colors=6))
-    # sns.palplot(sns.color_palette('viridis', n_colors=7))
+# > Colors for "simulation" and "experiment" curves.
+COLORS_SIM_VS_EXP = MY_COLORS[:2]
 
-def give_colors(color_count, palette_name='rocket'):
-    """ Generates a palette of `color_count` colors from the seaborn palette
-    `palette_name` (optionnal, 'rocket' by default).
-
-    """
-    return sns.color_palette(palette_name, n_colors=color_count)
-
-
-# > Colors associated to each type.
+# > Colors for cell types.
 type_keys = ['b+htype', 'mtype', 'atype']
-type_count = len(type_keys)
-colors_type = sns.color_palette("rocket", type_count)
-COLORS_TYPE = {type_keys[i]: colors_type[i] for i in range(type_count)}
+colors_type = sns.color_palette("rocket", len(type_keys))
+COLORS_TYPE = {type_keys[i]: colors_type[i] for i in range(len(type_keys))}
 COLORS_TYPE['htype'] = 'grey'
 COLORS_TYPE['h+mtype'] = COLORS_TYPE['mtype']
 COLORS_TYPE['btype'] = COLORS_TYPE['b+htype']
 COLORS_TYPE['all'] = 'grey'
 COLORS_TYPE['sen'] = 'black'
 
-# Legend management.
-# ------------------
 
-# Labels commun to lineage and population plots.
+# Legend management
+# -----------------
+
+# Dictionary of labels common to lineage and population plots.
 LABELS = {'ax_time': "Time (day)",
           'ax_cexp': "Cell concentration (cell/mL)",
           'ax_l': "Telomere length (bp)",
@@ -156,7 +128,7 @@ LABELS = {'ax_time': "Time (day)",
           'htype': "type H",
            #
           'atype_sen': "senescent type A",
-          'btype__sen': "senescent type B",
+          'btype_sen': "senescent type B",
           #
           'exp': "Experiment",
           'sim': "Simulation",

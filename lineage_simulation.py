@@ -50,7 +50,7 @@ def is_as_expected_lineage(gtrigs, lineage_type, is_accidental_death,
                            characteristics):
     """ Return True if the lineage described by `gtrigs`, `lineage_type`,
     `is_accidental_death` is a lineage that satisfies the charasteristics given
-    in argument.
+    as argument.
 
     Parameters
     ----------
@@ -112,7 +112,7 @@ def is_as_expected_lineage(gtrigs, lineage_type, is_accidental_death,
 def is_as_expected_lineages(gtrigs_s, lineage_types, is_accidental_deaths,
                             characteristics):
     """ Same as for `is_expected_lineages` but for a set of `lineage_count`
-    lineages instead of one lineage. The output is a bool 1D array of lenght
+    lineages instead of one lineage. The output is a bool 1D array of length
     `lineage_count`.
     NB: since characteristics are common to all lineages we repeat the code of
         `is_as_expected_lineage` instead of referring to it.
@@ -159,7 +159,7 @@ def is_as_expected_lineages(gtrigs_s, lineage_types, is_accidental_deaths,
 # Experimental data
 # -----------------
 
-def compute_exp_lcycle_counts(cycles, gtrigs, threshold):
+def compute_exp_lcycle_counts(cycles, gtrigs, is_lcycle):
     """ Compute the number of successive long cycles (defined by `threshold`)
     of every sequence of arrest of every lineage, orderring them similarly to
     `gtrigs`.
@@ -173,9 +173,11 @@ def compute_exp_lcycle_counts(cycles, gtrigs, threshold):
     gtrigs : dict
         Dictionnary with generations of event (nta, senescence and death) of
         the format returned by `simulate_lineages_evolution`.
-    threshold : int
-        In 10 minutes, threeshold between long cycles (> threeshold) and normal
-        cycles (<= threeshold).
+    is_lcycle : ndarray
+        2D array (lineage_count, gen_count) s.t. `is_lcycle[i, j]` is True if
+        the cycle duration time of the jth cell of the ith lineage is long,
+        False otherwise.
+        NB: is Nan if the the ith lineage is already dead at generation j.
 
     Returns
     -------
@@ -194,7 +196,6 @@ def compute_exp_lcycle_counts(cycles, gtrigs, threshold):
 
     """
     lineage_count = len(gtrigs['sen'])
-    is_lcycle = cycles > 10 * threshold
 
     lcycle_per_seq_counts = {'nta': np.nan * gtrigs['nta'],
                              'sen': np.nan * np.zeros(lineage_count)}
@@ -204,7 +205,7 @@ def compute_exp_lcycle_counts(cycles, gtrigs, threshold):
         idx_gmax = sum(~np.isnan(cycles[lin])) - 1
         idx_nta_max_end = int(np.nanmin([idx_gmax, gtrigs['sen'][lin]]))
         # If the lineage is not senescent and ends with long cycle.
-        if np.isnan(gtrigs['sen'][lin]) and is_lcycle[idx_gmax][-1]:
+        if np.isnan(gtrigs['sen'][lin]) and is_lcycle[lin, idx_gmax]:
             # The last sequence of nta is not counted.
             nta_max -= 1
         temp = []
@@ -222,10 +223,11 @@ def compute_exp_lcycle_counts(cycles, gtrigs, threshold):
                 gtrigs['sen'][lin] + 1
     return lcycle_per_seq_counts
 
-#
-def postreat_experimental_lineages(data, threshold, gen_count_by_lineage_min):
+def postreat_experimental_lineages(data, threshold, gen_count_by_lineage_min,
+                                   par_multiple_thresholds=None):
     """ Extract and return from `data` the cell cycles, from strictly after
-    DOX addition to the end of measurements, of all the lineages longer than
+    DOX addition (or new conditions if par_multiple_thresholds not None)
+    to the end of measurements, of all the lineages longer than
     `gen_count_by_lineage_min`. Besides, compute and return information on each
     lineage (generations at which event triggered and type).
 
@@ -240,6 +242,10 @@ def postreat_experimental_lineages(data, threshold, gen_count_by_lineage_min):
     gen_count_by_lineage_min : int
         Lineages counting striclty less than `gen_count_by_lineage_min`
         generations (from after DOX addition) are forgotten from the data.
+    par_multiple_thresholds : list
+        par_multiple_thresholds[0]: threshold during the new conditions (C2).
+        par_multiple_thresholds[1]: time (in 10 min) of change of environment
+        s.t. conditions C2 between `init_times` and par_multiple_thresholds[1].
 
     Returns
     -------
@@ -281,11 +287,13 @@ def postreat_experimental_lineages(data, threshold, gen_count_by_lineage_min):
     """
     lineage_count = len(data['endlineage'][0])
     lineages = np.arange(lineage_count)
-    # lineage_to_remove = []  # List of lineage indexes dead before Dox addition.
 
-    # Array, for each lineage, of the time at which DOX has been added.
-    dox_add_times = data['DOXaddition'][0].astype(int)
-
+    # Array, for each lineage, of the time of the fisrt generation of interest.
+    # Under usual conditions, it is when DOX was added.
+    init_times = data['DOXaddition'][0].astype(int)
+    # NB: for finalCut data 'DOXaddition' corresponds to Gal addition.
+    if not isinstance(par_multiple_thresholds, type(None)):
+        threshold_new, time_change = par_multiple_thresholds
     # Extraction of cycles duration times after DOX addition saving some info.
     # > Initialization of lists:
     cycles = [] # `cycles[i]`: array of cycle durations of the ith lineage.
@@ -293,17 +301,26 @@ def postreat_experimental_lineages(data, threshold, gen_count_by_lineage_min):
     # ... and arrays indicating:
     is_last_long = np.array([]).astype(bool) # if lineages' last cycle is long.
     gen_counts = np.array([]) # lineages lengths (in generation).
+
     # > Iteration on all lineages.
     for i in lineages:
-        # Extration of times of division/death (except last one) in ith lin.
-        div_times = data['track'][0, i].astype(int)[:, 0]
-        # We keep only times stricly after Dox addition.
-        cycles.append(data['track'][0, i].astype(int)[div_times >
-                                                      dox_add_times[i], :])
-        # We turn "times of division" to cycle duration times.
-        cycles[i] = cycles[i][:, 1] - cycles[i][:, 0]
+        # Extraction of times of division/death (except first gen) in ith lin.
+        div_times = data['track'][0, i].astype(int)[:, 1]
+        birth_times = data['track'][0, i].astype(int)[:, 0]  # Same for birth.
+        # We keep only generations born after or at Dox (/Gal) addition.
+        is_kept = birth_times >= init_times[i]
+        # cycles.append(data['track'][0, i].astype(int)[div_times >
+        #                                               init_times[i], :2])
+        # And turn "times of division" to cycle duration times.
+        cycles.append(div_times[is_kept] - birth_times[is_kept])
         # Update other data concerning the ith lineage.
-        is_long.append(cycles[i] > threshold)
+        if isinstance(par_multiple_thresholds, type(None)): # Only 1 threshold.
+            is_long.append(cycles[i] > threshold)
+        else:  # Change of environment -> multiple thresholds.
+            div_times_kept = div_times[div_times > init_times[i]]
+            idx_change = np.argmin(div_times_kept < time_change)
+            is_long.append(np.append(cycles[i][:idx_change] > threshold_new,
+                                     cycles[i][idx_change:] > threshold))
         if len(cycles[i]) == 0:  # If no cycle after Dox addition.
             is_last_long = np.append(is_last_long, False)
         else:
@@ -321,9 +338,9 @@ def postreat_experimental_lineages(data, threshold, gen_count_by_lineage_min):
     gen_counts = gen_counts[lineages_kept]
     gen_count = int(max(gen_counts)) # Maximal lineage length.
     is_last_long = is_last_long[lineages_kept]
-    cycles = np.array([fct.reshape1D_with_nan(cycles[i], gen_count) for i in
+    cycles = np.array([fct.reshape_with_nan(cycles[i], gen_count) for i in
                        lineages_kept])
-    is_long = np.array([fct.reshape1D_with_nan(is_long[i], gen_count) for i in
+    is_long = np.array([fct.reshape_with_nan(is_long[i], gen_count) for i in
                         lineages_kept])
 
     # Computation of generations at which nta or senescence triggered.
@@ -387,21 +404,24 @@ def postreat_experimental_lineages(data, threshold, gen_count_by_lineage_min):
     # And remaining data.
     is_unseen_htypes = None
     lcycle_per_seq_counts = compute_exp_lcycle_counts(cycles, gtrigs,
-                                                      threshold)
+                                                      is_long)
     return ({'cycle': cycles}, gtrigs, lineage_types, is_unseen_htypes,
             is_accidental_deaths, lcycle_per_seq_counts)
-    
+
 def postreat_experimental_lineages_from_path(data_path, data_key,
                                              threshold=par.THRESHOLD,
-                                  gcount_min=par.GEN_COUNT_BY_LINEAGE_MIN):
+                                             gcount_min=
+                                             par.GEN_COUNT_BY_LINEAGE_MIN,
+                                             par_multiple_thresholds=None):
     data = sio.loadmat(data_path)
     data = data[data_key]
-    return postreat_experimental_lineages(data, threshold, gcount_min)
+    return postreat_experimental_lineages(data, threshold, gcount_min,
+                                          par_multiple_thresholds)
 
 
 def select_exp_lineages(exp_data, characteristics):
     """ Extract from `exp_data` the data of the lineages having the
-    characteristics given in argument, returning it under same format (i.e. an
+    characteristics given as argument, returning it under same format (i.e. an
     output of `postreat_experimental_lineages`).
 
     """
@@ -460,11 +480,16 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
         1: terminal arrest (p_death / par.P_GEO_SEN)
         2: non-terminal arrest (p_repair / par.P_GEO_NTA)
     par_finalCut : ndarray, optional
-        Default is None which corresponds to usual initial telomere lengths.
-        Otherwise, the initial telomere lengths are drawn s.t. to mimick final
-        cut experiment: one telomere (uniformly chosen) is set to
-        `par_finalCut[0]` bp after a random number of generations (geometric
-        law of parameter `1 / par_finalCut[1]`) with proba `1-par_finalCut[2]`.
+        Default is None which corresponds to usual experimental setting with
+        Dox addition at time 0 up to lineage death.
+        Otherwise, mimick the experiment where
+        - Dox is added at frame `par_finalCut[3][0]`
+        - Gal is added at frame `par_finalCut[3][1]` which will initiate the
+            cut of 1 telomere (uniformly chosen) to length `par_finalCut[0]` bp
+            after a random number of generations (geometric law of parameter
+            `1 / par_finalCut[1]`) after Gal addition with proba
+            `1-par_finalCut[2]`. Galactose also affects cell growth.
+        - Galactose is removed at frame `par_finalCut[3][2]`.
 
     Returns
     -------
@@ -504,27 +529,29 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
     if is_htype_seen or (not par.HYBRID_CHOICE):
         is_unseen_htype = None
 
-    # Initialization of <evo_*> arrays with the data of the first cell, 
-    # non-sencescent type A with generation -1 (s.t the 1st cell born after
-    # DOX addition / end of galactose has generation 0).
+    # Initialization of <evo_*> arrays (t = 0) with the data of the first cell:
+    # non-sencescent type A with generation -1 (s.t the 1st cell born under DOX
+    # has generation 0). At t=0: Dox addition, no Galactose (and thus no cut).
+    is_galactose = False
     is_accidental_death = False
     is_senescent = False
     nta_count = 0
     generation = -1
-    evo_cycle = fct.draw_cycles_A(1)
-    evo_lengths = fct.draw_cell_lengths(1, par_l_init)
-    gen_cut = math.inf
-    if not isinstance(par_finalCut, type(None)):  # Final cut conditions.
-        # The telomere `[t1, t2]` will be cut in `gen_cut` generations.
-        is_cut_escaped = fct.is_cut_escaped(1, proba=par_finalCut[2])[0]
-        if not is_cut_escaped:
-            gen_cut = fct.draw_delays_cut(1, avg_delay=par_finalCut[1])[0]
-            t2 = rd.randint(par.CHROMOSOME_COUNT) # Index of the chromosome cut
-            t1 = rd.randint(2)  # Index of the chrosome extremity cut.
+    evo_cycle = fct.draw_cycles_atype(1)
+    evo_lengths = fct.draw_cells_lengths(1, par_l_init)
     evo_lavg = [np.mean(evo_lengths)]
     evo_lmin = [np.min(evo_lengths)]
     gtrigs = {'nta': np.array([]), 'sen': np.NaN}
     lcycle_per_seq_count = {'nta': np.array([]), 'sen': np.nan}
+    # > Final cut exp conditions.
+    # gen_cut = math.inf  # Generation at wich a cut happens.
+    if not isinstance(par_finalCut, type(None)):
+        t_current = evo_cycle[0] # Time at the end of the 1st cycle.
+        # Times [min] of change in experimental conditions.
+        idx_dox, idxf_gal, idxf_raf = par_finalCut[3]
+        t_gal = (idxf_gal - idx_dox) * 10  # (1 frame every 10 min).
+        t_raf = (idxf_raf - idx_dox) * 10
+    is_telo_cut = False  # No cut initially.
 
     # While the lineage is not extinct.
     lineage_is_alive = True
@@ -563,10 +590,8 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
             evo_cycle = np.append(evo_cycle, evo_cycle[-1])
 
             # Computation of telomere lengths following the shortening model.
-            loss = rd.RandomState().binomial(1, .5 ,16)
+            loss = rd.RandomState().binomial(1, .5 , 16)
             evo_lengths[-1] -= fct.draw_overhang() * np.array([loss, 1 - loss])
-            if generation == gen_cut:  # With possible cut.
-                evo_lengths[-1][t1, t2]  = par_finalCut[0]
             # Update of other length-related evolution arrays.
             evo_lavg = np.append(evo_lavg, np.mean(evo_lengths[-1]))
             evo_lmin = np.append(evo_lmin, np.min(evo_lengths[-1]))
@@ -640,7 +665,70 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
                 lcycle_per_seq_count['sen'] += 1
 
             # Update of the cell cycle duration time and array of cyle times.
-            evo_cycle[-1] = fct.draw_cycle(nta_count, is_senescent)
+            if isinstance(par_finalCut, type(None)):
+                evo_cycle[-1] = fct.draw_cycle(nta_count, is_senescent)
+            else:  # Experimental conditions of the fincalCut experiment.
+                evo_cycle[-1] = fct.draw_cycle_finalCut(nta_count,
+                                                        is_senescent,
+                                                        is_galactose)
+            # If finalcut experiment, possible change of condition and cut.
+            if not isinstance(par_finalCut, type(None)):
+                t_current += evo_cycle[-1]  # Time just bf div of current cell.
+                cdt_w_gal = evo_cycle[-1]  # When Gal is active: the time spent
+                                           # under Gal.
+                if t_current >= t_raf:  # If Galactose has been removed.
+                    if is_galactose == True:  # If during the current cycle.
+                        is_galactose = False
+                        cdt_w_gal -= t_current - t_raf
+                elif t_current >= t_gal: # Otherwise if Galactose is active.
+                    if is_galactose == False: # If cell is 1st to experience it
+                        # If the cell (gen =- 1, that experiences Gal) is
+                        # arrested the lin is excluded from data: new lin simu.
+                        if nta_count > 0 or is_senescent:
+                            return simulate_lineage_evolution(lineage_idx,
+                                        is_htype_seen=is_htype_seen,
+                                        parameters=parameters, p_exit=p_exit,
+                                        par_finalCut=par_finalCut)
+                        is_galactose = True
+                        cdt_w_gal = t_current - t_gal
+                        # We reset the generation and forget ancestors.
+                        evo_cycle = evo_cycle[-1:]
+                        evo_lengths = evo_lengths[-1:]
+                        evo_lavg = evo_lavg[-1:]
+                        evo_lmin = evo_lmin[-1:]
+                        for key, gtrig in gtrigs.items():
+                            gtrigs[key] = gtrig - np.abs(generation)
+                        # elif fct.is_cut_exponential(cdt_w_gal,
+                        #                             proba=1/par_finalCut[1]):
+
+                        # if gtrigs['sen'] - dgen_rescale < 0:
+                        #     return simulate_lineage_evolution(lineage_idx,
+                        #                is_htype_seen=is_htype_seen,
+                        #                parameters=parameters, p_exit=p_exit,
+                        #                par_finalCut=par_finalCut)
+                        # if len(gtrigs['nta']) > 0:
+                        #     if gtrigs['nta'][0] - dgen_rescale < -1:
+                        #         return simulate_lineage_evolution(lineage_idx,
+                        #                    is_htype_seen=is_htype_seen,
+                        #                    parameters=parameters, p_exit=p_exit,
+                        #                    par_finalCut=par_finalCut)
+                        generation = -1  # = generation - dgen_rescale
+                # Possible cut if the length after cut is not None (ie there
+                # is a Cas9 cut), ...
+                # NB: We assume that the cut happens at the end of the cycle,
+                #     and will thus influence only the next generation.
+                if not isinstance(par_finalCut[0], type(None)):
+                    # and that cut not already done & gal still present.
+                    if (not is_telo_cut) and is_galactose:
+                        if fct.is_cut_exponential(cdt_w_gal,
+                                                  dt_w_gal=t_current - t_gal):
+                        # if fct.is_cut(proba=1/par_finalCut[1], gen=generation):
+                            is_telo_cut = True
+                            # Index of the chromosome cut...
+                            t2 = rd.randint(par.CHROMOSOME_COUNT)
+                            t1 = rd.randint(2)  # ... and extremity cut.
+                            evo_lengths[-1][t1, t2] = par_finalCut[0]
+
     # Computation of the type of the lineage (ie of the last cell).
     if nta_count == 0:
         lineage_type = 0
@@ -767,15 +855,15 @@ def simulate_lineages_evolution(lineage_count, characteristics,
                      # > We reshaphe either `evos` either `evo_s` if necessary.
                     if gen_count > gen_count_temp:
                         for key, evo in evos.items():
-                            evos[key] = fct.reshape1D_with_nan(evo, gen_count)
+                            evos[key] = fct.reshape_with_nan(evo, gen_count)
                             # > And add the current lineage to previous ones.
                             evo_s[key] = np.append(evo_s[key], [evos[key]], 0)
                     elif gen_count < gen_count_temp:
                         # If `evo_s` reshape, update of current max number of gen.
                         gen_count = gen_count_temp
                         for key, evo in evos.items():
-                            evo_s[key] = fct.reshape_axis_with_nan(evo_s[key],
-                                                                   gen_count,1)
+                            evo_s[key] = fct.reshape_with_nan(evo_s[key],
+                                                              gen_count, 1)
                             evo_s[key] = np.append(evo_s[key], [evo], 0)
                     else: # Otherwise we add directly, no need to reshape first.
                         for key, evo in evos.items():
@@ -783,12 +871,12 @@ def simulate_lineages_evolution(lineage_count, characteristics,
     # `gtrigs_s['nta']` and `lcycle_per_seq_count_s` converted from list to
     #  array extending with NaN.
     nta_count = int(max(nta_counts))
-    gtrigs_s['nta'] = np.array([fct.reshape1D_with_nan(gtrigs, nta_count) for
+    gtrigs_s['nta'] = np.array([fct.reshape_with_nan(gtrigs, nta_count) for
                                 gtrigs in gtrigs_s['nta']])
     lcycle_per_seq_counts = {'nta': None, 'sen': None}
     if is_lcycle_counts:
         seq_count = max([len(lc) for lc in lcycle_per_seq_count_s['nta']])
-        lcycle_per_seq_counts = {'nta': np.array([fct.reshape1D_with_nan(count,
+        lcycle_per_seq_counts = {'nta': np.array([fct.reshape_with_nan(count,
             seq_count) for count in lcycle_per_seq_count_s['nta']]),
                                 'sen': np.array(lcycle_per_seq_count_s['sen'])}
     # If no type H to keep track of `is_unseen_htypes` simply set to nan.
@@ -803,14 +891,14 @@ def simulate_lineages_evolutions(simulation_count, lineage_count,
                                  is_evos=False, proc_count=1,
                                  p_exit=par.P_EXIT, par_finalCut=None):
     """ Simulate (possibly in parallel) `simu_count` times
-    `simulate_lineages_evolutions` (with parameters entered in argument).
+    `simulate_lineages_evolutions` (with parameters entered as argument).
 
     Parameters
     ----------
     simulation_count : int
         Number of sets of `lineage_count` lineages simulated.
     proc_count : int, optional
-        Number of processors used for parallel computation (if 1 no parallel 
+        Number of processors used for parallel computation (if 1 no parallel
         computation).
 
     Returns
@@ -918,12 +1006,13 @@ def sort_lineages(data, type_of_sort):
     type_of_sort : string
         Indicates how to sort data:
         - 'lmin' : sort by initial length of shortest telomere.
-        - 'lavg' : sort by initial average telomere lenght.
+        - 'lavg' : sort by initial average telomere length.
           WARNING: does not work for experimental data (ie `data` being output
                    of `postreat_experimental_lineages`).
         - 'gntai' : sort by generation of the ith non-terminal arrest.
         - 'gsen' : sort by generation of senescence.
         - 'gdeath' : sort by generation of death.
+
     Returns
     -------
     data_sorted : list
@@ -1009,7 +1098,7 @@ def is_alive_at_time(time, div_times):
     return np.logical_and(div_times_extended[:, :-1] <= time, div_times > time)
 
 def is_alive_n_times_from_cycles(div_times, times=None):
-    """ Return for each time t of `times` (the times given in argument or each
+    """ Return for each time t of `times` (the times given as argument or each
     time of division if not indicated) a bool array of the shape of `cycles`
     indicating True in any `(i, j)` component s.t. the cell of the jth
     generation of the ith lineage is alive at time t.
@@ -1028,7 +1117,7 @@ def is_alive_n_times_from_cycles(div_times, times=None):
     Returns
     -------
     times : ndarray
-        1D array (time_count,) given in argument or computed if no times given.
+        1D array (time_count,) given as argument or computed if no times given.
     is_alive : ndarray
         3D array (time_count, lineage_count, gen_count) s.t. `is_alive[i,j,k]`
         is True if the kth cell of the jth lineage is alive at time `times[i]`,
@@ -1101,7 +1190,7 @@ def cell_types_from_gtrigs_n_lin_types(cycles, gtrigs, lineage_types,
                              "`cell_types_from_gtrigs_n_lin_types` function")
 
     # > -1  values at every generation where no cell (lineage already extinct).
-    cycles_extended = fct.reshape_axis_with_nan(cycles, gmax, 1)
+    cycles_extended = fct.reshape_with_nan(cycles, gmax, 1)
     cell_types[np.isnan(cycles_extended)] = -1
     return cell_types
 
@@ -1154,7 +1243,7 @@ def evo_in_gen_n_time(data, div_times, gen_count=None, times=None):
     else: # Otherwise, simulated.
         data_type = 'sim'
 
-    # Definition of `gen_count` if not given in argument.
+    # Definition of `gen_count` if not given as argument.
     lineage_count, gmax = np.shape(data[0]['cycle'])
     if isinstance(gen_count, type(None)):
         gen_count = gmax
@@ -1165,7 +1254,7 @@ def evo_in_gen_n_time(data, div_times, gen_count=None, times=None):
     evo_t = {}
     # "Evo" data, we iterate on all evo data, adding the key 'lmin_min'.
     for key, evo_data in data[0].items():
-        evo_data_reshaped = fct.reshape_axis_with_nan(evo_data, gen_count, 1)
+        evo_data_reshaped = fct.reshape_with_nan(evo_data, gen_count, 1)
         # Avoid error nanmean/min/... when mean/... computed over axis of nan.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
@@ -1230,7 +1319,7 @@ def evo_in_gen_n_time(data, div_times, gen_count=None, times=None):
     for key in ['prop_sen', 'prop_type', 'prop_type_sen']:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            evo_g[key] = fct.reshape_axis_with_nan(evo_g[key], gen_count, -1)
+            evo_g[key] = fct.reshape_with_nan(evo_g[key], gen_count, -1)
 
     # > Iteration on all times, averaging only omong alive cells.
     evo_t['prop_sen'] = np.array([])
@@ -1303,15 +1392,15 @@ def statistics_on_sorted_lineages(data_s, postreat_dt=None,
         evo_avg = {}
         gen_counts = [np.shape(data_s[s][0]['lavg'])[1] for s in simus]
         gen_count = int(max(gen_counts))
-        
+
         # Average (only on simulations) all evolution arrays.
         for evo_key in data_s[0][0]: # 'cycle', 'lavg', 'lmin.
             # We prevent RuntimeWarnings print when nanmean of empty arr.
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
                 evo_avg[evo_key] = np.nanmean(np.concatenate([[
-                    fct.reshape_axis_with_nan(data_s[s][0][evo_key], gen_count,
-                                              1)] for s in simus], 0), axis=0)
+                    fct.reshape_with_nan(data_s[s][0][evo_key], gen_count, 1)]
+                    for s in simus], 0), axis=0)
         # Add proportions by type to evolution arrays (dead:-1 H:nan A:0 B:1).
         cell_types_s = np.concatenate([[cell_types_from_gtrigs_n_lin_types(
                         data_s[s][0]['cycle'], *data_s[s][1:3], 'sim',
@@ -1352,7 +1441,7 @@ def statistics_on_sorted_lineages(data_s, postreat_dt=None,
     lcycle_counts_s = {'nta': None, 'sen': None}
     if not isinstance(data_s[0][5]['nta'], type(None)):
         seq_count = max([np.shape(data_s[s][5]['nta'])[1] for s in simus])
-        lcycle_counts_s = {'nta': np.array([fct.reshape_axis_with_nan(
+        lcycle_counts_s = {'nta': np.array([fct.reshape_with_nan(
                                             data_s[s][5]['nta'], seq_count, 1)
                                             for s in simus]),
                            'sen': np.array([data_s[s][5]['sen'] for s in
@@ -1360,8 +1449,8 @@ def statistics_on_sorted_lineages(data_s, postreat_dt=None,
     gtrigs_stat = {}
     for trig_key in data_s[0][1]:
         if trig_key == 'nta':
-            gtrigs = np.concatenate([[fct.reshape_axis_with_nan(
-                data_s[s][1]['nta'], nta_count, axis=1)] for s in simus], 0)
+            gtrigs = np.concatenate([[fct.reshape_with_nan(data_s[s][1]['nta'],
+                                      nta_count, axis=1)] for s in simus], 0)
         else:
             gtrigs = [data_s[s][1][trig_key] for s in simus]
         gtrigs_stat[trig_key] = fct.nanstat(gtrigs, fp.P_UP, fp.P_DOWN, 0)
@@ -1385,7 +1474,7 @@ def statistics_on_sorted_lineages(data_s, postreat_dt=None,
             lmins_s.append(lmins)
             lmin_max = max(lmin_max, max(lmins))
         hist_axis = np.arange(lmin_max + 2)
-        hist_s = [fct.make_hist_from_data(lmins, hist_axis) for lmins in
+        hist_s = [fct.make_histogram(lmins, hist_axis) for lmins in
                   lmins_s]
         hist = fct.stat_all(hist_s, fp.P_UP, fp.P_DOWN)
         hist_lmins = [hist_axis, hist]
@@ -1521,7 +1610,7 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
     is_too_long = False
     is_time_tested = isinstance(parameters_comput, type(None)) # True if not to
                                                                # test.
-    is_evos = (not isinstance(p['postreat_dt'], type(None)) or 
+    is_evos = (not isinstance(p['postreat_dt'], type(None)) or
                p['is_evo_stored'] or not isinstance(p['hist_lmins_axis'],
                                                     type(None)))
     simus = np.arange(simulation_count)

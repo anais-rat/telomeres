@@ -58,9 +58,9 @@ def population_init(c_init_s, is_saved):
             # Initial number of cells.
             c_init = c_init_s[i]
             # Lengths generated (depending on `PAR_L_INIT`and `L_INIT_CHOICE`).
-            dic_s[i]['lengths'] = fct.draw_cell_lengths(c_init)
+            dic_s[i]['lengths'] = fct.draw_cells_lengths(c_init)
             # Cycle duration times (cdt) (depending on `CYCLES_CHOICE`).
-            cycles = fct.draw_cycles_A(c_init)
+            cycles = fct.draw_cycles_atype(c_init)
             # Remaining time before death (depending on `DELAY_CHOICE`).
             dic_s[i]['clocks'] = fct.desynchronize(cycles)
             # Other data account for non-sencescent type A generation 0 cells.
@@ -74,7 +74,6 @@ def population_init(c_init_s, is_saved):
             for i in simus:
                 np.save(par.DATA_INIT_LOAD_PATH + f'_c{c_init}_{i}.npy',
                         dic_s[i])
-
     # > From already generated & saved data.
     if par.DATA_INIT_CHOICE == 'load':
         for i in simus:
@@ -87,7 +86,8 @@ def population_init(c_init_s, is_saved):
     return dic_s
 
 
-def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
+def population_evolution(times, time_saved_idxs, ancestor_count, cells_data,
+                         cell_count_max=None):
     """ Simulate the evolution of a given population over a given set of times
     (supposed to be 1 day). Includes saturation.
 
@@ -100,34 +100,32 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
         data should be saved.
     ancestor_count : int
         Number of original ancestors in the "original population" (at the
-        origin of the population passed in argument).
-        NB: when `times[0]` is 0 this is exactly `cell_count` (the "initial
-            population" passed in argument is the original one).
+        origin of the population passed as argument).
+        NB: when `times[0]` is 0 this is exactly `cell_count_init` (the 
+            "initial population" passed as argument is the original one).
     cells_data : dict
-        Dictionary gathering the data of each of the `cell_count` of the
+        Dictionary gathering the data of each of the `cell_count_init` of the
         initial population data. Entries ('key') are detailed below.
 
-        > 1D arrays (cell_count,).
-        'ancestors' : ndarray
-            Indexes of cells' ancestor in the original population.
-        'nta_count' : int
-            Cells' number of sequence of non-terminal arrest(s) since
+        > 1D arrays (cell_count_init,).
+        'ancestors' : indexes of cells' ancestor in the original population.
+        'nta_count' : Cells' number of sequence of non-terminal arrest(s) since
             generation 0. For non-senescent cell, it is positive if the cell is
             arrested, negative if it is in normal cycle.
             Ex: 0 for non-senescent type A, 1 for non-senescent type B in a 1st
                 seq. of arrests, <0 for non-senescent type B in normal cycle...
-        'clocks' : ndarray
-            Cells' remaining time until division.
-        'generations' : ndarray
-            Cells' generation.
-        'sen_counts' : ndarray
-            Cells' numbers of senescent cycles.
+        'clocks' : Cells' remaining time until division.
+        'generations' : Cells' generation.
+        'sen_counts' : Cells' numbers of senescent cycles.
 
-        > 3D array (cell_count, 2, 16).
-        'lengths' : ndarray
-            Cells' telomere lengths at both extremities of their 16 chromosomes
-            lengths[i, 0] one telomeric extremity in the i-th cell.
-            lengths[i, 1] and the other one.
+        > 3D array (cell_count_init, 2, 16).
+        'lengths' : Cells' telomere lengths at both extremities of their 16
+            chromosomes - lengths[i, 0] 1 telomeric extremity in the i-th cell
+                        - lengths[i, 1] and the other one.
+    cell_count_max : int or None
+        Estimation of the maximum number of cells that will be reached during
+        simulation. Optional is None in which case the number is computed from
+        stauration parameters (assuming population growth up to saturation).
 
     Returns
     -------
@@ -191,23 +189,29 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
     d = deepcopy(cells_data)
 
     # Number of cell(s) in the initial population.
-    init_cell_count = len(d['clocks'])
-    if init_cell_count == 0:
+    cell_count_init = len(d['clocks'])
+    if cell_count_init == 0:
         raise Exception("Function `population_evolution` does not accept empty"
                         " populations.")
 
     # Computation of saturation parameters.
     # NB: if SAT_CHOICE[-1] is 'prop', i.e. population saturates when reaching
-    #     a proportion of `init_cell_count` at day `len(SAT_CHOICE)`, then
+    #     a proportion of `cell_count_init` at day `len(SAT_CHOICE)`, then
     #     saturation on the following days follows the same saturation rule.
     day = int(times[0] / (24 * 60)) # Current day converting min to day.
     day = min(len(par.SAT_CHOICE) - 1, day) # Day defining the saturation rule.
-    c_sat = par.PROP_SAT * init_cell_count
+    c_sat = par.PROP_SAT * cell_count_init
+    sat_choice, t_sat = par.SAT_CHOICE[day], par.TIMES_SAT[day]
 
-    # Creation of additional population data arrays (init_cell_count,) to speed
+    # Creation of additional population data arrays (cell_count_init,) to speed
     # up the computation of evolution arrays.
-    lengths_avg = np.mean(d['lengths'], axis=(1, 2)) # Cells' average telomere.
-    lengths_min = np.min(d['lengths'], axis=(1, 2)) # Cells' shortest telomere.
+    lavgs = np.mean(d['lengths'], axis=(1, 2)) # Cells' average telomere.
+    lmins = np.min(d['lengths'], axis=(1, 2)) # Cells' shortest telomere.
+
+    # Estimation of the maximun number of cells if not given.
+    # NB: we work on big arrays to update rather than arrays of exactly the pop
+    #     size, to extend at every division, to avoid np.append (costly).
+    c_max = cell_count_max or c_sat
 
     # Creation of needed lists of keys and time evolution arrays.
     time_count = len(times)
@@ -222,19 +226,20 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
     d['evo_lmode'] = np.zeros((time_count_saved, 2))
 
     # Initialization of time evolution arrays at the first time.
-    c_current = init_cell_count
-    temp_anc = fct.datas_to_hist_s(d['ancestors'], d['nta_counts'],
-                                   d['sen_counts'], ancestor_count)
-    temp_gen = fct.datas_to_hist_s(d['generations'], d['nta_counts'],
-                                   d['sen_counts'], gen_count)
+    c_current = cell_count_init
+    c_idx_max = c_current
+    temp_anc = fct.make_cell_count_histograms(d['ancestors'], d['nta_counts'],
+                                              d['sen_counts'], ancestor_count)
+    temp_gen = fct.make_cell_count_histograms(d['generations'],d['nta_counts'],
+                                              d['sen_counts'], gen_count)
     for i in range(len(ks.evo_c_anc_keys)):
         d[ks.evo_c_anc_keys[i]][0] = temp_anc[i]
     for i in range(len(ks.evo_c_gen_keys)):
         d[ks.evo_c_gen_keys[i]][0] = temp_gen[i]
-    d['evo_lavg_sum'][0] = np.sum(lengths_avg)
-    d['evo_lmin_sum'][0] = np.sum(lengths_min)
-    d['evo_lmin_max'][0] = np.max(lengths_min)
-    d['evo_lmin_min'][0] = np.min(lengths_min)
+    d['evo_lavg_sum'][0] = np.sum(lavgs)
+    d['evo_lmin_sum'][0] = np.sum(lmins)
+    d['evo_lmin_max'][0] = np.max(lmins)
+    d['evo_lmin_min'][0] = np.min(lmins)
     if time_saved_idxs[0] == 0:
         evo_lmin_gsen = {key: [[]] for key in ks.type_keys}
         d['evo_lmode'][0] = np.transpose(stats.mode(d['lengths'].flatten(
@@ -244,11 +249,17 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
         evo_lmin_gsen = {key: [[]] for key in ks.type_keys}
         time_saved_idx = 0
     # Lists of lmin between two saving times
-    lmins_gsen = {key: [] for key in ks.type_keys} 
+    lmins_gsen = {key: [] for key in ks.type_keys}
+
+    # Update of `lmins`, `lavgs, and cells' data array format.
+    lavgs = fct.reshape_with_nan(lavgs, c_max, 0)
+    lmins = fct.reshape_with_nan(lmins, c_max, 0)
+    for key in ks.data_keys:
+        d[key] = fct.reshape_with_nan(d[key], c_max, 0)
 
     # Initialization of population history data.
     sat_time = np.NaN
-    history_dead = np.empty((0, 4))
+    dead_idxs, history_dead = [], []
 
     # Iteration on times.
     for i in range(1, time_count):
@@ -264,26 +275,26 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
         # > Initialization of evolution arrays at time `times[i]`.
         for key in ks.evo_keys_0: # By default identical to previous time.
             d[key][i] = d[key][i-1]
-        # > Initialization of indexes of cells died between times `i-1` & `i`.
-        dead_idxs = np.array([]).astype(int)
+        dead_count = 0  # Number of cells died between times `i-1` & `i`
+        dead_idxs_tmp = []  # and their indexes when < c_idx_max.
         # > Update of cells' time left to division (from time `i-1` to `i`).
-        d['clocks'] = d['clocks'] - (times[i] - times[i-1])
+        dt = (times[i] - times[i-1])
+        d['clocks'][:c_idx_max] = d['clocks'][:c_idx_max] - dt
         # > Indexes of cells that have divided/died between times `i-1` & `i`.
-        div_idxs = d['clocks'] <= 0
-        div_cells = np.arange(c_previous)[div_idxs]
-        c_surplus = sum(div_idxs) + c_current - c_sat
+        is_divs = d['clocks'][:c_idx_max] <= 0
+        div_idxs = np.arange(c_idx_max)[is_divs]
+        c_surplus = sum(is_divs) + c_current - c_sat
         # If saturation was reached in the interval `[times[i-1], times[i])`.
-        if ((par.SAT_CHOICE[day] == 'prop' and c_surplus > 0) or
-          (par.SAT_CHOICE[day] == 'time') and (times[i] > par.TIMES_SAT[day])):
+        if (sat_choice == 'prop' and c_surplus > 0) or (sat_choice == 'time'
+            and times[i] > t_sat):
             # We order divided/died cell indexes by increasing division time.
-            div_cells = div_cells[np.argsort(d['clocks'][div_idxs])]
+            div_idxs = div_idxs[np.argsort(d['clocks'][div_idxs])]
 
         # > Iteration on divided/died cells between times[i-1] & [i] or t_sat.
-        for cell in div_cells:
+        for cell in div_idxs:
             # If saturation reached.
-            if ((par.SAT_CHOICE[day] == 'prop' and c_current >= c_sat) or
-                (par.SAT_CHOICE[day] == 'time') and (t_temp >=
-                                                     par.TIMES_SAT[day])):
+            if (sat_choice == 'prop' and c_current >= c_sat) or (sat_choice ==
+                'time' and t_temp >= t_sat):
                 sat_time = t_temp
                 # Population stops evolving up to the end of `times` and we
                 # remove times that do not need to be saved.
@@ -297,8 +308,12 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
                 for key in ks.type_keys:
                     evo_lmin_gsen[key].extend(time_left_count * [[]])
                 d.update({'evo_lmin_gsen': evo_lmin_gsen, 'sat_time': sat_time,
-                          'history_dead': history_dead,
+                          'history_dead': np.array(history_dead),
                           'extinction_time': np.NaN})
+                for key in ks.data_keys: # Keep only data of living cells.
+                    # Remove free space: indexes >= `c_idx_max` and dead cells
+                    # with index < `c_idx_max`.
+                    d[key] = np.delete(d[key][:c_idx_max], dead_idxs, axis=0)
                 # Memory used running of 'population_evolution'.
                 d['memory'] = psutil.Process(os.getpid()).memory_info().rss
                 return d
@@ -308,11 +323,14 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
             delay = - d['clocks'][cell]
             t_temp = times[i] - delay # Update of time.
 
+            # Short notations for clarity.
+            anc, gen = int(d['ancestors'][cell]), int(d['generations'][cell])
+
             # We determine if the cell dies or divides.
             is_dead_accidentally = False
             # > Accidental death (authorized only from generation 1).
             if fct.is_accidentally_dead():
-                if d['generations'][cell] > 0:
+                if gen > 0:
                     is_dead_accidentally = True
             is_dead = is_dead_accidentally
             # > Natural death (for senescent cells not died accidentally).
@@ -322,9 +340,13 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
             # If the cell has died.
             if is_dead:
                 # It disappears from the population.
-                dead_idxs = np.append(dead_idxs, cell)
+                if cell == c_idx_max - 1: # If it has the biggest index in pop.
+                    c_idx_max -= 1 # Max of living cells' indexes decremented.
+                else: # Otherwise its index is added to the list of indexes `<
+                    dead_idxs.append(cell)  # c_idx_max` of dead cells.
+                    dead_idxs_tmp.append(cell)
+                dead_count += 1
                 c_current -= 1
-                anc, gen = d['ancestors'][cell], d['generations'][cell]
                 ar_count = d['nta_counts'][cell]
                 d['evo_c_ancs'][i, anc] -= 1
                 d['evo_c_gens'][i, gen] -= 1
@@ -337,18 +359,17 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
                         d['evo_c_H_ancs'][i, anc] -= 1
                 elif ar_count != 0 and is_dead_accidentally: # B-type non-sen
                     d['evo_c_B_ancs'][i, anc] -= 1           #  dead acc.
-
-                d['evo_lavg_sum'][i] -= lengths_avg[cell]
-                d['evo_lmin_sum'][i] -= lengths_min[cell]
-                cell_data = np.array([anc, gen, t_temp / (60*24), ar_count])
-                history_dead = np.append(history_dead, [cell_data], axis=0)
+                d['evo_lavg_sum'][i] -= lavgs[cell]
+                d['evo_lmin_sum'][i] -= lmins[cell]
+                history_dead.append([anc, gen, t_temp / (60*24), ar_count])
 
             # Otherwise it divides, the cell is updated as one of its
             # daughters and we create its other daughter.
             else:
                 # Update of the generation and generation arrays if new gen.
                 d['generations'][cell] += 1
-                if d['generations'][cell] >= gen_count:
+                gen = int(d['generations'][cell])
+                if gen >= gen_count:
                     gen_count += 1
                     zero_column = np.zeros((time_count, 1))
                     for key in ks.evo_c_gen_keys:
@@ -358,58 +379,69 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
                 # NB: when not exact (ie nta/sen_counts of daughters not
                 #     known yet) we retrieve mothers from the counts, daughters
                 #     added latter, when their nta/sen_counts are known.
-                c_current += 1 
-                d['evo_c_ancs'][i, d['ancestors'][cell]] += 1
-                d['evo_c_gens'][i, d['generations'][cell]] += 2
-                d['evo_c_gens'][i, d['generations'][cell]-1] -= 1
+                c_current += 1
+                d['evo_c_ancs'][i, anc] += 1
+                d['evo_c_gens'][i, gen] += 2
+                d['evo_c_gens'][i, gen -1] -= 1
 
                 # Creation of a new cell (one of the two daughters).
                 # NB: default values except for 'ancestors', 'generations'.
+                if len(dead_idxs) > 0: # The index < c_idx_max (if existing) of
+                    cell2 = dead_idxs[0] # a dead cell attributed to new cell.
+                    if len(dead_idxs) == len(dead_idxs_tmp):
+                        dead_idxs_tmp = dead_idxs_tmp[1:]
+                    dead_idxs = dead_idxs[1:]
+                else: # Otherwise the `c_idx_max` first indexes are living cell
+                    cell2 = c_idx_max # and `c_idx_max` is exactly the
+                    c_idx_max += 1 # population size, that we increment.
+                    if c_idx_max > c_max:  # If cells data arrays are exactly
+                        # the size of the population, we extend them with NaNs.
+                        c_max += cell_count_init
+                        for key in ks.data_keys:
+                            d[key] = fct.reshape_with_nan(d[key], c_max, 0)
+                        lavgs = fct.reshape_with_nan(lavgs, c_max, 0)
+                        lmins = fct.reshape_with_nan(lmins, c_max, 0)
                 for key in ks.data_keys:
-                    d[key] = np.append(d[key], [d[key][cell]], axis=0)
+                    d[key][cell2] = d[key][cell]
+                dau_idxs = [cell, cell2]
 
                 # Update of daughters' telomere lengths.
                 # NB: random repartition of mother cell's breads into
                 #     daughters' taking into account coupling.
                 r = rd.binomial(1, .5, 16)
-                daughter1 = (d['lengths'][-1] - fct.draw_overhang() *
-                             np.array([r, 1-r]))
-                daughter2 = (d['lengths'][-1] - fct.draw_overhang() *
-                             np.array([1-r, r]))
-                daughters_lengths = {cell: daughter1, -1: daughter2}
-                d['lengths'][cell] = daughter1
-                d['lengths'][-1] = daughter2
+                d['lengths'][cell] = (d['lengths'][cell] - fct.draw_overhang()
+                                      * np.array([r, 1-r]))
+                d['lengths'][cell2] = (d['lengths'][cell2] -fct.draw_overhang()
+                                       * np.array([1-r, r]))
 
                 # Update of `evo_l*` and `lengths_*` data (exact values)
                 #  at time `i`, except `evo_lmin_*[i]` later computed.
-                d['evo_lavg_sum'][i] -= lengths_avg[cell]
-                d['evo_lmin_sum'][i] -= lengths_min[cell]
-                lengths_avg[cell] = np.mean(daughter1)
-                lengths_avg = np.append(lengths_avg, np.mean(daughter2))
-                lengths_min[cell] = np.min(daughter1)
-                lengths_min = np.append(lengths_min, np.min(daughter2))
-                d['evo_lavg_sum'][i] += np.sum(lengths_avg[[cell, -1]])
-                d['evo_lmin_sum'][i] += np.sum(lengths_min[[cell, -1]])
-                lmin_daughters = np.min(lengths_min[[cell, -1]])
+                d['evo_lavg_sum'][i] -= lavgs[cell]
+                d['evo_lmin_sum'][i] -= lmins[cell]
+                for dau in dau_idxs:
+                    lavgs[dau] = np.mean(d['lengths'][dau])
+                    lmins[dau] = np.min(d['lengths'][dau])
+                d['evo_lavg_sum'][i] += np.sum(lavgs[dau_idxs])
+                d['evo_lmin_sum'][i] += np.sum(lmins[dau_idxs])
+                lmin_daughters = np.min(lmins[dau_idxs])
                 if lmin_daughters < d['evo_lmin_min'][i]:
                     d['evo_lmin_min'][i] = lmin_daughters
 
                 # Update of `evo_c` arrays and `nta_counts` & `sen_counts`
                 # daughters' data depending on their mother's state (ie current
                 # except for lengths generation) and daughter's lmin (current).
-                # If sen mother daugthers' data exact except evo_c, sen_counts.
+                # If sen mother, daugthers' data exact except evo_c sen_counts.
                 if d['sen_counts'][cell] > 0:
                     # Necessarily senescent daughters as well.
-                    d['sen_counts'][cell] += 1
-                    d['sen_counts'][-1] += 1
-                    d['evo_c_sen_ancs'][i, d['ancestors'][cell]] += 1
+                    d['sen_counts'][dau_idxs] += 1
+                    d['evo_c_sen_ancs'][i, anc] += 1
                     if d['nta_counts'][cell] < 0: # Mother is sen-B.
                         # It necessarily give birth to sen-B daughters.
-                        d['evo_c_B_ancs'][i, d['ancestors'][cell]] += 1
-                        d['evo_c_B_sen_ancs'][i, d['ancestors'][cell]] += 1
+                        d['evo_c_B_ancs'][i, anc] += 1
+                        d['evo_c_B_sen_ancs'][i, anc] += 1
                     elif d['nta_counts'][cell] > 0: # H-type mother.
                         # Type-H (senescent) daughters as well.
-                        d['evo_c_H_ancs'][i, d['ancestors'][cell]] += 1
+                        d['evo_c_H_ancs'][i, anc] += 1
 
                 # Otherwise, the mother was non-senescent, need also to update
                 #  `nta_counts` and `sen_counts` daughters' data.
@@ -418,19 +450,17 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
                     if d['nta_counts'][cell] == 0:
                         # Daughters' state depends on their state (generation
                         #  and/or length). Iteration on daughters.
-                        for dau in [cell, -1]:
-                            anc = d['ancestors'][dau]
-                            gen = d['generations'][dau]
-                            lmin = lengths_min[dau]
-                            lengths = daughters_lengths[dau]
+                        for dau in dau_idxs:
                             # If senescence is triggered.
-                            if fct.is_sen_atype_trig(lmin, lengths):
+                            if fct.is_sen_atype_trig(lmins[dau],
+                                                     d['lengths'][dau]):
                                 # The daugher enters senescence.
                                 d['sen_counts'][dau] = 1
                                 d['evo_c_sen_ancs'][i, anc] += 1
-                                lmins_gsen['atype'].append(lmin)
+                                lmins_gsen['atype'].append(lmins[dau])
                             # Otherwise, if a first arrest is triggered.
-                            elif fct.is_nta_trig(gen, lmin, lengths):
+                            elif fct.is_nta_trig(gen, lmins[dau],
+                                                 d['lengths'][dau]):
                                 # It enters a 1st arrest and becomes type B.
                                 d['nta_counts'][dau] = 1
                                 d['evo_c_B_ancs'][i, anc] += 1
@@ -439,43 +469,38 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
                         # If mother not arrested type B.
                         if d['nta_counts'][cell] < 0:
                             # Daugthers stay type-B.
-                            d['evo_c_B_ancs'][i, d['ancestors'][cell]] += 1
-                            for dau in [cell, -1]: # For each daughter test...
-                                anc = d['ancestors'][dau]
-                                gen = d['generations'][dau]
-                                lmin = lengths_min[dau]
-                                lengths = daughters_lengths[dau]
+                            d['evo_c_B_ancs'][i, anc] += 1
+                            for dau in dau_idxs: # For each daughter test...
                                 # ... If senescence is triggered.
-                                if fct.is_sen_btype_trig(lmin, lengths):
+                                if fct.is_sen_btype_trig(lmins[dau],
+                                                         d['lengths'][dau]):
                                     # The daugher enters sen and stays B.
                                     d['sen_counts'][dau] = 1
                                     d['evo_c_sen_ancs'][i, anc] += 1
                                     d['evo_c_B_sen_ancs'][i, anc] += 1
-                                    lmins_gsen['btype'].append(lmin)
+                                    lmins_gsen['btype'].append(lmins[dau])
                                 # ... Elif a new seq of arrest is triggered.
-                                elif fct.is_nta_trig(gen, lmin, lengths):
+                                elif fct.is_nta_trig(gen, lmins[dau],
+                                                     d['lengths'][dau]):
                                     # I stays type-B but enters a new arrest.
                                     ar =  int(1 - d['nta_counts'][dau])
                                     d['nta_counts'][dau] = ar
                         # Otherwise the mother was non-senescent arrested (B).
                         elif par.HYBRID_CHOICE: # If H type taken into account.
                             # Mother retrieve from non-sen B counts.
-                            d['evo_c_B_ancs'][i, d['ancestors'][cell]] -= 1
+                            d['evo_c_B_ancs'][i, anc] -= 1
                             # For each daughter we test if sen is triggered.
-                            for dau in [cell, -1]:
-                                anc = d['ancestors'][dau]
-                                gen = d['generations'][dau]
-                                lmin = lengths_min[dau]
+                            for dau in dau_idxs:
                                 # If triggered, the daugther becomes sen H.
-                                if fct.is_sen_btype_trig(lmin,
-                                                       daughters_lengths[dau]):
+                                if fct.is_sen_btype_trig(lmins[dau],
+                                                         d['lengths'][dau]):
                                     d['sen_counts'][dau] = 1
                                     d['evo_c_sen_ancs'][i, anc] += 1
                                     d['evo_c_H_ancs'][i, anc] += 1
                                     if d['nta_counts'][dau] == 1:
-                                        lmins_gsen['mtype'].append(lmin)
+                                        lmins_gsen['mtype'].append(lmins[dau])
                                     else: # NB: different def of htype w lmin!
-                                        lmins_gsen['htype'].append(lmin)
+                                        lmins_gsen['htype'].append(lmins[dau])
                                 else: # Otherwise it stays type B.
                                     d['evo_c_B_ancs'][i, anc] += 1
                                     # If it adapts/repairs, it exits arrest.
@@ -483,22 +508,23 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
                                         d['nta_counts'][dau] *= - 1
                         else: # Daugthers cannot turn sen bf having exited arr.
                             # They stay type B.
-                            d['evo_c_B_ancs'][i, d['ancestors'][cell]] += 1
-                            for dau in [cell, -1]:
+                            d['evo_c_B_ancs'][i, anc] += 1
+                            for dau in dau_idxs:
                                 if fct.is_repaired():
                                     d['nta_counts'][dau] *= - 1
 
                 # Update daughters' clock depending on their updated state.
-                for dau in [cell, -1]:
+                for dau in dau_idxs:
                     d['clocks'][dau] = fct.draw_cycle(d['nta_counts'][dau],
                                               d['sen_counts'][dau] > 0) - delay
 
         # > If at least one cell has died, update of the population data.
-        if len(dead_idxs) > 0:
+        if dead_count > 0:
             # If all cells are dead, we return data up to the end of `times`.
             if c_current == 0:
                 # Computation of extinction time.
-                extinction_time = times[i] + np.max(d['clocks'][dead_idxs])
+                extinction_time = np.max(np.array(history_dead[-dead_count:]
+                                                  )[:, 2]) * (60*24)
                 # Evolution arrays are set to nan at times `times[i:]` and we
                 # remove times that do not need to be saved.
                 for key in ks.evo_keys_0:
@@ -508,47 +534,55 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
                 # Population data returned empty.
                 empty = np.array([]).astype(int)
                 for key in ks.data_keys:
-                    d[key] = empty 
+                    d[key] = empty
                 d['lengths'] = np.empty((0, 2, 16))
                 # We add empty list for remaining times.
                 time_left_count = time_count_saved- len(evo_lmin_gsen['atype'])
                 for key in ks.type_keys:
                     evo_lmin_gsen[key].extend(time_left_count * [[]])
                 d.update({'evo_lmin_gsen': evo_lmin_gsen, 'sat_time': sat_time,
-                          'history_dead': history_dead,
+                          'history_dead': np.array(history_dead),
                           'extinction_time': extinction_time})
                 # Memory used running of 'population_evolution'.
                 d['memory'] = psutil.Process(os.getpid()).memory_info().rss
                 return d
-            # Otherwise, we remove dead cells' data of population data.
-            for key in ks.data_keys:
-                d[key] = np.delete(d[key], dead_idxs, axis=0)
-            lengths_avg = np.delete(lengths_avg, dead_idxs)
-            lengths_min = np.delete(lengths_min, dead_idxs)
+            # Otherwise, data of dead cells (w index < c_idx_max) that could be
+            # used in later computations set to NaN to avoid counting them.
+            d['lengths'][dead_idxs_tmp] = np.nan * d['lengths'][0]
+            d['clocks'][dead_idxs_tmp] = np.nan
             # And update the `evo_*min_length` that may have changed.
-            d['evo_lmin_max'][i] = np.max(lengths_min)
-            d['evo_lmin_min'][i] = np.min(lengths_min)
+            lmins[dead_idxs_tmp] = np.nan
+            d['evo_lmin_max'][i] = np.nanmax(lmins[:c_idx_max])
+            d['evo_lmin_min'][i] = np.nanmin(lmins[:c_idx_max])
 
         # > If at least one division and no death.
         elif c_previous < c_current:
             # Update of `d['evo_lmin_max']` that may have changed.
-            d['evo_lmin_max'][i] = np.max(lengths_min)
+            d['evo_lmin_max'][i] = np.nanmax(lmins[:c_idx_max])
 
         if i == time_saved_idxs[time_saved_idx]:
             d['evo_lmode'][time_saved_idx] = np.transpose(
-                stats.mode(d['lengths'].flatten().astype('float')))
+                stats.mode(d['lengths'][:c_idx_max].flatten().astype('float'),
+                           nan_policy='omit'))
             time_saved_idx += 1
 
     #     # ---------------------------------------------------------------------
     #     # Uncomment only to test counts are exact.
     #     # ----------------------------------------
-    #     A_count = len(d['nta_counts'][d['nta_counts'] == 0])
-    #     neg_count = len(d['nta_counts'][d['nta_counts'] < 0])
-    #     pos_count = len(d['nta_counts'][d['nta_counts'] > 0])
-    #     sen_A = np.sum(d['sen_counts'][d['nta_counts'] == 0] > 0)
-    #     sen_B = np.sum(d['sen_counts'][d['nta_counts'] < 0] > 0)
-    #     sen_H = np.sum(d['sen_counts'][d['nta_counts'] > 0] > 0)
-
+    #     for key in ks.data_keys:
+    #         d[key][dead_idxs_tmp] = np.nan * d[key][0]
+    #     A_count = np.sum(d['nta_counts'][:c_idx_max] == 0)
+    #     neg_count = np.sum(d['nta_counts'][:c_idx_max] < 0)
+    #     pos_count = np.sum(d['nta_counts'][:c_idx_max] > 0)
+    #     if c_current != A_count + neg_count + pos_count:
+    #         print('Error: total count failed. Time index: ', i,
+    #               '\n c_current', c_current, "A_count + neg_count + pos_count",
+    #               A_count + neg_count + pos_count)
+    #         return
+    #     nta_counts = d['nta_counts'][:c_idx_max]
+    #     sen_A = np.sum(d['sen_counts'][:c_idx_max][nta_counts == 0] > 0)
+    #     sen_B = np.sum(d['sen_counts'][:c_idx_max][nta_counts < 0] > 0)
+    #     sen_H = np.sum(d['sen_counts'][:c_idx_max][nta_counts > 0] > 0)
     #     if par.HYBRID_CHOICE:
     #         if sen_H != np.sum(d['evo_c_H_ancs'][i]):
     #             print('Error: H count failed. Time index: ', i,
@@ -559,8 +593,7 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
     #             print('Error: B type count failed. Time index: ', i,
     #                   '\n pos_count + neg_count', pos_count + neg_count,
     #                   "np.sum(d['evo_c_B_ancs'][i])",
-    #                   np.sum(d['evo_c_B_ancs'][i]),
-    #                   "sen_H", sen_H)
+    #                   np.sum(d['evo_c_B_ancs'][i]), "sen_H", sen_H)
     #             return
     #     else:
     #         if sen_H != 0:
@@ -574,16 +607,16 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
     #                   "np.sum(d['evo_c_B_ancs'][i])",
     #                   np.sum(d['evo_c_B_ancs'][i]))
     #             return
-    
     #     if (A_count + pos_count + neg_count) != np.sum(d['evo_c_ancs'][i]):
     #         print('Error: count on all cells failed. Time index: ', i,
-    #               "\n len(d['nta_counts'])", len(d['nta_counts']),
+    #               "\n len(d['nta_counts'])",
+    #               len(~np.isnan(d['nta_counts'][:c_idx_max])),
     #               "np.sum(d['evo_c_ancs'][i])", np.sum(d['evo_c_ancs'][i]))
     #         return
     #     if (sen_A + sen_B + sen_H) != np.sum(d['evo_c_sen_ancs'][i]):
     #         print('Error: senescent count failed. Time index: ', i,
     #               "\n np.sum(d['sen_counts'] > 0)",
-    #                   np.sum(d['sen_counts'] > 0),
+    #                   np.sum(d['sen_counts'][:c_idx_max] > 0),
     #               "np.sum(d['evo_c_sen_ancs'][i])",
     #               np.sum(d['evo_c_sen_ancs'][i]))
     #         return
@@ -592,20 +625,20 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data):
     #               '\n sen_B', sen_B, "np.sum(d['evo_c_B_sen_ancs'][i]",
     #               np.sum(d['evo_c_B_sen_ancs'][i]))
     #         return
-
     # evo_c_from_anc = fct.nansum(d['evo_c_ancs'], axis=1)
     # evo_c_from_gen = fct.nansum(d['evo_c_gens'], axis=1)
-    
     # print("Are 'evo_c_from_anc' and 'evo_c_from_gen' equal?",
     #       np.argmin(evo_c_from_anc == evo_c_from_gen), 
     #       (evo_c_from_anc[~np.isnan(evo_c_from_anc)] == 
-    #        evo_c_from_gen[~np.isnan(evo_c_from_gen)]).all())
+    #         evo_c_from_gen[~np.isnan(evo_c_from_gen)]).all())
     # # ------------------------------------------------------------------------
 
-    # End of `times` reached without saturation or extinction.
-    # Outputs returned.
+    # End of `times` reached without saturation or extinction. Outputs returned
     d.update({'evo_lmin_gsen': evo_lmin_gsen, 'sat_time': sat_time,
-              'history_dead': history_dead, 'extinction_time': np.NaN})
+              'history_dead': np.array(history_dead),
+              'extinction_time': np.NaN})
+    for key in ks.data_keys: # We return only data of living cells.
+        d[key] = np.delete(d[key][:c_idx_max], dead_idxs, axis=0)
     # Memory used running of 'population_evolution'.
     d['memory'] = psutil.Process(os.getpid()).memory_info().rss
     # We remove times that do not need to be saved.
@@ -775,7 +808,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count,
                 c_init_s = np.append(c_init_s, c_left)
         kept_cell_idxs = np.arange(c_final)
     # Conversion of indexes of kept cells from pop to subpop format.
-    idxs = fct.pop_to_subpop_format(kept_cell_idxs, c_final_s)
+    idxs = fct.convert_idxs_pop_to_subpop(kept_cell_idxs, c_final_s)
 
     # Weither the (non-empty) population has been diluted or not we compute its
     # data into subpopulation format.
@@ -850,11 +883,10 @@ def simu_parallel(times, time_saved_idxs, dil_idxs, para_count, c_init):
 
     Warning
     -------
-    The population entered in argument must be non-empty.
+    The population entered as argument must be non-empty.
 
     """
     start = time.time()
-            
     # Computation of subpopulations' concentration in c_init_s (para_count,).
     # The `c_init` initial cells are reparted as follows:
     #  > `para_count-1` subpopulations with same concentration `c_init_subpop`.
@@ -888,7 +920,7 @@ def simu_parallel(times, time_saved_idxs, dil_idxs, para_count, c_init):
     # At every time `times[dil_idxs[i]]` of dilution, as long as the population
     # is not extinct if TO_EXTINCTION_CHOICE is True.
     while ((par.TO_EXTINCTION_CHOICE and not(np.isnan(c_current))) or
-           (not(par.TO_EXTINCTION_CHOICE) and day < day_count)):
+            (not(par.TO_EXTINCTION_CHOICE) and day < day_count)):
 
         print('Day n°', day + 1, 'c_last', c_current)
 
@@ -896,6 +928,7 @@ def simu_parallel(times, time_saved_idxs, dil_idxs, para_count, c_init):
         # > If it remains at least one dilution: the next time of dilution.
         if day == 0:
             times_temp = times[:dil_idxs[0] + 1]
+            cell_count_max = None
         elif day + 1 < day_count:
             times_temp = times[dil_idxs[day-1]:dil_idxs[day] + 1]
         # Otherwise, up to the end of 'times'.
@@ -907,19 +940,21 @@ def simu_parallel(times, time_saved_idxs, dil_idxs, para_count, c_init):
         # > If para_count is 1, no parallelization.
         if para_count == 1:
             output_s = [population_evolution(times_temp, tsaved_idxs_temp,
-                                             c_init, data_s[0])]
+                                            c_init, data_s[0], cell_count_max)]
         # > Otherwise, initialization of the parallelization.
         else:
             pool = mp.Pool(simu_count)
             pool_s = [pool.apply_async(population_evolution, args=(times_temp,
-                      tsaved_idxs_temp, c_init, data_s[i])) for i
-                      in range(simu_count)]
+                      tsaved_idxs_temp, c_init, data_s[i], cell_count_max)) for
+                      i in range(simu_count)]
             # > Results retrieval from pool_s (list of pool.ApplyResult obj).
             output_s = [r.get() for r in pool_s]
             # > We prevent the current process to put more data on the queue.
             pool.close()
             # > Execution of next line postponed until processes in queue done.
             pool.join()
+        # We expect no more cells on day `day+1` than at the end of day `day`.
+        cell_count_max = max([len(output['clocks']) for output in output_s])
         # Computation of population's evolution and history data on `t_temp`
         # and dilution in subpop format of the population of time `t_temp[-1]`.
         temp, c_init_s, data_s = gather_evo_and_dilute(output_s, c_init,

@@ -41,12 +41,12 @@ fig_dir = None
 matplotlib.rcParams.update(matplotlib.rcParamsDefault) # Reset to default.
 matplotlib.rcParams['text.latex.preamble'] = r'\usepackage{dsfont}'# pmatrix
 
+if IS_SAVED:
+    fig_dir = 'figures/' + FORMAT
+    if (not os.path.exists(fig_dir)):
+        os.makedirs(fig_dir)
+            
 if FORMAT == 'manuscript':
-    if IS_SAVED:
-        fig_dir = 'figures_manuscript'
-        if (not os.path.exists(fig_dir)):
-            os.makedirs(fig_dir)
-
     sns.set_style("darkgrid")
     sns.set_context("talk", font_scale = 1)
 
@@ -67,10 +67,6 @@ if FORMAT == 'manuscript':
                          'legend.fontsize': 15
                         })
 elif FORMAT == 'article':
-    if IS_SAVED:
-        fig_dir = 'figures_article'
-        if (not os.path.exists(fig_dir)):
-            os.makedirs(fig_dir)
     sns.set_style("ticks")
     sns.set_context("poster", font_scale = 1)
     plt.rcParams.update({'figure.dpi': 600,
@@ -102,7 +98,7 @@ else:
     labels = ["(Bourgeron et al., 2015)", r'$f_{init}$']
 
 # # Daily concentrations.
-if FORMAT == 'manuscript':
+# if FORMAT == 'manuscript':
     # pd.plot_data_exp_concentration_curves_final(par.C_AVG_M1, par.C_STD_M1,
     #                                             par.C_AVG_P1, par.C_STD_P1,
     #                                             fig_dir,
@@ -112,12 +108,12 @@ if FORMAT == 'manuscript':
     #                                             None,
     #                                             bbox_to_anchor=bbox_to_anchor1)
 
-    pd.plot_data_exp_concentration_curves_final(par.C_AVG_M3, par.C_STD_M3,
-                                                par.C_AVG_P3, par.C_STD_P3,
-                                                fig_dir,
-                                                ylabel=fp.LABELS['ax_OD'],
-                                                bbox_to_anchor=None,
-                                                fig_name='concentration_OD')
+    # pd.plot_data_exp_concentration_curves_final(par.C_AVG_M3, par.C_STD_M3,
+    #                                             par.C_AVG_P3, par.C_STD_P3,
+    #                                             fig_dir,
+    #                                             ylabel=fp.LABELS['ax_OD'],
+    #                                             bbox_to_anchor=None,
+    #                                             fig_name='concentration_OD')
 # else:
 #     pd.plot_data_exp_concentration_curves_final(par.C_AVG_M3, par.C_STD_M3,
 #                                                 par.C_AVG_P3, par.C_STD_P3,
@@ -239,7 +235,13 @@ simu_count = 30
 # pp.plot_hist_lmin_at_sen(cell_count, para_count, simu_count, fig_dir,
 #                           day_count=7, width=4, bbox_to_anchor=bbox_to_anchor,
 #                           fig_size=fig_size)
-
+# if FORMAT == 'manuscript':
+#     TMAX_TO_PLOT = 9
+    # Change r_sat to 720 to plot this.
+    # pp.plot_evo_c_n_p_pcfixed_from_stat(cell_count, para_count, simu_count,
+    #                                     fig_dir, TMAX_TO_PLOT)
+    # pp.plot_evo_l_pcfixed_from_stat(cell_count, para_count, simu_count,
+    #                                 fig_dir, TMAX_TO_PLOT)
 
 # --------------------
 # Sensitivity analysis

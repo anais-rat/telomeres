@@ -67,10 +67,10 @@ def make_hist_lmin_gsen_from_evo(evo_lmin_gsen, x_axis=par.HIST_LMIN_X_AXIS):
                 temp.extend(evo)
             lmins_gsen_per_day.append(temp)
             lmins_gsen.extend(temp)
-        hist['hist_lmin_all'][key] = fct.make_hist_from_data(lmins_gsen,
-                                                             x_axis, False)
-        hist['hist_lmin_per_day'][key] = [fct.make_hist_from_data(lmins,x_axis,
-                                                                  False)
+        hist['hist_lmin_all'][key] = fct.make_histogram(lmins_gsen, x_axis,
+                                                        False)
+        hist['hist_lmin_per_day'][key] = [fct.make_histogram(lmins,x_axis,
+                                                             False)
                                           for lmins in lmins_gsen_per_day]
     return hist
 
@@ -174,7 +174,9 @@ def postreat_performances(folder_name, simu_count): #, is_memory):
         p['memory'] = statistics([np.load(s[i], allow_pickle='TRUE').any().get(
                                  'memory') for i in simus])
         np.save(saving_path, p)
-    return
+    else:
+        p = np.load(saving_path, allow_pickle='TRUE').item()
+    return p
 
 def statistics_simus(folder, simu_count):
     """ Postreat saved data, computing and saving mean, std, min, max... on all
@@ -209,13 +211,13 @@ def statistics_simus(folder, simu_count):
     sat_times_s = [np.load(s[i], allow_pickle='TRUE').any().get('sat_time')
                    for i in simus]
     sat_day_count = max([np.argmax(sat_times_s[i]) for i in simus])
-    sat_times_s = np.array([fct.reshape1D_with_nan(sat_times_s[i],
+    sat_times_s = np.array([fct.reshape_with_nan(sat_times_s[i],
                             max(2, sat_day_count)) for i in simus])
     es['sat_time'] = statistics(sat_times_s)
     # > Proportion of saturated subsimulations.
     sat_props_s = [np.load(s[i], allow_pickle='TRUE').any().get('sat_prop') for
                    i in simus]
-    sat_props_s = np.array([fct.reshape1D_with_nan(sat_props_s[i],
+    sat_props_s = np.array([fct.reshape_with_nan(sat_props_s[i],
                             max(2, sat_day_count)) for i in simus])
     es['sat_prop'] = statistics(sat_props_s)
 
@@ -252,7 +254,7 @@ def statistics_simus(folder, simu_count):
         if key in ks.evo_1Dkeys_new:
             evo_s = [np.load(s_postreat[i], allow_pickle='TRUE').any().get(key)
                      for i in simus]
-            evo_s = [fct.reshape1D_with_nan(evo_s[i], time_count) for i in
+            evo_s = [fct.reshape_with_nan(evo_s[i], time_count, 0) for i in
                      simus]
         elif key in ks.evo_c_anc_keys: # Ancestors orderred by increasing lmin.
             evo_s = [fct.reshape2D_along0_w_NaN_along1_w_0_or_NaN(np.load(s[i],
@@ -282,11 +284,11 @@ def statistics_simus(folder, simu_count):
     # > Time evolution of telomere lengths.
     for key in ks.evo_l_keys_af_postreat:
         if '_avg' in key:
-            evo_s = [fct.reshape1D_with_nan(np.load(s_postreat[i], allow_pickle
-                     ='TRUE').any().get(key), time_count) for i in simus]
+            evo_s = [fct.reshape_with_nan(np.load(s_postreat[i], allow_pickle=
+                     'TRUE').any().get(key), time_count, 0) for i in simus]
         else:
-            evo_s = [fct.reshape1D_with_nan(np.load(s[i], allow_pickle='TRUE'
-                     ).any().get(key), time_count) for i in simus]
+            evo_s = [fct.reshape_with_nan(np.load(s[i], allow_pickle='TRUE'
+                     ).any().get(key), time_count, 0) for i in simus]
         es[key] = statistics(evo_s)
 
     # > Histogram of lmin triggering senescence.
@@ -301,13 +303,13 @@ def statistics_simus(folder, simu_count):
                              hist_s]) for day in days] for key in ks.type_keys}
 
     np.save(wp.write_sim_pop_postreat_average(folder, simu_count), es)
-    return
+    return es
 
 def statistics_simus_if_not_saved(folder_name, simu_count):
     evo_stat_path = wp.write_sim_pop_postreat_average(folder_name, simu_count)
     if not os.path.exists(evo_stat_path):
         print('\n Averaging on all simulations...')
-        statistics_simus(folder_name, simu_count)
+        return statistics_simus(folder_name, simu_count)
 
 def postreat_cgen(is_stat, folder, simu_count):
     """ Compute evolution of the avg, max, min... generation from the

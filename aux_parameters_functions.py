@@ -84,17 +84,17 @@ def write_linit_law(parameters):
              rf'${{\ell}}_{{1}} = {l1}$'
     return string
 
-def write_laws_s(parameters):
+def write_laws_s(parameters, decimal_count=DECIMAL_COUNT):
     par_nta, par_sen, par_l_init = parameters
     par_sen = [list(par_by_type) for par_by_type in par_sen]
-    nta_formatted = list_to_strings(par_nta, decimal_count=DECIMAL_COUNT)
+    nta_formatted = list_to_strings(par_nta, decimal_count=decimal_count)
     laws = {'pnta': write_exp_law(nta_formatted, 'nta')}
     senA_formatted = list_to_strings(par_sen[0], is_last_int=True,
-                                        decimal_count=DECIMAL_COUNT)
+                                        decimal_count=decimal_count)
     if par_sen[0] != par_sen[1]:
         laws['psenA'] = write_exp_law(senA_formatted, 'senA')
         senB_formatted = list_to_strings(par_sen[1], is_last_int=True,
-                                            decimal_count=DECIMAL_COUNT)
+                                            decimal_count=decimal_count)
         laws['psenB'] = write_exp_law(senB_formatted, 'senB')
     else:
         laws['psen'] = write_exp_law(senA_formatted, 'sen')
@@ -105,17 +105,17 @@ def write_laws_s(parameters):
         laws['linit'] = write_linit_law(par_l_init)
     return laws
 
-def write_laws(parameters):
+def write_laws(parameters, decimal_count=DECIMAL_COUNT):
     par_nta, par_sen, par_l_init = parameters
     par_sen = [list(par_by_type) for par_by_type in par_sen]
-    nta_formatted = list_to_strings(par_nta, decimal_count=DECIMAL_COUNT)
+    nta_formatted = list_to_strings(par_nta, decimal_count=decimal_count)
     laws = write_exp_law(nta_formatted, 'nta')
     senA_formatted = list_to_strings(par_sen[0], is_last_int=True,
-                                        decimal_count=DECIMAL_COUNT)
+                                        decimal_count=decimal_count)
     if par_sen[0] != par_sen[1]:
         laws = laws + '\n' + write_exp_law(senA_formatted, 'senA')
         senB_formatted = list_to_strings(par_sen[1], is_last_int=True,
-                                            decimal_count=DECIMAL_COUNT)
+                                            decimal_count=decimal_count)
         laws = laws + '\n' + write_exp_law(senB_formatted, 'senB')
     else:
         laws = laws + '\n' + write_exp_law(senA_formatted, 'sen')
@@ -163,8 +163,7 @@ def extract_evo_c():
     return (avg_p1, std_p1, avg_m1, std_m1, avg_p2, std_p2, avg_m2, std_m2,
             avg_p3, std_p3, avg_m3, std_m3)
 
-def plot_data_exp_concentration_curves(x, y, x_sat, y_sat, y_sat_corrected,
-                                       sem, is_saved):
+def plot_data_exp_concentration_curves(x, y, x_sat, y_sat, sem, is_saved):
     # colors = fp.MY_COLORS_2_BIS_ROCKET # colors = fp.MY_COLORS_2_ROCKET
     colors = fp.MY_COLORS[:2]
     sns.set_palette(colors)
@@ -189,7 +188,7 @@ def plot_data_exp_concentration_curves(x, y, x_sat, y_sat, y_sat_corrected,
     plt.plot(x, 1e5 * 2**y[:, 0], '.-', label=LABELS['telo+'])
     plt.plot(x, 1e5 * 2**y[:, 1], '+-', label=LABELS['telo-'])
     plt.legend()
-    plt.xlabel(LABELS['ax_t'])
+    plt.xlabel(LABELS['ax_time'])
     plt.ylabel(LABELS['ax_cexp'])
     plt.xticks(x)
     sns.despine()
@@ -215,18 +214,18 @@ def plot_data_exp_concentration_curves(x, y, x_sat, y_sat, y_sat_corrected,
     w, h = plt.figaspect(.7)
     plt.figure(dpi=fp.DPI, figsize=(w,h))
     x = np.arange(len(y_sat[:, 0])) + 1
-    # Z hou (on manuscript)
+    # First version (on manuscript).
     plt.errorbar(x, 1e5 * 2**y_sat[:, 1], yerr=sem[:, 1], capsize=2,
                   label=LABELS['telo+'])
     plt.errorbar(x, 1e5 * 2**y_sat[:, 0], yerr=sem[:, 0], capsize=2, fmt='.-',
                   label=LABELS['telo-'])
-    # Teresa (new !!!!!!!!!!!!!!!)
+    # Second version (on paper).
     # plt.errorbar(x, 3 * 10 ** 7 * y_sat[:, 1], yerr=sem[:, 1], capsize=2,
     #              label=LABELS['telo+'])
     # plt.errorbar(x,  3 * 10 ** 7 * y_sat[:, 0], yerr=sem[:, 0], capsize=2, fmt='.-',
     #              label=LABELS['telo-'])
     plt.legend(loc="lower left")
-    plt.xlabel(LABELS['ax_t'])
+    plt.xlabel(LABELS['ax_time'])
     plt.ylabel(LABELS['ax_cexp'])
     plt.xticks(x)
     sns.despine()
@@ -313,7 +312,7 @@ def stat_all(arr_stat, p_up=fp.P_UP, p_down=fp.P_DOWN, axis=0):
              'ext': [np.min(arr_stat, axis=axis),
                      np.max(arr_stat, axis=axis)]}
     return stats
-    
+
 def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
                 law_nta=law_nta_usual, law_sen=law_sen_usual, fig_name='',
                 fig_supdirectory=None, is_zoomed=False):
@@ -347,7 +346,7 @@ def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
         probas['psen']['all'] = psen_s
         if not isinstance(idx_best, type(None)):
             probas['psen']['best'] = psen_s[idx_best]
-    
+
     j = 0
     for fig_size in fig_sizes:
         fig_all, axes_all = plt.subplots(1, len(probas), sharex=True,
@@ -387,7 +386,7 @@ def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
             ax.set_xlabel(LABELS['ax_lmin_min'], labelpad=9)
             ax.set_ylabel(LABELS['ax_proba'], labelpad=16)
             sns.despine(fig=figure)
-    
+
         if not isinstance(fig_supdirectory, type(None)):
             path = f"{fig_supdirectory}/{FDIR_PAR}/"
             if j == 1:
@@ -404,7 +403,7 @@ def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
 def plot_law_sen(a, b, lmin, lengths=LENGTHS, law_nta=law_nta_usual,
                  law_sen=law_sen_usual, is_saved=False,
                  font_scale=FONT_SCALE):
-    """ Plot for all `lengths` in argument their corresponding `densities` and
+    """ Plot for all `lengths` as argument their corresponding `densities` and
     save it if asked.
 
     """
@@ -428,7 +427,8 @@ def plot_law_sen(a, b, lmin, lengths=LENGTHS, law_nta=law_nta_usual,
 
 def plot_laws(parameters, lengths=LENGTHS, law_nta=law_nta_usual,
               law_sen=law_sen_usual, fig_name='', is_par_plot=False,
-              fig_supdirectory=None, fig_size=(6.2,3.6)):
+              fig_supdirectory=None, fig_size=(6.2,3.6),
+              decimal_count=DECIMAL_COUNT):
     if isinstance(parameters[1][0], list):
         is_sen_common_AnB = parameters[1][0] == parameters[1][1]
     else:
@@ -437,7 +437,7 @@ def plot_laws(parameters, lengths=LENGTHS, law_nta=law_nta_usual,
     curve_count = 2 * is_sen_common_AnB + 3 * (not is_sen_common_AnB)
     COLORS = sns.color_palette('rocket', curve_count)
     if is_par_plot:
-        labels = write_laws_s(parameters)
+        labels = write_laws_s(parameters, decimal_count=decimal_count)
         name = f'_{fig_name}'
     else:
         labels = LABELS
@@ -484,7 +484,7 @@ def plot_exp_data(days, concentration, length):
     # Concentration w.r.t days.
     count = len(concentration[:, 0])
     days_t = np.linspace(0, count - 1, count)
-             
+
     axes[0].errorbar(days_t, 1e5 * 2**concentration[0][:, 1],
                  yerr=concentration[1][:, 1], capsize=2, label=LABELS['telo+'])
     axes[0].errorbar(days_t, 1e5 * 2**concentration[:, 0],
@@ -542,13 +542,13 @@ def postreat_l_init_exp(density_function_exp, linit_translation=0):
 
     """
     # Separation of the file.
-    lenght_count = int(len(density_function_exp) / 4)
-    lengths = np.linspace(1, lenght_count, lenght_count)
-    densities_all = density_function_exp[2 * lenght_count:]
+    length_count = int(len(density_function_exp) / 4)
+    lengths = np.linspace(1, length_count, length_count)
+    densities_all = density_function_exp[2 * length_count:]
 
-    densities = np.zeros(lenght_count)
+    densities = np.zeros(length_count)
     # We remove lengths that are not integers.
-    for i in range(lenght_count):
+    for i in range(length_count):
         densities[i] = densities_all[2 * i] + densities_all[2 * i + 1]
 
     # We make sure it is a probability.
@@ -580,13 +580,13 @@ def transform_l_init(density_function_exp, ltrans=0, l0=0, l1=0):
 
     """
     # Separation of the file.
-    lenght_count = int(len(density_function_exp) / 4)
-    lengths = np.arange(1, lenght_count + 1)
-    densities_all = density_function_exp[2 * lenght_count:]
+    length_count = int(len(density_function_exp) / 4)
+    lengths = np.arange(1, length_count + 1)
+    densities_all = density_function_exp[2 * length_count:]
 
-    densities = np.zeros(lenght_count)
+    densities = np.zeros(length_count)
     # We remove lengths that are not integers.
-    for i in range(lenght_count):
+    for i in range(length_count):
         densities[i] = densities_all[2 * i] + densities_all[2 * i + 1]
     # We make sure it is a probability renormalizing.
     diff = np.diff(np.append(0, lengths))
@@ -639,20 +639,20 @@ def transform_l_init_old(density_function_exp, ltrans=0, l0=0, l1=0):
 
     """
     # Separation of the file.
-    lenght_count = int(len(density_function_exp) / 4)
-    lengths = np.linspace(1, lenght_count, lenght_count)
-    densities_all = density_function_exp[2 * lenght_count:]
+    length_count = int(len(density_function_exp) / 4)
+    lengths = np.linspace(1, length_count, length_count)
+    densities_all = density_function_exp[2 * length_count:]
 
-    densities = np.zeros(lenght_count)
+    densities = np.zeros(length_count)
     # We remove lengths that are not integers.
-    for i in range(lenght_count):
+    for i in range(length_count):
         densities[i] = densities_all[2 * i] + densities_all[2 * i + 1]
 
     # We make sure it is a probability renormalizing.
     diff = np.diff(np.append(lengths, lengths[-1] + 1))
     densities = densities / np.sum(diff * densities)
     # densities = np.append(densities, 1 - sum(densities))
-    
+
     lmod_idx = np.where(lengths == np.argmax(densities))[0][0]
     lmod = lengths[lmod_idx]
     # print(np.sum(np.diff(np.append(lengths, lengths[-1]) + 1) * densities))
@@ -724,20 +724,32 @@ def postreat_cycles_exp(cycles_data, cycle_min, threshold):
     cdts['nta2+'] = cdts['btype'][cdts['btype'] > threshold_min]
     return cdts, at_theeshold_count
 
-def extract_cycles_dataset():
+def extract_cycles_dataset(folder="data/microfluidic/"):
     """ Extract the data postreated by our script, through
-    `aux_make_cycle_dataset`.
+    `aux_make_cycle_dataset.py`.
 
     """
     cdts = {}
-    cdts['arr'] = np.loadtxt("data/microfluidic/lcycles.csv")
-    cdts['nta'] = np.loadtxt("data/microfluidic/lcycles_nta.csv")
-    cdts['sen'] = np.loadtxt("data/microfluidic/lcycles_sen.csv")
-    cdts['senA'] = np.loadtxt("data/microfluidic/lcycles_senA.csv")
-    cdts['senB'] = np.loadtxt("data/microfluidic/lcycles_senB.csv")
-    cdts['sen_last'] = np.loadtxt("data/microfluidic/lcycles_last_sen.csv")
-    cdts['norA']  = np.loadtxt("data/microfluidic/ncycles_bf_arrest.csv")
-    cdts['norB'] = np.loadtxt("data/microfluidic/ncycles_af_arrest.csv")
+    cdts['arr'] = np.loadtxt(folder + "lcycles.csv")
+    cdts['nta'] = np.loadtxt(folder + "lcycles_nta.csv")
+    cdts['sen'] = np.loadtxt(folder + "lcycles_sen.csv")
+    cdts['senA'] = np.loadtxt(folder + "lcycles_senA.csv")
+    cdts['senB'] = np.loadtxt(folder + "lcycles_senB.csv")
+    cdts['sen_last'] = np.loadtxt(folder + "lcycles_last_sen.csv")
+    cdts['norA']  = np.loadtxt(folder + "ncycles_bf_arrest.csv")
+    cdts['norB'] = np.loadtxt(folder + "ncycles_af_arrest.csv")
+    return cdts
+
+def extract_cycles_dataset_finalCut(folder="data_finalCut/"):
+    """ Extract the data postreated by our script, through
+    `finalCut_aux_make_cycle_dataset.py`.
+
+    """
+    cdts = {'raf': {}, 'gal': {}}
+    cdts['raf']['nor'] = np.loadtxt(folder + "noFc_n2/ncycles_raf_dox.csv")
+    cdts['raf']['arr'] = np.loadtxt(folder + "noFc_n2/lcycles_raf_dox.csv")
+    cdts['gal']['nor'] = np.loadtxt(folder + "noFc_n2/ncycles_gal.csv")
+    cdts['gal']['arr'] = np.loadtxt(folder + "noFc_n2/lcycles_gal.csv")
     return cdts
 
 def make_time_arrays(times_per_day_count, times_saved_per_day_count, day_count,
@@ -750,7 +762,7 @@ def make_time_arrays(times_per_day_count, times_saved_per_day_count, day_count,
     #     print("WARNING: `TIMES_SAVED_PER_DAY_COUNT` the actual number of times"
     #           f" saved is not {times_saved_per_day_count} anymore but "
     #           f"{tspd_count_new}")
-        
+
     for day in range(day_count):
         times_temp = np.linspace(day, day + 1, times_per_day_count)
         times_temp[-1] = times_temp[-1] - step

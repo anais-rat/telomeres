@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 Created on Fri Sep  2 15:54:16 2022
 
@@ -24,6 +25,8 @@ import scipy.io as sio
 
 import aux_parameters_functions as parf
 import aux_figures_properties as fp
+import finalCut_aux_make_cycles_dataset as af
+imp.reload(af)
 import dataset_plot as pd
 import lineage_plot as pl
 imp.reload(pl)
@@ -37,28 +40,39 @@ imp.reload(par)
 # NB: Uncomment to generate new random.
 np.random.seed(1)
 
-# --------
-# Reminder
-# --------
-# type_of_sort: 'gdeath', 'lmin', 'gnta1', 'gnta2', ..., 'gsen'.
-# gtrig keys: 'nta', 'sen' 'death'.
-# gtrig_to_compare: 'nta1', 'nta2', ..., 'sen' 'death'.
-# characteristics: 'atype', btype', 'htype', 'arrested1', 'arrested2', ...,
-#                  'senescent', 'dead', dead_accidentally', 'dead_naturally'.
+LENGTHS_CUT = [None, 0, 20, 30, 40, 50, 70]
+# PAR_FINAL_CUT = [LENGTH_CUT, AVG_CUT_DELAY, PROBA_CUT_ESCAPE]
 
+keys = ['noFc_n2',
+        'Fc0_n2',
+        'Fc20_n2',
+        'Fc30_n2',
+        'Fc40_n2',
+        'Fc50_n2',
+        'Fc70_n2'
+       ]
+
+CUTS = [key[2:4] for key in keys] # [None, 0, 20, 30, 40, 50, 70]
+for i in range(len(CUTS)):
+    if CUTS[i] == '0_':
+        CUTS[i] = 0
+    elif CUTS[i] == 'Fc':
+        CUTS[i] = None
+    else:
+         CUTS[i] = int(CUTS[i])
+LENGTHS_CUT = {keys[i]: CUTS[i] for i in range(len(CUTS))}
 
 # ----------
 # Parameters
 # ----------
 
-IS_SAVED = False
+IS_SAVED = True
 FORMAT = 'manuscript' # 'manuscript' or 'article'.
 # WARNING this variable MIGHT need to be changed in 'lineages_plot.py' as well.
 
-SIMU_COUNT = 1000
-PROC_COUNT = 1 # Add one for cluster.
+SIMU_COUNT = 10
+PROC_COUNT = 6 # Add one for cluster.
 
-THRESHOLD = 18
 GEN_COUNT_BY_LINEAGE_MIN = 1
 HIST_LMIN_X_AXIS = np.linspace(0, 250, 251)
 
@@ -74,10 +88,10 @@ matplotlib.rcParams.update(matplotlib.rcParamsDefault) # Reset to default.
 matplotlib.rcParams['text.latex.preamble'] = r'\usepackage{dsfont}'# pmatrix
 
 if IS_SAVED:
-    fig_dir = 'figures/' + FORMAT
+    fig_dir = 'figures/finalCut'
     if (not os.path.exists(fig_dir)):
         os.makedirs(fig_dir)
-            
+
 if FORMAT == 'manuscript':
     sns.set_style("darkgrid")
     sns.set_context("talk", font_scale = 1)
@@ -117,21 +131,13 @@ print(sns.plotting_context())
 # Experimental data
 # -----------------
 
-# > Extraction and formatting
-DATA_EXP = sio.loadmat('data/microfluidic/TelomeraseNegative.mat')
-DATA_EXP = DATA_EXP['OrdtryT528total160831']
-DATA_EXP = sim.postreat_experimental_lineages(DATA_EXP, par.THRESHOLD,
-                                              par.GEN_COUNT_BY_LINEAGE_MIN)
-
-DATA_EXP_MUTANT = sio.loadmat('data/microfluidic/rad51/TelomeraseNegMutantRAD51.mat')
-DATA_EXP_MUTANT = DATA_EXP_MUTANT['OrdtrRAD51D']
-DATA_EXP_MUTANT = sim.postreat_experimental_lineages(DATA_EXP_MUTANT,
-                                                     par.THRESHOLD, 2)
-
-DATA_EXP_MUTANT_SEN = sim.select_exp_lineages(DATA_EXP_MUTANT, ['senescent'])
-DATA_EXP_MUTANT_SEN = sim.sort_lineages(DATA_EXP_MUTANT_SEN, 'gsen')
-GSEN_EXP_MUTANT = DATA_EXP_MUTANT_SEN[1]['sen']
-
+# > Extraction and formatting.
+DATA_EXP = af.DATA_EXP
+DATA_EXP_SEN, GSEN_EXP, CDTS_EXP = {}, {}, {}
+for key in keys:
+    DATA_EXP_SEN[key] = sim.sort_lineages(DATA_EXP[key], 'gsen')
+    GSEN_EXP[key] = DATA_EXP[key][1]['sen']
+    CDTS_EXP[key] = DATA_EXP[key][0]['cycle']
 
 # -------------------
 # Plot simulated data
@@ -140,54 +146,53 @@ GSEN_EXP_MUTANT = DATA_EXP_MUTANT_SEN[1]['sen']
 # Cycle duration times
 # --------------------
 
+# ________________________________________
+if FORMAT == "manuscript":
+    FIG_SIZE = (4.7, 8)
+    FONT_SIZE = 24
+else:
+    FIG_SIZE = (5.8, 9.5)
+    FONT_SIZE = sns.plotting_context()['axes.labelsize']
 
-# if FORMAT == "manuscript":
-#     FIG_SIZE = (4.7, 8)
-#     FONT_SIZE = 24
-# else:
-#     FIG_SIZE = (5.8, 9.5)
-#     FONT_SIZE = sns.plotting_context()['axes.labelsize']
+# > Experimental.
+IS_EXP = True
 
-# # > Experimental.
-# IS_EXP = True
+for key, cycles in CDTS_EXP.items():
+    print(key)
+    sfolder = f'{fig_dir}/{pd.FDIR_DAT}/{key}'
+    if IS_SAVED and (not os.path.exists(sfolder)):
+        os.makedirs(sfolder)
 
-# cycles_exp = DATA_EXP[0]['cycle']
-# GMAX = np.shape(cycles_exp)[1]
+    # # Distributions of dycle duration time (cdt) per category.
+    # pd.plot_cycles_from_dataset(sfolder, False)
 
-# # # Distributions of dycle duration time (cdt) per category.
-# # if IS_SAVED and (not os.path.exists(fig_dir + '/' + pd.FDIR_DAT)):
-# #     os.makedirs(fig_dir + '/' + pd.FDIR_DAT)
-# # pd.plot_cycles_from_dataset(fig_dir, IS_SAVED)
+    # Cycle duration times in generation and lineage.
+    # gmax = np.shape(cycles)[1]
+    # pl.plot_lineages_cycles(cycles, IS_EXP, fig_dir, FONT_SIZE,
+    #                         lineage_types=DATA_EXP[key][2], gmax=gmax,
+    #                         fig_size=FIG_SIZE, add_to_name=key)
+    # pl.plot_lineages_cycles(cycles, IS_EXP, fig_dir,
+    #                         sns.plotting_context()['axes.labelsize'],
+    #                         is_dead=DATA_EXP[key][1]['death'], gmax=gmax,
+    #                         fig_size=(5.8, 9.5), add_to_name=key)
 
-# # Cycle duration times in generation and lineage.
-# if FORMAT == 'manuscript': # With legend for types.
-#     pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir, FONT_SIZE,
-#                             lineage_types=DATA_EXP[2], gmax=GMAX,
-#                             fig_size=FIG_SIZE)
-#     pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir,
-#                             sns.plotting_context()['axes.labelsize'],
-#                             is_dead=DATA_EXP[1]['death'], gmax=GMAX,
-#                             fig_size=(5.8, 9.5))
-# else: # without legend.
-#     pl.plot_lineages_cycles(cycles_exp, IS_EXP, fig_dir, FONT_SIZE, gmax=GMAX,
-#                             fig_size=FIG_SIZE)
-#     cycles_exp_mutant = DATA_EXP_MUTANT[0]['cycle']
-#     cycles_exp_mutant_sen = DATA_EXP_MUTANT_SEN[0]['cycle']
-#     GMAX_MUTANT = np.shape(cycles_exp_mutant)[1]
-#     pl.plot_lineages_cycles(cycles_exp_mutant, IS_EXP, fig_dir, FONT_SIZE,
-#                             gmax=None, add_to_name='rad51', fig_size=FIG_SIZE)
-#     pl.plot_lineages_cycles(cycles_exp_mutant_sen, IS_EXP, fig_dir, FONT_SIZE,
-#                             gmax=None, add_to_name='rad51_sen', fig_size=FIG_SIZE)
+    # cycles_sen = DATA_EXP_SEN[key][0]['cycle']
+    # gmax = np.shape(cycles)[1]
+    # pl.plot_lineages_cycles(cycles_sen, IS_EXP, fig_dir, FONT_SIZE,
+    #                         gmax=None,  fig_size=FIG_SIZE, add_to_name=key)
+# stop
+
+# ________________________________________
 
 # # > Simulated.
 # IS_EXP = False
 
 # # >> Type H unseen.
 # data = sim.simulate_lineages_evolution(len(cycles_exp), ['senescent'],
-#                                         is_htype_seen=False, is_evos=True)
+#                                        is_htype_seen=False, is_evos=True)
 # data = sim.sort_lineages(data, 'gdeath')
-# # pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, fig_dir, FONT_SIZE,
-# #                         gmax=GMAX, fig_size=FIG_SIZE)
+# pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, fig_dir, FONT_SIZE,
+#                         gmax=GMAX, fig_size=FIG_SIZE)
 
 # if FORMAT == 'manuscript': # With legend for types.
 #     pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, fig_dir, FONT_SIZE,
@@ -273,7 +278,7 @@ if FORMAT == 'article': # Reestablish rcParam modified by plot_lineages_cycles.
 # Time/generation evo postreat
 # ----------------------------
 
-CHARACTERISTICS = ['senescent']
+# CHARACTERISTICS = ['senescent']
 
 # pl.compute_n_plot_postreat_time_vs_gen(DATA_EXP, SIMU_COUNT, CHARACTERISTICS,
 #                                         POSTREAT_DT, is_htype_seen=False)
@@ -281,46 +286,22 @@ CHARACTERISTICS = ['senescent']
 #                                         POSTREAT_DT, is_htype_seen=True)
 
 
-# Generation curves wrt experimental
-# ----------------------------------
 
-CHARACTERISTICS_S = [['btype'],
-                      ['atype','senescent'],
-                      ['senescent'],
-                      ['btype','senescent']]
-
-# if FORMAT == 'manuscript':
-#     LABELS = [r'$G^{-1}_{{nta}}$', r'$G^{-1}_{{sen_A}}$',
-#               r'$G^{-1}_{{sen}}$', r'$G^{-1}_{{sen_B}}$']
-#     pl.plot_gcurves_exp(DATA_EXP, CHARACTERISTICS_S, fig_dir, labels=LABELS,
-#                         is_gathered=True, fig_size=(5.8, 3.6))
-#     pl.plot_gcurves_exp(DATA_EXP, CHARACTERISTICS_S, fig_dir, labels=LABELS,
-#                         is_gathered=False, fig_size=(5.8, 3.6))
-# else:
-#     LABELS = [r'$nta$', r'$sen_A$', r'$sen$', r'$sen_B$']
-#     pl.plot_gcurves_exp(DATA_EXP, CHARACTERISTICS_S, fig_dir, labels=LABELS,
-#                         is_gathered=False)
-
-# # Print proportion of type B among senescent.
-# if FORMAT == 'manuscript':
-#     pl.compute_n_plot_gcurve_error(DATA_EXP, None, ['gsen'], ['senescent'],
-#                                    is_printed=True, error_types=[1],
-#                                    simulation_count=SIMU_COUNT)
 
 
 # Histograms
 # ----------
 
-CHARACTERISTICS_S = [['btype'],
-                      ['atype','senescent'],
-                      ['senescent'],
-                      ['btype','senescent']]
+# CHARACTERISTICS_S = [['btype'],
+#                       ['atype','senescent'],
+#                       ['senescent'],
+#                       ['btype','senescent']]
 
 
-if FORMAT == 'manuscript':
-    fig_size = (4, 4.2) # Default: (6.4, 4.8).
-else:
-    fig_size = (6.4, 4.8)
+# if FORMAT == 'manuscript':
+#     fig_size = (4, 4.2) # Default: (6.4, 4.8).
+# else:
+#     fig_size = (6.4, 4.8)
 
 # # > Number of senescent cycles.
 # LCYCLE_TYPES = ['sen']
@@ -450,28 +431,79 @@ else:
 #     #     plt.plot(data[0], data[1])
 
 
-# Generations of arrest
-# ---------------------
+# Estimation of AVG_DELAY_CUT
+# pl.compute_n_plot_hist_gen_coupure(DATA_EXP['Fc0_n2'][1]['sen'], None,
+#                                     normalized=True)
+# pl.compute_n_plot_hist_gen_coupure(DATA_EXP['Fc0_n2'][1]['sen'], None,
+#                                     normalized=False)
+# pl.compute_n_plot_hist_gen_coupure(DATA_EXP['Fc20_n2'][1]['sen'], None,
+#                                     normalized=True)
+# pl.compute_n_plot_hist_gen_coupure(DATA_EXP['Fc20_n2'][1]['sen'], None,
+#                                     normalized=False)
 
-# if FORMAT == 'article':
-#     SIMU_COUNT = 1000
+# YLIM = (0, .65)
 
-#     MFACTORS = np.array([25, 34.8, 30, 40])
-#     P_ACC_S = par.P_ACCIDENTAL_DEATH * MFACTORS
+# hist = pl.compute_n_plot_hist_gen_coupure(DATA_EXP['Fc0_2'][1]['sen'], None,
+#                                           normalized=True,
+#                                           ylim=YLIM, title='Experiment')
 
-#     p_exit = deepcopy(par.P_EXIT)
-#     for i in range(len(P_ACC_S)):
-#         p_death_acc = P_ACC_S[i]
-#         p_exit[0] = p_death_acc
-#         par_update = {'p_exit': deepcopy(p_exit), 'is_htype_seen': False}
-#         curve_label = r'$\times$' + str(MFACTORS[i])
+# hist = pl.compute_n_plot_hist_gen_coupure(DATA_EXP['Fc0_n2'][1]['sen'], None,
+#                                           normalized=True,
+#                                           ylim=YLIM, title='Experiment')
 
-#         pl.compute_n_plot_gcurve(DATA_EXP_MUTANT, SIMU_COUNT, ['senescent'],
-#                                   fig_dir, par_update=par_update,
-#                                   is_exp_plotted=True, bbox_to_anchor=(1.3,0),
-#                                   title=curve_label)
+# axis = np.arange(1, 7)
+# hist = pl.compute_n_plot_hist_gen_coupure(DATA_EXP['Fc0_n2'][1]['sen'], None,
+#                                           x_axis=axis, normalized=True,
+#                                           ylim=YLIM, title='Experiment')
+# # p_geo = 1 / 1.6
+# p_geo = 0.577
+# pl.plot_histogram(axis, p_geo * (1-p_geo) ** (axis-1), normalized=True,
+#                   ylim=YLIM, title='Simulation')
 
 # stop
+# # ------------------------------------------
+
+for key in keys:
+    data = DATA_EXP[key]
+    SIMU_COUNT = 102  # 101 pour seuil avec 3 , 100 pour seuil avec 2
+                      # 102 pour tous les seuil à 2
+                      # 103 idem 102 fit fit coupure avg
+
+    par_final_cut = deepcopy(par.PAR_FINAL_CUT)
+    # if isinstance(LENGTHS_CUT[key], type(None)):
+    #     par_update = {'par_finalCut': None, 'is_htype_seen': False}
+
+    # else:
+    par_final_cut[0] = LENGTHS_CUT[key]
+    par_update = {'par_finalCut': deepcopy(par_final_cut),
+                  'is_htype_seen': False,
+                  'parameters': par.PAR}
+    print(key, par_update, LENGTHS_CUT[key])
+
+    # Generations of arrest
+    # ---------------------
+    pl.compute_n_plot_gcurve(data, SIMU_COUNT, ['senescent'], fig_dir,
+                              par_update=par_update, is_exp_plotted=True,
+                              title=key.replace('_', ' '), is_propB=True,
+                              proc_count=PROC_COUNT)
+    # pl.compute_n_plot_gcurve(data, SIMU_COUNT, ['dead'], fig_dir,
+    #                           par_update=par_update, is_exp_plotted=True,
+    #                           title=key.replace('_', ' '), is_propB=True,
+    #                           proc_count=PROC_COUNT)
+
+    # Generation curves wrt experimental
+    # ----------------------------------
+    CHARACTERISTICS_S = [['btype'],
+                         ['atype','senescent'],
+                         ['senescent'],
+                         ['btype','senescent']]
+    LABELS = [r'$nta$', r'$sen_A$', r'$sen$', r'$sen_B$']
+
+    # pl.plot_gcurves_exp(data, CHARACTERISTICS_S, fig_dir, labels=LABELS,
+    #                     is_gathered=False, fig_size=(5.8, 3.6),
+    #                     title=key.replace('_', ' '), add_to_name=key)
+stop
+
 
 # Sensitivity to initial distribution
 # -----------------------------------
@@ -710,6 +742,7 @@ CHARACTERISTICS_S = [['btype'],
                       ['btype','senescent']]
 LABELS = [r'$nta$', r'$sen_A$', r'$sen$', r'$sen_B$']
 
+
 if FORMAT == "manuscript":
     FIG_SIZE_PARS = (3.9, 2.2)
     FIG_SIZE = (4, 7.1) #(5.7, 2.9)
@@ -717,48 +750,6 @@ if FORMAT == "manuscript":
 else:
     FIG_SIZE = (5.5, 11)
     bbox_to_anchor = (1, 1)
-
-
-# -----------------------------------------------------------------
-# Test finalCut parameters.
-SIMU_COUNT = 20
-PAR = ([0.0249, 0.465], #[0.0247947389, 0.440063202], # [0.024, 0.45], #
-       [[0.186824276, 0.725200993, 40.0], [2.45423414e-06, 0.122028128, 0.0]],
-       [0, 40, 58.0])
-PAR = ([0.028, 0.585], # [0.0249, 0.465] # [0.024, 0.45], #
-        [[0.186824276, 0.725200993, 36], [2.45423414e-06, 0.122028128, 0.0]],
-        [0, 40, 58.0])
-# PAR = ([0.0247947389, 0.440063202],
-#         [[0.17, 0.65, 36.0], [2.45423414e-06, 0.122028128, 0.0]],
-#         [0, 40, 58.0])
-PAR = ([0.0247947389, 0.440063202],
-        [[0.186824276, 0.725200993, 27.0], [2.45423414e-06, 0.122028128, 0.0]],
-        [0, 40, 58.0])  # Original fit
-par_update = {'parameters': PAR}
-
-if FORMAT == 'manuscript':
-    FIG_SIZE = (5.5, 11)
-    bbox_to_anchor = None
-    FIG_SIZE_PARS = (5.5, 3)
-# Plot laws.
-parf.plot_laws(PAR, is_par_plot=True, fig_name='finalCut',
-               fig_supdirectory=None, fig_size=FIG_SIZE_PARS, decimal_count=4)
-# Plot gcurves exp/sim.
-pl.compute_n_plot_gcurves_wrt_charac(DATA_EXP, SIMU_COUNT,
-                                     CHARACTERISTICS_S, fig_dir,
-                                     par_update=par_update, proc_count=5,
-                                     labels=LABELS, path=None,
-                                     bbox_to_anchor=bbox_to_anchor,
-                                     fig_size=FIG_SIZE,
-                                     xticks=[0, 10, 20, 30, 40, 50, 60])
-# Print proportion of type B among senescent.
-pl.compute_n_plot_gcurve_error(DATA_EXP, None, ['gsen'], ['senescent'],
-                               is_printed=True, error_types=[1],
-                               par_update=par_update,
-                               simulation_count=SIMU_COUNT)
-stop
-# -----------------------------------------------------------------
-
 
 for key, fits in lfitr.FITS.items():
     if key in ['8_4', '8']:
@@ -801,8 +792,8 @@ for key, fits in lfitr.FITS.items():
         #                 fig_supdirectory=fig_dir)
         par_update = {'parameters': parameters}
         pl.compute_n_plot_gcurves_wrt_charac(DATA_EXP, SIMU_COUNT,
-                                             CHARACTERISTICS_S, fig_dir,
-                                             par_update=par_update,
-                                             labels=LABELS, path=PATH,
-                                             bbox_to_anchor=bbox_to_anchor,
-                                             fig_size=FIG_SIZE)
+                                              CHARACTERISTICS_S, fig_dir,
+                                              par_update=par_update,
+                                              labels=LABELS, path=PATH,
+                                              bbox_to_anchor=bbox_to_anchor,
+                                              fig_size=FIG_SIZE)

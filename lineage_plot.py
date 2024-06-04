@@ -4,6 +4,16 @@
 Created on Fri Sep  2 15:55:41 2022
 
 @author: arat
+
+Console:
+pip install latex
+
+Terminal:
+sudo apt install texlive texlive-latex-extra texlive-fonts-recommended dvipng
+ cm-super texlive-fonts-extra
+
+(or sudo apt install texlive-full)
+
 """
 
 # import imp
@@ -52,7 +62,7 @@ if FORMAT == 'manuscript':
     TO_ADD = 18 # For tex text use (unplotted caracters countted as plottedd one).
 else:
     LABEL_MAX = 32
-    TO_ADD = 18 
+    TO_ADD = 18
 
 LABELS = {'ax_gen': "Generation",
           'ax_gen_arr': "Generation of arrest",
@@ -109,7 +119,7 @@ def type_of_sort_to_label_string(type_of_sort):
     ----------
     type_of_sort : string
         Indicates how data is sorted:
-        - 'lmin' : by length of the initial shortest telomere lenght.
+        - 'lmin' : by length of the initial shortest telomere length.
             WARNING: does not work for experimental data.
         - 'gntai' : by generation of the ith non-terminal arrest.
         - 'gsen' : by generation of senescence.
@@ -153,7 +163,7 @@ def write_sim_avg(simulation_count):
     else:
         string = rf'(average on {simulation_count} simulations)'
     return '\n' + string
-            
+
 def write_simlabel_w_count(simulation_count):
     return r'Simulation' + write_sim_avg(simulation_count)
 
@@ -345,7 +355,7 @@ def plot_lineages_cycles(cycles, is_exp, fig_supdirectory, font_size,
                          curve_to_plot=None, lineage_types=None, is_dead=None,
                          evo_avg=None, gmax=None, add_to_name=None,
                          bbox_to_anchor=None, fig_size=None):
-    """ Plot cycle duration times (in the order given) indicating the type of 
+    """ Plot cycle duration times (in the order given) indicating the type of
     each lineages or if dead before the end of the experiment if given in
     argument. If not None also plot `curve_to_plot` (can be e.g. `gtrig_sen`).
     If average of cycles among several simulations specifiying the
@@ -367,7 +377,7 @@ def plot_lineages_cycles(cycles, is_exp, fig_supdirectory, font_size,
        gmax = generation_count
     generations = np.arange(gmax + 3)
     lineages = np.arange(lineage_count)
-    cycles = fct.reshape_axis_with_nan(cycles, len(generations), -1)
+    cycles = fct.reshape_with_nan(cycles, len(generations), -1)
 
     # Default value
     is_htype_seen = True
@@ -406,7 +416,7 @@ def plot_lineages_cycles(cycles, is_exp, fig_supdirectory, font_size,
                 leg_htype = LABELS['htype']
             else:
                 leg_btype = LABELS['btype_exp'].replace('type B', '\ntype B')
-                
+
                 leg_htype = None
         else:
             leg_btype = LABELS['btype']
@@ -533,7 +543,7 @@ def plot_gcurves_exp(exp_data, characteristics_s, fig_supdirectory,
         axes[1].legend()
         fig.add_subplot(111, frameon=False)
         plt.title(title)
-        plt.tick_params(labelcolor='none', which='both', top=False, 
+        plt.tick_params(labelcolor='none', which='both', top=False,
                         bottom=False, left=False, right=False)
         plt.grid(False)
         plt.xlabel(LABELS['ax_gen'], labelpad=6)
@@ -583,7 +593,8 @@ def compute_n_plot_gcurve(exp_data, simu_count, characteristics,
                           par_update=None, is_exp_plotted=False,
                           bbox_to_anchor=None, title=None, is_propB=False,
                           proc_count=1):
-    p_update = {'is_htype_seen': False}
+    p_update = {'is_htype_seen': False,
+                'parameters': par.PAR}
     p_update.update(par_update or {})
 
     gtrig = sim.type_of_sort_from_characteristics(characteristics)
@@ -614,8 +625,10 @@ def compute_n_plot_gcurve(exp_data, simu_count, characteristics,
                       alpha=fp.ALPHA, label=LABELS['per'], color='darkorange')
     plt.legend(loc='lower right', bbox_to_anchor=bbox_to_anchor)
     if is_propB:
+        print(p_update)
         plt.title(title + rf"\quad $r_{{B\% , exp}}={out[3][0]:3.2f}, \quad"
-                   rf" r_{{B \%,sim}}={out[3][1]:3.2f}$")
+                   rf" r_{{B \%,sim}}={out[3][1]:3.2f}, \quad \ell_{{min_A}}"
+                   rf" = {int(p_update['parameters'][1][0][2])}$")
     else:
         plt.title(title)
     sns.despine()
@@ -631,19 +644,22 @@ def compute_n_plot_gcurve(exp_data, simu_count, characteristics,
 
 def compute_n_plot_gcurves_wrt_charac(exp_data, simu_count, characteristics_s,
                                       fig_supdirectory, labels=None,
-                                      par_update=None, path=None,
+                                      par_update=None, path=None, proc_count=1,
                                       bbox_to_anchor=None, add_to_name=None,
-                                      fig_size=(5.5, 11)):
+                                      fig_size=(5.5, 11), xticks=None):
     gcurve_s = [sim.type_of_sort_from_characteristics(characs) for characs in
                 characteristics_s]
     fig_count = len(characteristics_s)
     fig, ax = plt.subplots(fig_count, 1, sharex='col', figsize=fig_size)
     for i in range(fig_count):
+        if not isinstance(xticks, type(None)):
+            ax[i].set_xticks(xticks)
         characteristics = characteristics_s[i]
         gcurve = gcurve_s[i]
 
         lineages, gtrigs_exp, gtrigs_sim = sim.compute_gtrigs(exp_data,
-            simu_count, characteristics, gcurve, gcurve, par_update=par_update)
+            simu_count, characteristics, gcurve, gcurve, par_update=par_update,
+            proc_count=proc_count)
 
         ax[i].plot(gtrigs_exp, lineages, label=LABELS['exp'], color='black')
         sim_label = LABELS['sim'] # write_simlabel_w_count(simu_count)
@@ -807,7 +823,7 @@ def plot_gcurves_wrt_par_n_char(exp_data, simu_count, characteristics_s,
     par_count = len(varying_par_updates)
     colors = sns.color_palette('rocket', par_count)[::-1]
 
-    
+
     if isinstance(linestyles, type(None)):
         linestyles = ['-' for i in range(par_count)]
     fig_count = len(characteristics_s)
@@ -905,6 +921,34 @@ def plot_medians_wrt_par(exp_data, simu_count, characteristics, varying_pars,
 #  Histograms
 # ------------
 
+def plot_histogram(x_axis, y_axis, width=1, normalized=True, ylim=None,
+                   fig_supdirectory=None, title=None):
+    plt.figure()
+    if not isinstance(ylim, type(None)):
+        plt.ylim(ylim)
+    plt.xlabel(LABELS['gsen'], labelpad=6)
+    if normalized:
+        plt.ylabel(LABELS['ax_per'], labelpad=8)
+    else:
+        plt.ylabel(LABELS['ax_count'], labelpad=8)
+    plt.bar(x_axis, y_axis, width=width, color='darkorange')
+    plt.legend()
+    plt.title(title)
+    sns.despine()
+    # if not isinstance(fig_supdirectory, type(None)):
+    #     print('\n Saved at ', path)
+    #     plt.savefig(path, bbox_inches='tight')
+    plt.show()
+
+def compute_n_plot_hist_gen_coupure(gsen_exp, fig_supdirectory,
+                                    x_axis=np.arange(7), width=1,
+                                    normalized=True, ylim=None, title=None):
+    y_axis = fct.make_hist_from_data_wo_nan(gsen_exp, x_axis=x_axis,
+                                            normalized=normalized)
+    plot_histogram(x_axis, y_axis, width=width, normalized=normalized,
+                   fig_supdirectory=fig_supdirectory, ylim=ylim, title=title)
+    return y_axis
+
 def compute_n_plot_hist_lmin(exp_data, simulation_count, characteristics_s,
                              hist_lmins_axis, fig_supdirectory,
                              parameters=par.PAR, width=1, is_htype_seen=False,
@@ -950,7 +994,7 @@ def compute_n_plot_hist_lmin(exp_data, simulation_count, characteristics_s,
     hist_s = []
     for i in range(char_count):
         axis, hist = data_s[i]
-        axis_new, hist_new = fct.change_width_int_hist(axis,hist['mean'],width)
+        axis_new, hist_new = fct.rescale_histogram_bin(axis,hist['mean'],width)
         if i == 0:
             x_count = len(axis_new)
             hist_all = [0 * axis_new]
@@ -1059,7 +1103,7 @@ def plot_histogram_from_lcycle_counts(lcycle_per_seq_counts, lcycle_type,
                                       path_to_save=None, x_max=-1,
                                       fig_size=None):
     """ Plot the histogram from the data given in `lcycle_per_seq_counts`
-    arranged according to the parameters specified in argument and save at
+    arranged according to the parameters specified as argument and save at
     `path_to_save` if `path_to_save` is not None.
 
     Parameters
@@ -1111,13 +1155,14 @@ def plot_histogram_from_lcycle_counts(lcycle_per_seq_counts, lcycle_type,
                                                 lcycle_per_seq_counts['nta'])
         if lcycle_type == 'nta_total':
             label_x = LABEL_HIST_X['nta_total']
-            hist = fct.histogram_w_std(np.nansum(lcycle_per_seq_counts['nta'],
-                                                 axis=-1))
+            hist = fct.make_average_histogram(
+                       np.nansum(lcycle_per_seq_counts['nta'], axis=-1))
         elif lcycle_type == 'nta_by_idx':
             lcycle_per_nta_count_max = np.nanmax(lcycle_per_seq_counts['nta'])
             axis = np.arange(1, int(lcycle_per_nta_count_max) + 1)
 
-            hist = fct.histogram_w_stack(lcycle_per_seq_counts['nta'], axis)
+            hist = fct.make_stacked_average_histogram(
+                        lcycle_per_seq_counts['nta'], axis)
             bottom = 0 * hist[0]
 
             seq_count = np.shape(lcycle_per_seq_counts['nta'])[-1]
@@ -1139,13 +1184,15 @@ def plot_histogram_from_lcycle_counts(lcycle_per_seq_counts, lcycle_type,
                             label=rf"$\geq {i+1}$", color=colors[i])
                 plt.legend(title=LEGEND_NTA_BY_IDX)
         elif lcycle_type == 'nta':
-            hist = fct.histogram_w_std(np.reshape(lcycle_per_seq_counts['nta'],
-                                      (simu_count, lineage_count * nta_count)))
+            hist = fct.make_average_histogram(
+                       np.reshape(lcycle_per_seq_counts['nta'],
+                                  (simu_count, lineage_count * nta_count)))
         elif lcycle_type[:-1] == 'nta':
             nta_idx = int(lcycle_type[-1]) - 1
-            hist = fct.histogram_w_std(lcycle_per_seq_counts['nta'][:,nta_idx])
+            hist = fct.make_average_histogram(
+                       lcycle_per_seq_counts['nta'][:,nta_idx])
         elif lcycle_type == 'sen':
-            hist = fct.histogram_w_std(lcycle_per_seq_counts['sen'])
+            hist = fct.make_average_histogram(lcycle_per_seq_counts['sen'])
         else:
             raise ValueError("ERROR: wrong `lcycle_type` argument for "
                               "`plot_histogram_lcycle_count` function")
@@ -1153,7 +1200,7 @@ def plot_histogram_from_lcycle_counts(lcycle_per_seq_counts, lcycle_type,
             lineage_count = hist[3]
             plt.bar(hist[0][:x_max], hist[1][:x_max], width=1, alpha=.7,
                     color=colors[0])
-            plt.errorbar(hist[0][:x_max], hist[1][:x_max], 
+            plt.errorbar(hist[0][:x_max], hist[1][:x_max],
                          yerr=hist[2][:x_max], linestyle='', capsize=5,
                          color=colors[1])
     else:
@@ -1171,7 +1218,7 @@ def plot_histogram_from_lcycle_counts(lcycle_per_seq_counts, lcycle_type,
                                         seq_count_max-1:], axis=1)[:, None], 1)
             labels = [str(i+1) for i in range(seq_count_max)]
             labels[-1] = rf"$\geq {labels[-1]}$"
-            
+
             df = pd.DataFrame(data=new, columns=labels)
             palette = sns.color_palette("YlOrRd", seq_count_max)
             sns.histplot(df, stat="percent", discrete=True, multiple='stack',
@@ -1337,7 +1384,7 @@ def compute_n_plot_postreat_time_vs_gen(exp_data, simu_count, characteristics,
         plt.legend(bbox_to_anchor=(1, 1), title=LEG_TITLE)
         sns.despine()
         plt.show()
-        
+
         # > Of each type among senescent cells
         plt.figure()
         data_key = 'prop_type_sen'
@@ -1362,4 +1409,3 @@ def compute_n_plot_postreat_time_vs_gen(exp_data, simu_count, characteristics,
         sns.despine()
         plt.show()
     return
-

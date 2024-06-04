@@ -48,7 +48,7 @@ for key, label in LABELS.items():
 
 def plot_linit_wrt_par(ltrans=0, l0=0, l1=0, labels=None, legend_key=None,
                        fig_supdirectory=None, fig_size=None):
-    """ ltrans, l0 and l1 should be lists (of same lenght) of values to plot
+    """ ltrans, l0 and l1 should be lists (of same length) of values to plot
     a flot for fixed value, common to all plot.
 
     """
@@ -105,7 +105,8 @@ def plot_data_exp_length_curves(x, y, std, fig_supdirectory):
 def plot_data_exp_concentration_curves_final(c_p, err_p, c_m, err_m,
                                              fig_supdirectory,
                                              bbox_to_anchor=None,
-                                             ylabel=LABELS_['ax_cexp']):
+                                             ylabel=LABELS_['ax_cexp'],
+                                             fig_name=None):
     colors = fp.MY_COLORS[:2]
     sns.set_palette(colors)
     # Concentration w.r.t days.
@@ -119,7 +120,8 @@ def plot_data_exp_concentration_curves_final(c_p, err_p, c_m, err_m,
     plt.xticks(x)
     sns.despine()
     if not isinstance(fig_supdirectory, type(None)):
-        path = f"{fig_supdirectory}/{FDIR_DAT}/concentration_final.pdf"
+        fig_name = fig_name or 'concentration_final'
+        path = f"{fig_supdirectory}/{FDIR_DAT}/{fig_name}.pdf"
         plt.savefig(path, bbox_inches='tight')
     plt.show()
     return
@@ -263,10 +265,9 @@ def plot_hist_s(datas, binwidth, fig_ratio, labels=None, saving_path=None,
     plt.show()
 
 
-def plot_cycles_from_dataset(fig_supdirectory):
+def plot_cycles_from_dataset(fig_supdirectory, is_saved=False):
     cycles = parf.extract_cycles_dataset()
     path = None
-    is_saved = not isinstance(fig_supdirectory, type(None))
 
     # Histograms of cdt per categories of the model.
     keys_to_plot_ = [['norA', 'norB', 'arr'],
@@ -281,10 +282,12 @@ def plot_cycles_from_dataset(fig_supdirectory):
             path = f'{fig_supdirectory}/{FDIR_DAT}/{name}.pdf'
         if keys == ['norA', 'norB', 'nta', 'sen']:
             binwidth = [10, 10, 40, 40]
+            path_ = None
+            if is_saved:
+                path_ = path.replace('.pdf', '_acronym.pdf')
             plot_hist_s([cycles[key] for key in keys], binwidth=binwidth,
-                        fig_ratio=fig_ratios[2], labels=
-                        [LABELS[key+'_short'] for key in keys],
-                        saving_path=path.replace('.pdf', '_acronym.pdf'))
+                        fig_ratio=fig_ratios[2], labels=[LABELS[key+'_short']
+                        for key in keys], saving_path=path_)
         else:
             binwidth = 10
         plot_hist_s([cycles[key] for key in keys], binwidth=binwidth,

@@ -19,8 +19,10 @@ import parameters as par
 # imp.reload(par)
 
 
-FOLDER_SIM_L = "simulations/lineage/"
-FOLDER_SIM_P = "simulations/population/"
+FOLDER_SIM = "simulations/"
+FOLDER_L = "lineage/"
+FOLDER_P = "population/"
+FOLDER_FC = "final_cut/"
 
 # DEFAULT_PARAMETERS_L = {'is_htype_accounted': par.HYBRID_CHOICE,
 #                         'is_htype_seen': True,
@@ -39,7 +41,7 @@ FOLDER_SIM_P = "simulations/population/"
 #                         'prop_sat': par.PROP_SAT}
 # if __name__ == "__main__":
 #     print(DEFAULT_PARAMETERS_L, DEFAULT_PARAMETERS_P)
-    
+
 # -------------------
 # Auxiliary functions
 # -------------------
@@ -97,7 +99,7 @@ def list_to_string(list_to_write, is_last_int=False, decimal_count=None):
 
 def write_path_directory_from_file(file_path):
     """ Return the string corresponding to the path of the directory in which
-    the file with path given in argument in saved.
+    the file with path given as argument in saved.
 
     """
     idx = len(file_path) - 1 - file_path[::-1].find("/")
@@ -105,7 +107,7 @@ def write_path_directory_from_file(file_path):
 
 def write_parameters_onset(parameters):
     """ Generate a string with the parameters of the law of entry in a sequence
-    of arrests (non-terminal and senescence) given in argument.
+    of arrests (non-terminal and senescence) given as argument.
 
     Parameters
     ----------
@@ -149,6 +151,15 @@ def write_parameters_linit(par_linit):
     ltrans, l0, l1 = np.round(par_linit).astype(int)
     return f'linit{ltrans}-{l0}-{l1}'
 
+def write_parameters_finalCut(par_fc):
+    l_cut, g_delay, p_escape, idxs_frame = par_fc
+    if isinstance(l_cut, type(None)):
+        lcut_string = 'noFc'
+    else:
+        lcut_string = f'fc{int(l_cut)}'
+    return f'{lcut_string}-{g_delay}-{p_escape}' \
+         f'-gal{idxs_frame[1]-idxs_frame[0]}-{idxs_frame[2]-idxs_frame[0]}'
+
 # --------------------
 # Lineages simulations
 # --------------------
@@ -158,7 +169,7 @@ def write_parameters_linit(par_linit):
 
 def characteristics_to_string(characteristics):
     """ Generate a string with the different types lineage characterizations
-    given in argument.
+    given as argument.
 
     Parameters
     ----------
@@ -233,7 +244,13 @@ def write_stat_path(simulation_count, lineage_count, types_of_sort,
     types_of_sort_string = types_of_sort_to_string(types_of_sort)
     characteristics_string = characteristics_to_string(characteristics)
     # Construction of the path.
-    path = FOLDER_SIM_L + write_parameters_to_fit(p['parameters'])
+    if isinstance(p['par_finalCut'], type(None)):
+        folder = FOLDER_SIM + FOLDER_L
+        fc_data = ''
+    else:
+        folder = FOLDER_SIM + FOLDER_FC + FOLDER_L
+        fc_data = write_parameters_finalCut(p['par_finalCut']) + '_'
+    path = folder + write_parameters_to_fit(p['parameters']) + fc_data
     if not isinstance(p['p_exit'], type(None)):
         if 'p_death_acc' in list(p.keys()):
             if not isinstance(p['p_death_acc'], type(None)):
@@ -300,7 +317,7 @@ def write_hist_lc_sim_path(simulation_count, lineage_count, characteristics,
                            lcycle_types, par_update=None, make_dir=True,
                            supdirectory='figures'):
     """ Return the string chain corresponding to the path at which the histo-
-    gram obtained from data simulated with all the parameters given in argument
+    gram obtained from data simulated with all the parameters given as argument
     should be saved.
     In addition, check if the directory is created or not, if not creates it.
 
@@ -311,7 +328,7 @@ def write_hist_lc_sim_path(simulation_count, lineage_count, characteristics,
     """
     path = write_stat_path(simulation_count, lineage_count, [''],
                            characteristics, par_update)
-    path = path.replace(FOLDER_SIM_L, supdirectory+"/lineage/gcurves_n_hists/")
+    path = path.replace(FOLDER_SIM, supdirectory + "/gcurves_n_hists/")
     lcycle_types_string = types_of_sort_to_string(lcycle_types)
     path = path.replace("stat_", f"hist_lc_{lcycle_types_string}_")
     path = path.replace('by__', '')
@@ -338,7 +355,7 @@ def write_hist_lmin_sim_path(simulation_count, lineage_count, width,
 def write_hist_lc_exp_path(lineage_count, characteristics,
                            supdirectory='figures'):
     """ Return the string chain corresponding to the path at which the histo-
-    gram obtained from data simulated with all the parameters given in argument
+    gram obtained from data simulated with all the parameters given as argument
     should be saved.
 
     """
@@ -363,7 +380,11 @@ def write_gcurve_path(simulation_count, lineage_count, types_of_sort,
     """
     path = write_stat_path(simulation_count, lineage_count, types_of_sort,
                            characteristics, par_update)
-    path = path.replace(FOLDER_SIM_L, supdirectory+"/lineage/gcurves_n_hists/")
+    folder = FOLDER_SIM
+    if not isinstance(par_update['par_finalCut'], type(None)):
+        folder = folder + FOLDER_FC
+    path = path.replace(folder + FOLDER_L,
+                        f"{supdirectory}/{FOLDER_L}gcurves_n_hists/")
     path = path.replace("stat_", "gcurves_")
     path = path.replace(".npy", ".pdf")
     # Creation of the directory if not existing.
@@ -456,7 +477,15 @@ def write_simu_pop_directory(par_update=None):
     if isinstance(par_update, dict):
         p.update(par_update)
 
-    path = FOLDER_SIM_P + write_parameters_onset(p['p_onset'])
+    if isinstance(p['par_finalCut'], type(None)):
+        folder = FOLDER_SIM + FOLDER_P
+        fc_data = ''
+    else:
+        folder = FOLDER_SIM + FOLDER_FC + FOLDER_P
+        fc_data = write_parameters_finalCut(p['par_finalCut']) + '_'
+    # path = folder + write_parameters_to_fit(p['parameters']) + fc_data #
+
+    path = folder + write_parameters_onset(p['p_onset'])
     if p['sat_choice'][0] == 'time':
         path = path + '/tsat'
         for key, tsat in p['times_sat'].items():
@@ -469,17 +498,19 @@ def write_simu_pop_directory(par_update=None):
             path = path + f"/psat{int(p['prop_sat'])}"
     if not p['hybrid_choice']:
         path = path + "_wo_htype"
+    path = path + "/" + fc_data
     if not isinstance(p['p_exit'], type(None)):
-        path = path + '/' + write_parameters_exit(p['p_exit'])
+        path = path + write_parameters_exit(p['p_exit'])
         if not isinstance(p['par_l_init'], type(None)):
             path = path + '/' + write_parameters_linit(p['par_l_init'])
-    return path + "/"
+        path = path  + "/"
+    return path
 
 def write_simu_pop_subdirectory(cell=None, para=None, par_update=None):
     """ Add to the directory path (string) returned by
     `write_simu_pop_directory(par_update)` the subfolders corresponding
     to the simulations of a specific number of parallelization and cell given
-    in argument (default None for no subfolder extension).
+    as argument (default None for no subfolder extension).
 
     """
     path = write_simu_pop_directory(par_update)

@@ -15,6 +15,7 @@ import seaborn as sns
 import aux_figures_properties as fp
 import aux_write_paths as wp
 import parameters as par
+import aux_parameters_functions as parf
 import population_plot as pp
 
 imp.reload(fp)
@@ -26,10 +27,15 @@ imp.reload(par)
 
 PALETTE = 'viridis'
 
-def distribution_shortest(cell_count, is_plotted=False):
-    lenght_count = int(len(par.L_INIT_EXP) / 4)
-    lengths = np.linspace(1, lenght_count, lenght_count)
-    probas = par.L_INIT_EXP[2 * lenght_count:]
+def distribution_shortest(cell_count, is_plotted=False,
+                          par_l_init_update=None):
+    length_count = int(len(par.L_INIT_EXP) / 4)
+    if isinstance(par_l_init_update, type(None)):
+        lengths = np.linspace(1, length_count, length_count)
+        probas = par.L_INIT_EXP[2 * length_count:]
+    else:
+        lengths, probas = parf.transform_l_init(par.L_INIT_EXP,
+                                                *par_l_init_update)
     distrib = np.array([0])
     for i in range(1, len(lengths)):
         tmp = 0
@@ -41,6 +47,50 @@ def distribution_shortest(cell_count, is_plotted=False):
         plt.plot(lengths, probas)
         plt.plot(lengths, distrib)
     return lengths, distrib
+
+def plot_distributions_shortest_wrt_linit(par_l_inits, cell_count,
+                                          is_rescaled=False,
+                                          fig_supdirectory=None):
+    curve_count = len(par_l_inits)
+    plt.figure()
+    plt.xlabel(pp.LABELS['ax_l'], labelpad=8)
+    plt.ylabel("Density", labelpad=6)
+    colors = sns.color_palette(PALETTE, curve_count)
+    for i in range(curve_count):
+        lengths, distrib = distribution_shortest(cell_count,
+                                        par_l_init_update=par_l_inits[i])
+        if is_rescaled:
+            distrib = distrib / np.max(distrib)
+        if cell_count == 1e5:
+            plt.plot(lengths[:350], distrib[:350], label=r"$N_{exp}$",
+                     color=colors[i])
+        else:
+            plt.plot(lengths[:350], distrib[:350], label=rf"${par_l_inits[i]}$",
+                     color=colors[i])
+    plt.legend(title=r"$(\ell_T, \ell_0, \ell_1)$")
+    sns.despine()
+    plt.title(rf"$N_{{init}} = {cell_count}$")
+    plt.show()
+
+    plt.figure()
+    plt.xlabel(pp.LABELS['ax_l'], labelpad=8)
+    plt.ylabel("Density", labelpad=6)
+    for i in range(curve_count):
+        lengths, distrib = distribution_shortest_max(cell_count,
+                                        par_l_init_update=par_l_inits[i])
+        if is_rescaled:
+            distrib = distrib / np.max(distrib)
+        if cell_count == 1e5:
+            plt.plot(lengths[:350], distrib[:350], label=r"$N_{exp}$",
+                     color=colors[i])
+        else:
+            plt.plot(lengths[:350], distrib[:350], label=rf"${par_l_inits[i]}$",
+                     color=colors[i])
+    plt.legend(title=r"$(\ell_T, \ell_0, \ell_1)$")
+    sns.despine()
+    plt.title(rf"$N_{{init}} = {cell_count}$")
+    plt.show()
+
 
 def plot_distributions_shortest_min(cell_counts, is_rescaled=False,
                                     fig_supdirectory=None):
@@ -70,10 +120,15 @@ def plot_distributions_shortest_min(cell_counts, is_rescaled=False,
         plt.savefig(fig_name, bbox_inches='tight')
     plt.show()
 
-def distribution_shortest_max(cell_count, is_plotted=False):
-    lenght_count = int(len(par.L_INIT_EXP) / 4)
-    lengths = np.linspace(1, lenght_count, lenght_count)
-    probas = par.L_INIT_EXP[2 * lenght_count:]
+def distribution_shortest_max(cell_count, is_plotted=False,
+                              par_l_init_update=None):
+    length_count = int(len(par.L_INIT_EXP) / 4)
+    if isinstance(par_l_init_update, type(None)):
+        lengths = np.linspace(1, length_count, length_count)
+        probas = par.L_INIT_EXP[2 * length_count:]
+    else:
+        lengths, probas = parf.transform_l_init(par.L_INIT_EXP,
+                                                *par_l_init_update)
     distrib = np.array([0])
     for i in range(1, len(lengths)):
         tmp = 0

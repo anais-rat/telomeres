@@ -13,7 +13,7 @@ import time
 
 import aux_write_paths as wp
 imp.reload(wp)
-import population_simulation as sim
+import population_simulation_bfchange as sim
 import parameters as par
 imp.reload(par)
 import population_postreat as pps
@@ -22,7 +22,7 @@ import population_postreat as pps
 # Parameters
 # ----------
 
-IS_PLOT = False
+IS_PLOT = True
 if IS_PLOT:
     # .....if IS_PLOT True......
     import population_plot as pl
@@ -30,7 +30,7 @@ if IS_PLOT:
     IS_SAVED = False
     # ..............
     if IS_SAVED:
-        FIG_DIRECTORY = "figures_manuscript"
+        FIG_DIRECTORY = "figures/manuscript"
     # ..............
     else:
         FIG_DIRECTORY = None
@@ -47,7 +47,7 @@ if is_run_in_parallel_from_slurm:
 # Experiment design.
 # ------------------
 # > Experimental concentration initially / at dilution [cell].
-C_EXP = np.array([500]) # 250, 300. Cas test: 15
+C_EXP = np.array([300]) # 250, 300. Cas test: 15
 
 
 # Computation parameters
@@ -57,7 +57,7 @@ C_EXP = np.array([500]) # 250, 300. Cas test: 15
 #   at concentration C_EXP[i].
 PARA_COUNT = [np.array([1])]
 # > Number of times the simulation is run.
-SIMU_COUNTS = np.array([25]) # 25, 20. Cas test: 3
+SIMU_COUNTS = np.array([30]) # 25, 20. Cas test: 3
 
 TIMES, TIME_SAVED_IDXS, DIL_IDXS = par.TIMES, par.TIME_SAVED_IDXS, par.DIL_IDXS
 
@@ -128,16 +128,17 @@ for cell_count in C_EXP:
                 pps.postreat_from_evo_c_if_not_saved(file_path)
 
             # Average on all simulations.
-            pps.postreat_performances(sub_dir_path, simu_count)
-            pps.statistics_simus_if_not_saved(sub_dir_path, simu_count)
+            out_p = pps.postreat_performances(sub_dir_path, simu_count)
+            out_s = pps.statistics_simus_if_not_saved(sub_dir_path, simu_count)
+            print('Computation time (average):', out_p['computation_time'])
 
             # Plot average at `c_exp` and `para_count` fixed.
             if IS_PLOT:
                 # pl.plot_hist_lmin_at_sen(cell_count, para_count, simu_count,
                 #                           FIG_DIRECTORY, day_count=7, width=4)
-                pl.plot_evo_c_n_p_pcfixed_from_stat(cell_count, para_count,
-                                                    simu_count, FIG_DIRECTORY,
-                                                    TMAX_TO_PLOT)
+                # pl.plot_evo_c_n_p_pcfixed_from_stat(cell_count, para_count,
+                #                                     simu_count, FIG_DIRECTORY,
+                #                                     TMAX_TO_PLOT)
                 # pl.plot_evo_l_pcfixed_from_stat(cell_count, para_count,
                 #                                 simu_count, FIG_DIRECTORY,
                 #                                 TMAX_TO_PLOT)
@@ -148,4 +149,5 @@ for cell_count in C_EXP:
                 # pl.plot_evo_gen_pcfixed_from_stat(cell_count, para_count,
                 #                                   simu_count, FIG_DIRECTORY,
                 #                                   TMAX_TO_PLOT)
+                print()
     run_idx += 1

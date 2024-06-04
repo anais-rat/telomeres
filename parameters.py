@@ -88,10 +88,19 @@ L_MIN_MAX = 150
 #        [28, 0, 0])
 PAR = ([0.0247947389, 0.440063202],
        [[0.186824276, 0.725200993, 27.0], [2.45423414e-06, 0.122028128, 0.0]],
-       [0, 40, 58.0])
+       [0, 40, 58.0]) # Final fit.
+# PAR = ([0.0247947389, 0.440063202], # [0.0249, 0.465] # [0.024, 0.45], #
+#         [[0.186824276, 0.725200993, 35], [2.45423414e-06, 0.122028128, 0.0]],
+#         [0, 40, 58.0])
+# PAR = ([0.028, 0.58], # [0.0249, 0.465] # [0.024, 0.45], #
+#        [[0.186824276, 0.725200993, 38], [2.45423414e-06, 0.122028128, 0.0]],
+#        [0, 40, 58.0])
+# PAR = ([0.0247947389, 0.440063202],
+#         [[0.17, 0.65, 36.0], [2.45423414e-06, 0.122028128, 0.0]],
+#         [0, 40, 58.0])
 # if __name__ == "__main__":
-#     parf.plot_laws(PAR, fig_name='fit_10', is_par_plot=True)
-#     parf.plot_laws(PAR, fig_name='fit_10_wo_par', is_par_plot=False)
+    # parf.plot_laws(PAR, fig_name='fit_10', is_par_plot=True)
+    # parf.plot_laws(PAR, fig_name='fit_10_wo_par', is_par_plot=False)
 P_ONSET = PAR[:2]
 
 # Law for the onset of non-terminal arrests.
@@ -116,6 +125,7 @@ PAR_NTA = [A_EXP_AR, B_EXP_AR]
 # > case TRIG_ARREST_CHOICE == 'sigmoid'.
 #   Deterministic generation-dependent probability to enter an arrest given by
 #   sigmoid law with parameters (a, b) in (Martin thesis).
+#   See also function (2) in (Martin et al. 2021).
 A_SIGMOID = 61.25
 B_SIGMOID = 13.47
 # > case TRIG_ARREST_CHOICE == 'lmin_const'.
@@ -155,13 +165,6 @@ L_MIN_SEN_BTYPE = 16
 #   Probabilistic threshold, following a gaussin distribution.
 L_MIN_SEN_MU = 33
 L_MIN_SEN_SIGMA = 37.5
-# > case TRIG_SEN_CHOICE == 'lmin_rand'.
-#   Probabilistic, accordingly to a the law of density B(x)exp(-int_0^x B**2)
-#   w. B depending on 'lmin_max' and 'alpha' (the smaller the greater the std).
-L_MIN_MAX_ATYPE = 21
-L_MIN_MAX_BTYPE = 21
-L_ALPHA_ATYPE = 0.5
-L_ALPHA_BTYPE = 0.5
 # ................................
 
 
@@ -191,19 +194,34 @@ CYCLES_SEN_LAST_CONST = 610 # Mdt. of the last cycle of senescence.
 # ---------------
 #   'new': initial cell(s) generates from scratch according to next parameters.
 #   'load': already generated & saved data, to recreate same initial cell(s).
+#   'cut': initial cell(s) generates from scratch according to final cut.
 DATA_INIT_CHOICE = 'new'
 
-# ......................
-# > case DATA_INIT_CHOICE == 'load'.
-#   >> In population.
-DATA_INIT_LOAD_PATH = 'data/data_init/data_init'
-#   >> In lineage.
-DATA_INIT_LOAD_LINEAGE_PATH = 'data/data_init/lineage/'
-# ......................
+if DATA_INIT_CHOICE == 'load':
+    # .... Chose parameters ....
+    # > In population.
+    DATA_INIT_LOAD_PATH = 'data/data_init/data_init'
+    PAR_FINAL_CUT = None
+    # ...........................
+if DATA_INIT_CHOICE == 'cut':
+    # .... Chose parameters ....
+    LENGTH_CUT = 70 # Length of the telomere after cut [bp].
+    AVG_CUT_DELAY = 1 / 0.577 # 7287 # 0.577 # 1.613 # Average nb of gen between end of galactose and cutting.
+    PROBA_CUT_ESCAPE = .1 # Proba of/proportion of lineages escaping cutting.
+    IDX_DOX = 0
+    IDX_GAL = 36  # 6h after Dox addition.
+    IDX_RAF = 9 * 6 # 2 * 36  # 12h after Dox addition.
+    IDXS_FRAME = [IDX_DOX, IDX_GAL, IDX_RAF]
+    # ...........................
+    PAR_FINAL_CUT = [LENGTH_CUT, AVG_CUT_DELAY, PROBA_CUT_ESCAPE, IDXS_FRAME]
+else:
+    PAR_FINAL_CUT = None
+PAR_FINAL_CUT_P = None  # Temporary
 
 
 # Initial telomere lengths [bp].
 # ------------------------------
+CHROMOSOME_COUNT = 16
 #   'const': constant initial length, equal to <L_INF>.
 #   'gaussian': gaussian law of parameter (L_INF, L_SIGMA).
 #   'exp': experimental (from 'etat_asymp_val_juillet') translated by `L_INIT`.
@@ -244,7 +262,7 @@ SAT_CHOICE = ['prop']
 #   At day <i>, saturates if the concentration exceeds <PROP_SAT * c_dilution>.
 #   NB: if <SAT_CHOICE[-1]> is 'prop' the option holds from day len(SAT_CHOICE)
 #       to the end. Otherwise it must be the same length that <DAY_COUNT>.
-PROP_SAT = 1e3 #720 # 1e3 # 760 # 1e3 720 
+PROP_SAT = 1e3 #720 # 1e3 # 760
 # > case SAT_CHOICE[i] == 'time'.
 #   At day <i>, saturation happens at time <TIMES_SAT[i]> [min].
 TIMES_SAT = {0: 0.6045 * 24 * 60,
@@ -352,9 +370,15 @@ CDTS = parf.extract_cycles_dataset()
 
 # Visualizations of data (prints & plots).
 # ----------------------------------------
-if __name__ == "__main__":
-    pd.plot_cycles_from_old_dataset(CDTS_OLD, THRESHOLD, FIG_DIRECTORY)
-    # pd.plot_cycles_from_dataset(FIG_DIRECTORY)
+# if __name__ == "__main__":
+#     pd.plot_cycles_from_old_dataset(CDTS_OLD, THRESHOLD, FIG_DIRECTORY)
+#     pd.plot_cycles_from_dataset(FIG_DIRECTORY)
+
+# Dataset for finalCul experiment.
+# --------------------------------
+if DATA_INIT_CHOICE == 'cut':
+    CDTS_FINALCUT = parf.extract_cycles_dataset_finalCut()
+
 
 # Experimental data for calibration of the code, importation
 # ==========================================================
@@ -381,16 +405,15 @@ C_EXP_DATA = np.load('data/population/senesence_Tet02_tlc1.npz')
 X = C_EXP_DATA['X']
 Y = C_EXP_DATA['Y']
 SEM = C_EXP_DATA['SEM']
-Y_CORRECTED = C_EXP_DATA['Y_CORRECTED']
 
 # Data from raw value (corrects the error on errorbars).
 (C_AVG_P1, C_STD_P1, C_AVG_M1, C_STD_M1, C_AVG_P2, C_STD_P2, C_AVG_M2,
  C_STD_M2, C_AVG_P3, C_STD_P3, C_AVG_M3, C_STD_M3) = parf.extract_evo_c()
 
 # > Visualizations.
-if __name__ == "__main__":
-    parf.plot_data_exp_concentration_curves(X_NOSAT, Y_NOSAT, X, Y,
-                                            Y_CORRECTED, SEM, IS_SAVED)
+# if __name__ == "__main__":
+#     parf.plot_data_exp_concentration_curves(X_NOSAT, Y_NOSAT, X, Y, SEM,
+#                                             IS_SAVED)
 
 # -----------------------------
 # Evolution of telomere lengths
@@ -411,7 +434,9 @@ DEFAULT_PARAMETERS_L = {'is_htype_accounted': HYBRID_CHOICE,
                         'hist_lmins_axis': None,
                         'is_lcycle_counts': False,
                         'is_evo_stored': False,
-                        'p_exit': P_EXIT}
+                        'p_exit': P_EXIT,
+                        'par_finalCut': PAR_FINAL_CUT
+                        }
 
 DEFAULT_PARAMETERS_P = {'hybrid_choice': HYBRID_CHOICE,
                         'p_exit': P_EXIT,
@@ -419,4 +444,11 @@ DEFAULT_PARAMETERS_P = {'hybrid_choice': HYBRID_CHOICE,
                         'par_l_init': PAR_L_INIT,
                         'sat_choice': SAT_CHOICE,
                         'times_sat': TIMES_SAT,
-                        'prop_sat': PROP_SAT}
+                        'prop_sat': PROP_SAT,
+                        'par_finalCut': PAR_FINAL_CUT_P
+                        }
+
+
+# if DATA_INIT_CHOICE == 'cut':
+#     DEFAULT_PARAMETERS_L['parameters'] = PAR_CUT
+#     DEFAULT_PARAMETERS_P['parameters'] = PAR_CUT
