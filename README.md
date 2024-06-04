@@ -60,32 +60,6 @@ Please contact us.
 
 ### Demo
 
-A case test will be soon available.
-
-### Result Reproducibility 
-
-Reproducing our results is costly in time and memory. 
-We therefore recommand simulating with ''smaller'' parameters first (average on $k=2$ simulations instead of $30$, for $N_{init} = 5$ cells rather than $300$ or $1000$).
-
-For "bigger" parameters, parralel computing is strongly recommended.
-We used the [CLEPS cluster](https://paris-cluster-2019.gitlabpages.inria.fr/cleps/cleps-userguide/index.html) from the Inria of Paris.
-Our *Slurm* submission scripts are the `.batch` files.
-
-Please contact me directly if you need some of our raw simulated data (250 Go total). 
-Here's the corrected version:
-
----
-
-## Dataset
-
-Please contact us.
-
-## Code 
-
-### Overview
-
-### Demo
-
 A case test will be available soon.
 
 ### Result Reproducibility 
