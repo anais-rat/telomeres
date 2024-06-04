@@ -97,6 +97,6 @@ For "larger" parameters, parallel computing is strongly recommended.
 We used the [CLEPS cluster](https://paris-cluster-2019.gitlabpages.inria.fr/cleps/cleps-userguide/index.html) from Inria Paris. 
 Our *Slurm* submission scripts are the `.batch` files.
 
-Please contact me directly if you need some of our raw simulated data (250 GB total).
+Please contact me directly if you need some of our raw simulated data (250 Go total).
 
 
