@@ -60,7 +60,7 @@ Please contact us.
 
 ### Demo
 
-A case test will be availaible soonish.
+A case test will be soon available.
 
 ### Result Reproducibility 
 
