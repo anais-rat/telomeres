@@ -91,7 +91,7 @@ A case test will be available soon.
 ### Result Reproducibility 
 
 Reproducing our results is costly in time and memory. 
-We therefore recommend simulating with "smaller" parameters first (e.g., average on $k=2$ simulations instead of $30$, for initially $N_{init} = 5$ cells rather than $300$ or $1000$).
+We therefore recommend simulating with "small" parameters first (e.g., average on $k=2$ simulations instead of $30$, for initially $N_{init} = 5$ cells rather than $300$ or $1000$).
 
 For "larger" parameters, parallel computing is strongly recommended. 
 We used the [CLEPS cluster](https://paris-cluster-2019.gitlabpages.inria.fr/cleps/cleps-userguide/index.html) from Inria Paris. 
