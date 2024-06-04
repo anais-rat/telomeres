@@ -11,13 +11,13 @@ Code for "Individual cell fate and population dynamics revealed by a mathematica
 
 1. [Software Requirements](#software-requirements)
 2. [Dependencies](#dependencies)
-   - [Python versions and packages](#python-versions-and-packages)
+   - [Python Versions and Packages](#python-versions-and-packages)
    - [Additional Requirements for Ubuntu Users](#additional-requirements-for-ubuntu-users)
 3. [Dataset](#dataset)
 4. [Code](#code)
    - [Overview](#overview)
    - [Demo](#demo)
-   - [Result reproducibility](#result-reproducibility)
+   - [Result Reproducibility](#result-reproducibility)
 
 ## Software Requirements
 
@@ -29,7 +29,7 @@ The code has been tested on the following systems:
 
 ## Dependencies
 
-### Python versions and packages
+### Python Versions and Packages
 
 The code has been developed in *Python 3.8* and maintained with *Python 3.11.7*.
 
@@ -62,7 +62,7 @@ Please contact us.
 
 A case test will be availaible soonish.
 
-### Result reproducibility 
+### Result Reproducibility 
 
 Reproducing our results is costly in time and memory. 
 We therefore recommand simulating with ''smaller'' parameters first (average on $k=2$ simulations instead of $30$, for $N_{init} = 5$ cells rather than $300$ or $1000$).
