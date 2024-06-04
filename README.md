@@ -4,7 +4,7 @@
 
 Code for "Individual cell fate and population dynamics revealed by a mathematical model linking telomere length and replicative senescence". 
 
-- Preprint version: [biorxiv.org](https://www.biorxiv.org/content/10.1101/2023.11.22.568287v1.full.pdf)
+- Preprint version: [biorxiv.org](https://doi.org/10.1101/2023.11.22.568287)
 - See also Chapter 3 of the PhD thesis: [HAL theses](https://theses.hal.science/tel-04250492)
 
 ## Contents
