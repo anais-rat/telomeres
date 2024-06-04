@@ -62,7 +62,7 @@ Please contact us.
 
 A case test will be availaible soonish.
 
-## Result reproducibility 
+### Result reproducibility 
 
 Reproducing our results is costly in time and memory. 
 We therefore recommand simulating with ''smaller'' parameters first (average on $k=2$ simulations instead of $30$, for $N_{init} = 5$ cells rather than $300$ or $1000$).
