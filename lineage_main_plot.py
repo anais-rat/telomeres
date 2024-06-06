@@ -52,7 +52,7 @@ np.random.seed(1)
 # ----------
 
 IS_SAVED = False
-FORMAT = 'manuscript' # 'manuscript' or 'article'.
+FORMAT = 'manuscript'  # 'manuscript' or 'article'.
 # WARNING this variable MIGHT need to be changed in 'lineages_plot.py' as well.
 
 SIMU_COUNT = 1000
@@ -65,29 +65,29 @@ HIST_LMIN_X_AXIS = np.linspace(0, 250, 251)
 POSTREAT_DT = par.CYCLE_MIN
 
 
-# > Global plotting parameters
+# > Global plotting parameters (no need to be redefined)
 # .............................................................................
 fig_dir = None
 
 # Global plotting parameters and figure directory.
-matplotlib.rcParams.update(matplotlib.rcParamsDefault) # Reset to default.
-matplotlib.rcParams['text.latex.preamble'] = r'\usepackage{dsfont}'# pmatrix
+matplotlib.rcParams.update(matplotlib.rcParamsDefault)  # Reset to default.
+matplotlib.rcParams['text.latex.preamble'] = r'\usepackage{dsfont}'  # pmatrix
 
 if IS_SAVED:
     fig_dir = 'figures/' + FORMAT
     if (not os.path.exists(fig_dir)):
         os.makedirs(fig_dir)
-            
+
 if FORMAT == 'manuscript':
     sns.set_style("darkgrid")
-    sns.set_context("talk", font_scale = 1)
+    sns.set_context("talk", font_scale=1)
 
     plt.rcParams.update({'axes.facecolor': ".94",
                          'text.usetex': True,
                          'text.latex.preamble':r'\usepackage{amsfonts,dsfont}',
                          'figure.dpi': fp.DPI,
-                         'font.family': "sans-serif", # latex-like: 'serif',
-                         'font.sans-serif': "Helvetica", # ... 'cmr10'
+                         'font.family': "sans-serif",  # latex-like: 'serif',
+                         'font.sans-serif': "Helvetica",  # ... 'cmr10'
                          'legend.frameon': True,
                          'legend.framealpha': 1,
                          'legend.facecolor': 'white',
@@ -97,16 +97,17 @@ if FORMAT == 'manuscript':
                          # 'font.size': 14,
                          'legend.title_fontsize': 15.5,
                          'legend.fontsize': 15
-                        })
+                         })
 elif FORMAT == 'article':
     sns.set_style("ticks")
-    sns.set_context("poster", font_scale = 1)
+    sns.set_context("poster", font_scale=1)
     plt.rcParams.update({'figure.dpi': 600,
                          'font.family': ['sans-serif'],
                          'font.sans-serif': ['Arial'],
-                         'legend.frameon': False})
-                    # 'font.size': 20,
-                    # 'legend.fontsize': 18
+                         'legend.frameon': False
+                         # 'font.size': 20,
+                         # 'legend.fontsize': 18
+                         })
 else:
     print("Redefine 'Format' correctly")
 print(sns.plotting_context())
@@ -457,7 +458,7 @@ else:
 #     SIMU_COUNT = 1000
 
 #     MFACTORS = np.array([25, 34.8, 30, 40])
-#     P_ACC_S = par.P_ACCIDENTAL_DEATH * MFACTORS
+#     P_ACC_S = par.P_ACCIDENT * MFACTORS
 
 #     p_exit = deepcopy(par.P_EXIT)
 #     for i in range(len(P_ACC_S)):
@@ -500,7 +501,7 @@ else:
 # # Detailed simulations on senescence onset.
 # if FORMAT == 'article':
 #     MFACTORS = np.array([1., 5, 10., 15,  20, 25, 30., 40., 50.])
-#     P_ACC_S = par.P_ACCIDENTAL_DEATH * MFACTORS
+#     P_ACC_S = par.P_ACCIDENT * MFACTORS
 #     LINESTYLES = ['-', '-', '-', '-', '-', '--', '-', '-', '-']
 #     median = np.median(GSEN_EXP_MUTANT)
 #     # median = GSEN_EXP_MUTANT[int(len(GSEN_EXP_MUTANT) / 2)]
@@ -527,7 +528,7 @@ else:
 # #  Detailed simulations on senescence onset.
 # if FORMAT == 'article':
 #     MFACTORS = np.array([1., 20.])
-#     P_ACC_S = par.P_ACCIDENTAL_DEATH * MFACTORS
+#     P_ACC_S = par.P_ACCIDENT * MFACTORS
 #     LINESTYLES = ['-', '-']
 #     median = np.median(GSEN_EXP_MUTANT)
 #     # median = GSEN_EXP_MUTANT[int(len(GSEN_EXP_MUTANT) / 2)]
@@ -546,7 +547,7 @@ else:
 #                             bbox_to_anchor=(1, 1), add_to_name='rad51_test')
 
 
-# P_ACC_S = par.P_ACCIDENTAL_DEATH * np.array([1., 10., 20, 30., 40., 50.])
+# P_ACC_S = par.P_ACCIDENT * np.array([1., 10., 20, 30., 40., 50.])
 # LINESTYLES = ['-', '-', '--', '-', '-', '-']
 
 # p_exit = deepcopy(par.P_EXIT)

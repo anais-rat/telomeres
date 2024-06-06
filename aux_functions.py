@@ -392,7 +392,7 @@ def make_cell_count_histograms(traits, nta_counts, sen_counts, bin_count):
     """ Assume the population is structured w.r.t. a certain trait (typically
     generation or ancestor index) as described by `traits`. Compute the
     histograms of the number of: cells, type B cells, senescent type B, type H
-    (if HYBRID_CHOICE), and senescent cells with respect to the individual
+    (if HTYPE_CHOICE), and senescent cells with respect to the individual
     trait, whose repartition in the population is described by `traits`.
 
     Parameters
@@ -416,7 +416,7 @@ def make_cell_count_histograms(traits, nta_counts, sen_counts, bin_count):
         hist[1]: 1D array (bin_count, ), type B cells only.
         hist[2]: 1D array (bin_count, ), type B senescent cells.
         hist[-1]: 1D array (bin_count, ), senescent cells.
-        if HYBRID_CHOICE:
+        if HTYPE_CHOICE:
             hist[3]: 1D array (bin_count, ), type H cells.
 
     """
@@ -427,7 +427,7 @@ def make_cell_count_histograms(traits, nta_counts, sen_counts, bin_count):
     hist_btype = np.zeros(bin_count)
     hist_sen_btype = np.zeros(bin_count)
     hist_sen = np.zeros(bin_count)
-    if par.HYBRID_CHOICE:
+    if par.HTYPE_CHOICE:
         hist_htype = np.zeros(bin_count)
 
     # Iteration on cells.
@@ -443,7 +443,7 @@ def make_cell_count_histograms(traits, nta_counts, sen_counts, bin_count):
         elif nta_counts[i] != 0:  # Non-senescent type B.
             hist_btype[traits[i]] += 1
 
-    if par.HYBRID_CHOICE:
+    if par.HTYPE_CHOICE:
         return [hist, hist_btype, hist_sen_btype, hist_sen, hist_htype]
     return [hist, hist_btype, hist_sen_btype, hist_sen]
 
@@ -695,33 +695,50 @@ if not isinstance(par.PAR_FINAL_CUT, type(None)):
 
 # > Onset of on-terminal arrest (nta).
 
-def sigmoid(gen):
-    """ Return the sigmoid function (2) (Martin et al., 2021) evaluated at 
+def law_sigmoid(gen, a, b):
+    """ Return the sigmoid function (2) (Martin et al., 2021) evaluated at
     `gen`, which corresponds to the probability of having a long cycle at
     generation `gen` when there have only been normal cycles so far.
 
     """
+    # Compute generation-dependent probability to trigger an arrest.
+    proba = 0
     if gen > 0:
-        return 1 / (1 + np.exp(- (gen - par.A_SIGMOID) / par.B_SIGMOID))
-    return 0
+        proba = 1 / (1 + np.exp(- (gen - a) / b))
+    # Test if an arrest is triggered according to this probiblity.
+    return bool(rd.binomial(1, proba))
+
+def law_exponential(length, a, b):
+    # Compute telomere-length dependent probability to trigger an arrest.
+    proba = min(1, b * math.exp(- a * length))
+    # Test if an arrest is triggered according to this probiblity.
+    return bool(rd.binomial(1, proba))
+
+def law_exponential_w_threshold(length, a, b, lmin):
+    if length <= lmin:  # If deterministic threshold reached.
+        return True  # Senescence is triggered.
+    # Otherwise, test with exponential law.
+    return law_exponential(length, a, b)
+
+def law_gaussian_threshold(length, mu, sigma):
+    ltrig = max(0, rd.normal(mu, sigma))  # Threshold length.
+    return length <= ltrig
 
 def is_nta_trig(gen, length_min, lengths, parameters=par.PAR_NTA):
     """ Test if a non-terminal arrest (nta) is triggered (True) for a type A
     cell with telomere distribution `lengths`, minimal telomere length
     `length_min`, and generation `gen`, following the rule given by
-    `par.TRIG_TELO_CHOICE` and `TRIG_ARREST_CHOICE`.
+    `par.TRIG_TELO_CHOICE` and `P_NTA_CHOICE`.
 
     Optional: regardless of the parameters fixed in `parameters.py`, one can
     specify new parameters [a, b] as arguments.
 
     """
-    if par.TRIG_ARREST_CHOICE == 'sigmoid':  # See (2) (Martin et al., 2021).
-        proba_trig = min(1, sigmoid(gen))  # Probability to trigger a nta.
-        return bool(rd.binomial(1, proba_trig))
+    if par.P_NTA_CHOICE == 'sigmoid':  # See (2) (Martin et al., 2021).
+        return law_sigmoid(gen, *parameters)
 
-    if par.TRIG_ARREST_CHOICE == 'lmin_const':  # Determinitic threshold.
-        ltrig = par.L_MIN_AR  # Minimal len triggering a non-terminal arrest.
-        return length_min < ltrig
+    elif par.P_NTA_CHOICE == 'deterministic':  # Determinitic threshold.
+        return length_min <= parameters
 
     # Computation of the lengths of the telomere to test.
     if par.TRIG_TELO_CHOICE == 'shortest':  # Only the shortest telo is tested.
@@ -730,32 +747,31 @@ def is_nta_trig(gen, length_min, lengths, parameters=par.PAR_NTA):
         lengths_min = lengths.flatten()
         lengths_min = lengths_min[lengths_min <= par.L_MIN_MAX]
 
-    if par.TRIG_ARREST_CHOICE == 'exp':
-        for lmin in lengths_min:  # For all lengths to test.
-            # Computation of the probability to trigger an arrest.
-            proba = min(1, parameters[1] * math.exp(- parameters[0] * lmin))
-            # Testing (enters an arrest if at least one telo triggers).
-            if rd.binomial(1, proba):
+    if par.P_NTA_CHOICE == 'exponential':
+        for lmin in lengths_min:  # For every lengths to test, test if it
+            # triggers nta (nta triggered if at least 1 telo triggers).
+            if law_exponential(lmin, *parameters):
                 return True
 
-    if par.TRIG_ARREST_CHOICE == 'lmin_gaussian':
+    elif par.P_NTA_CHOICE == 'gaussian':  # Probabilistic threshold.
         for lmin in lengths_min:
-            ltrig = max(0, rd.normal(par.L_MIN_AR_MU, par.L_MIN_AR_SIGMA))
-            if lmin < ltrig:
+            if law_gaussian_threshold(lmin, *parameters):
                 return True
-
     # If still nothing returned, no telomere has triggerd an arrest.
     return False
 
 # > Onset of terminal/senescent arrest.
 
-def is_sen_trig_stochastic(length_min, lengths, parameters):
+def is_sen_trig(length_min, lengths, parameters):
     """ Test if senescence of a cell with telomere length distribution
     `lengths` and minimal telomere length `length_min` is triggered (True), or
-    not (False), according `par.TRIG_TELO_CHOICE` and `par.TRIG_SEN_CHOICE` in
+    not (False), according `par.TRIG_TELO_CHOICE` and `par.P_SEN_CHOICE` in
     the case of a stochastic threshold.
 
     """
+    if par.P_SEN_CHOICE == 'deterministic':  # Determinitic threshold.
+        return length_min <= parameters
+
     # Computation of the lengths of the telomere to test.
     if par.TRIG_TELO_CHOICE == 'shortest':  # Only the shortest telo is tested.
         lengths_min = [length_min]
@@ -763,59 +779,40 @@ def is_sen_trig_stochastic(length_min, lengths, parameters):
         lengths_min = lengths.flatten()
         lengths_min = lengths_min[lengths_min <= par.L_MIN_MAX]
     # Test.
-    # > Exponential law.
-    if par.TRIG_SEN_CHOICE == 'exp':
-        for lmin in lengths_min:  # For all lengths to test.
-            # Computation of the probability to trigger senescence.
-            proba = min(1, par.B_EXP_SEN * math.exp(- par.A_EXP_SEN * lmin))
-            # Testing (enters senescence as soon as one telo triggers).
-            if rd.binomial(1, proba):
-                return True
     # > Exponential law with deterministic thershold.
-    if par.TRIG_SEN_CHOICE == 'exp_new':
-        for lmin in lengths_min:  # For all lengths to test.
-            # Computation of the probability to trigger senescence.
-            if lmin <= parameters[2]:
-                proba = 1
-            else:
-                proba = min(1, parameters[1] * math.exp(-parameters[0] * lmin))
-            # Testing (enters senescence as soon as one telo triggers).
-            if rd.binomial(1, proba):
+    if par.P_SEN_CHOICE == 'exponential-threshold':
+        for lmin in lengths_min:  # For all lengths to test,
+            # Test if it triggers senescence.
+            if law_exponential_w_threshold(lmin, *parameters):
+                return True
+    # > Exponential law.
+    elif par.P_SEN_CHOICE == 'exponential':
+        for lmin in lengths_min:
+            if law_exponential(lmin, *parameters):
                 return True
     # > Gaussian law.
-    if par.TRIG_SEN_CHOICE == 'lmin_gaussian':
+    elif par.P_SEN_CHOICE == 'gaussian':
         for lmin in lengths_min:
-            ltrig = max(0, rd.normal(par.L_MIN_SEN_MU, par.L_MIN_SEN_SIGMA))
-            if lmin < ltrig:
+            if law_gaussian_threshold(lmin, *parameters):
                 return True
     # If still nothing returned, no telomere has triggered a nta.
     return False
 
-def is_sen_atype_trig(length_min, lengths, parameters=par.PAR_SEN[0]):
+def is_sen_atype_trig(length_min, lengths, parameters=par.PAR_SEN_A):
     """ Test if senescence of a type A cell with telomere length distribution
     `lengths` and minimal telomere length `length_min` is triggered (True), or
-    not (False), according to `par.TRIG_TELO_CHOICE` and `par.TRIG_SEN_CHOICE`.
+    not (False), according to `par.TRIG_TELO_CHOICE` and `par.P_SEN_CHOICE`.
 
     """
-    # Determinitic threshold.
-    if par.TRIG_SEN_CHOICE == 'lmin_const':
-        lmin_trig = par.L_MIN_SEN_ATYPE # Length triggering senescence.
-        return length_min < lmin_trig
-    # Stochatic threshold.
-    return is_sen_trig_stochastic(length_min, lengths, parameters)
+    return is_sen_trig(length_min, lengths, parameters)
 
-def is_sen_btype_trig(length_min, lengths, parameters=par.PAR_SEN[1]):
+def is_sen_btype_trig(length_min, lengths, parameters=par.PAR_SEN_B):
     """ Test if senescence of a type B cell of telomere length distribution
     `lengths` and minimal telomere length `length_min` is triggered (True) or
-    not (False), according to `par.TRIG_TELO_CHOICE` and `par.TRIG_SEN_CHOICE`.
+    not (False), according to `par.TRIG_TELO_CHOICE` and `par.P_SEN_CHOICE`.
 
     """
-    # Determinitic threshold.
-    if par.TRIG_SEN_CHOICE == 'lmin_const':
-        lmin_trig = par.L_MIN_SEN_BTYPE  # Length triggering senescence.
-        return length_min < lmin_trig
-    # Stochatic threshold.
-    return is_sen_trig_stochastic(length_min, lengths, parameters)
+    return is_sen_trig(length_min, lengths, parameters)
 
 # > Exit of non-terminal arrest.
 
@@ -824,7 +821,7 @@ def is_repaired():
     non-terminal long cycles (True) or continues the sequence (False).
 
     """
-    return rd.binomial(1, par.P_GEO_NTA)
+    return rd.binomial(1, par.P_REPAIR)
 
 # > Onset of death.
 
@@ -832,10 +829,10 @@ def is_dead(sen_count=0, max_sen_count=par.MAX_SEN_CYCLE_COUNT):
     """ Test if a senescent cell dies (True) or continues to divide (False).
 
     """
-    return (rd.binomial(1, par.P_GEO_SEN) or
+    return (rd.binomial(1, par.P_DEATH) or
             sen_count > max_sen_count)
 
-def is_accidentally_dead(p_death_acc=par.P_ACCIDENTAL_DEATH):
+def is_accidentally_dead(p_death_acc=par.P_ACCIDENT):
     """ Test if a cell accidentally dies (True) or continues to divide (False).
 
     """

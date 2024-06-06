@@ -410,7 +410,7 @@ def plot_lineages_cycles(cycles, is_exp, fig_supdirectory, font_size,
         if is_exp:
             leg_btype = LABELS['btype_exp'].replace('type B', '\ntype B')
             leg_htype = LABELS['xtype']
-        elif par.HYBRID_CHOICE:
+        elif par.HTYPE_CHOICE:
             if is_htype_seen:
                 leg_btype = LABELS['btype']
                 leg_htype = LABELS['htype']
@@ -1276,7 +1276,7 @@ def compute_n_plot_lcycle_hist(exp_data, simulation_count, characteristics,
         path_sim = wp.write_hist_lc_sim_path(simulation_count, *kwarg,
                                              par_update=p_update,
                                              supdirectory=fig_supdirectory)
-        if par.HYBRID_CHOICE:
+        if par.HTYPE_CHOICE:
             p_update['is_htype_seen'] = True
             path_sim_h = wp.write_hist_lc_sim_path(simulation_count, *kwarg,
                        par_update=p_update, supdirectory=fig_supdirectory)
@@ -1310,7 +1310,7 @@ def compute_n_plot_lcycle_hist(exp_data, simulation_count, characteristics,
                                           seq_count_max=seq_count,
                                           path_to_save=path_sim_temp,
                                           x_max=x_max, fig_size=fig_size)
-        if par.HYBRID_CHOICE:
+        if par.HTYPE_CHOICE:
             plot_histogram_from_lcycle_counts(lcycle_counts_sim_h, lcycle_type,
                                               seq_count_max=seq_count,
                                               path_to_save=path_sim_h_temp,

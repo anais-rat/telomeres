@@ -50,8 +50,8 @@ CHARAC_S_2 = [['senescent'],
               ['btype']]
 
 
-P_ACC_S = par.P_ACCIDENTAL_DEATH * np.array([1., 10., 20, 30., 40., 50.])
-P_ACC_S_TEST = np.array([0.054]) # par.P_ACCIDENTAL_DEATH * np.array([25, 34.8, 30, 40])
+P_ACC_S = par.P_ACCIDENT * np.array([1., 10., 20, 30., 40., 50.])
+P_ACC_S_TEST = np.array([0.054]) # par.P_ACCIDENT * np.array([25, 34.8, 30, 40])
 P_ACC_S_TEST[0] = 0.054
 L_TRANS_S = np.array([-20, -10, 0, 10, 20, 40])
 L0_S = np.array([-40, -20, -10, 0, 10, 20])
@@ -144,7 +144,7 @@ for run_idx in idxs:
         #     ridx = run_idx
         # else: # Mutants (RAD51 with pacc x5)
         #     ridx = run_idx - int(i3 / 2)
-        #     p_exit[0] = par.P_ACCIDENTAL_DEATH * 5
+        #     p_exit[0] = par.P_ACCIDENT * 5
         # idx_par, idx_char = np.divmod(ridx - (i1 + i2), len(CHARAC_S_2))
         # characteristics = CHARAC_S_2[idx_char]
         # exp_data_selected = sim.select_exp_lineages(EXP_DATA, characteristics)
@@ -166,7 +166,7 @@ for run_idx in idxs:
         #     ridx = run_idx
         # else: # Mutants (RAD51 with pacc x5).
         #     ridx = run_idx - int(i3 / 2)
-        #     p_exit[0] = par.P_ACCIDENTAL_DEATH * 5
+        #     p_exit[0] = par.P_ACCIDENT * 5
         # idx_par, idx_char = np.divmod(ridx - (i1 + i2 + i3), len(CHARAC_S_2))
         # characteristics = CHARAC_S_2[idx_char]
         # exp_data_selected = sim.select_exp_lineages(EXP_DATA, characteristics)

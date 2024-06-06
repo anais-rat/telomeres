@@ -13,69 +13,170 @@ import aux_parameters_functions as parf
 import dataset_plot as pd
 
 
+# =============================================================================
 # Adjustable parameters
-# =====================
+# =============================================================================
 
 # -----------------------
 # Parameters of the model
 # -----------------------
 
-# Types.
-# ------
-#   'True': if hybrib types taken into account.
-#   'False': otherwise (i.e. B must finish  nta bf being allowed to enter sen).
-HYBRID_CHOICE = True
+# Types
+# -----
+
+# Modelling assumption with respect to type H cells.
+#   'True': If type H cells taken into account.
+#   'False': Otherwise, i.e. type B must exit their sequence of non-terminal
+#            arrests (nta) to be allowed to enter senescence (sen).
+HTYPE_CHOICE = True
+
+
+# Telomere modelling
+# ------------------
+
+# Number of chromoses per cell.
+CHROMOSOME_COUNT = 16
+
+# Distribution of initial telomere lengths [bp].
+#   'const': constant initial length, equal to `L_INF`.
+#   'gaussian': gaussian law of parameter (L_INF, L_SIGMA).
+#   'exp': experimental (from 'etat_asymp_val_juillet') translated by `L_INIT`.
+#   'two_normal-long': 2 cells, one with long shortest telomere and one with
+#       medium (loaded from data obtained from running `af.draw_lengths_one_*`
+#       that extracts shortest and medium from `C_FOR_EXTREMUM_LENGHT` cells.
+#   'two_normal-short': same with 'short' instead of 'long'.
+L_INIT_CHOICE = 'exp'
+
+# ..............................
+if L_INIT_CHOICE == 'exp':
+    LTRANS, L0, L1 = 0, 40, 58
+    PAR_L_INIT = [LTRANS, L0, L1]
+elif L_INIT_CHOICE == 'gaussian' or 'const':
+    L_INF = 342  # Mean telomere length at equilibrium [bp].
+    L_SIGMA = 100.0
+elif L_INIT_CHOICE == 'two_normal-long' or 'two_normal-short':
+    C_FOR_EXTREMUM_LENGHT = 1e6
+# ...............................
+
 
 # Overhang / shortening rate.
 # ---------------------------
-#   'const': constant overhang, equal to 'OVERHANG'.
-#   'uniform': uniform in {0VERHANG_LOW, ...., OVERHANG_UP}.
+
+# Modelling assumption for the overhang.
+#   'const': Constant overhang, equal to 'OVERHANG'.
+#   'uniform': Uniform in {0VERHANG_LOW, ..., OVERHANG_UP}.
 OVERHANG_CHOICE = 'const'
-
-# ...........................
-# > case OVERHANG == 'const'.
-OVERHANG = 7
-# > case OVERHANG == 'uniform'.
-OVERHANG_LOW = 5
-OVERHANG_UP = 10
-# ...........................
-
-
-
-# Rates of accidental events.
-# ---------------------------
-# Mortality rate / probability to die accidentally (`p_accident`).
-P_ACCIDENTAL_DEATH = 1 * .0043 # 4.3 * 1e-3 in (Coutelier et al. 2018).
-# Accidenta shortening rate / probability for a telome to shorten accidentally.
-# P_L_ABRUPT = 1 * .0043
-
-# Number of long cycles.
-# -----------------------
-# Geometrical laws (i.e. constant proba) fitted in (Martin et al. 2021).
-
-# > Senescence.
-# Probability `p_death` of death 'naturally' from senescence).
-P_GEO_SEN = 0.58 # 0.4677 # 0.58 for D=220
-# Maximum number of senescent cycles (`math.inf` for no limit).
-MAX_SEN_CYCLE_COUNT = math.inf
-
-# > Non-terminal arrest (probability `p_repair` of repairing or adapt).
-P_GEO_NTA = 0.65
-
-# ......................................................................
-P_EXIT = [P_ACCIDENTAL_DEATH, P_GEO_SEN, P_GEO_NTA, MAX_SEN_CYCLE_COUNT]
-# ......................................................................
+# ................................
+if OVERHANG_CHOICE == 'const':
+    OVERHANG = 7
+elif OVERHANG_CHOICE == 'uniform':
+    OVERHANG_LOW = 5
+    OVERHANG_UP = 10
+# ................................
 
 # Telomere(s) length(s) triggering an arrest.
 # -------------------------------------------
-#   'shortest': we test only the shortest.
-#   'all': all telomeres shortest than a threshold 'L_MIN_MAX'.
-TRIG_TELO_CHOICE = 'shortest'
 
-# .................................
-# > case TRIG_TELO_CHOICE == 'all'.
-L_MIN_MAX = 150
-# .................................
+# Modelling assumption for the telomere(s) triggering an arrest (terminal and
+# non-terminal):
+#   'shortest': Only the shortest telomere of the cell triggers.
+#   'all': All telomeres shortest than a threshold 'L_MIN_MAX'.
+TRIG_TELO_CHOICE = 'shortest'
+# ...........................
+if TRIG_TELO_CHOICE == 'all':
+    L_MIN_MAX = 150
+# ...........................
+
+# Laws for death and non-terminal-arrest exit
+# -------------------------------------------
+
+# Probability to die accidentally (`p_accident`).
+P_ACCIDENT = 1 * .0043  # Constant = 4.3 * 1e-3 (Coutelier et al. 2018).
+
+# Probability `p_death` to die "naturally" (from senescence).
+P_DEATH = 0.58  # Constant = 0.58 for D = 220 (Martin et al. 2021).
+# Maximum number of senescent cycles (`math.inf` for no limit).
+MAX_SEN_CYCLE_COUNT = math.inf
+
+# Probability `p_repair` of repairing or adapt from a non-terminal arrest.
+P_REPAIR = 0.65  # Constant (Martin et al. 2021).
+
+# Laws for non-terminal-arrest and senescence onset
+# -------------------------------------------------
+
+# Probability `p_nta` to trigger a non-terminal arrest.
+# Choose among different laws. We used 'exponential'.
+P_NTA_CHOICE = 'exponential'
+
+# ....................................
+if P_NTA_CHOICE == 'exponential':
+    # Telomere-dependent probability to enter a nta given by the exponential
+    # law with parameters (a, b): p_nta(l) = b exp(-al).
+    PAR_NTA_A = 0.0247947389
+    PAR_NTA_B = 0.440063202
+    PAR_NTA = [PAR_NTA_A, PAR_NTA_B]  # [0.023, 0.276] in (Martin et al. 2021).
+
+    # Plot p_nta w.r.t telomere length for different values of a and b.
+    if __name__ == "__main__":
+        a_to_test, b = [.005, .01, .05, .1], 0.2
+        parf.plot_laws_nta_various_a(a_to_test, b, is_saved=True,
+                                     font_scale=1.5)
+        a, b_to_test = .01, [.005, .01, .05, .1]
+        parf.plot_laws_nta_various_b(b_to_test, a, is_saved=True,
+                                     font_scale=1.5)
+
+elif P_NTA_CHOICE == 'sigmoid':
+    # Generation-dependent probability to enter a nta given by the sigmoid law
+    # with parameters (a, b) in (Martin et al. 2021, function (2)).
+    PAR_NTA = [61.25, 13.47]  # [a, b] in (Martin PhD thesis).
+
+elif P_NTA_CHOICE == 'deterministic':
+    # Deterministic threshold: p_nta(l) = 0 if l > lmin [bp], 1 otherwise.
+    PAR_NTA = 61  # lmin
+
+elif P_NTA_CHOICE == 'gaussian':
+    # Probabilistic threshold: same but the threshold is drawn from a gaussian
+    # distribution with parameters mu [bp] and sigma from (Martin PhD thesis).
+    PAR_NTA = [49, 35.5]  # [mu, sigma]
+# ....................................
+
+# Probability `p_sen` to trigger senescence. Choose among different laws.
+# NB: We actually define a law for each cell type (p_senA, p_senB), assuming
+#     that they have same form.
+P_SEN_CHOICE = 'exponential-threshold'
+
+# ................................
+if P_SEN_CHOICE == 'exponential-threshold':
+    # Exponential law with deterministic threshold, parametrized by
+    # (a, b, lmin): p_sen(l) = 1 if l <= lmin, b exp(-al) otherwise.
+    PAR_SEN_A = [0.186824276, 0.725200993, 27.0]  # Our best fit.
+    PAR_SEN_B = [2.45423414e-06, 0.122028128, 0.0]  # Our best fit.
+
+    # Plot.
+    if __name__ == "__main__":
+        a, b, lmin = (.01, .4, 20)
+        parf.plot_law_sen(a, b, lmin, is_saved=True, font_scale=1.5)
+
+elif P_SEN_CHOICE == 'exponential':
+    # Exponential law: p_sen(l) = b exp(-al)
+    PAR_SEN_A = [0.0195, 0.165]  # [a_ b] (Martin PhD thesis).
+    PAR_SEN_B = [0.0195, 0.165]
+
+elif P_SEN_CHOICE == 'deterministic':
+    # Deterministic thresholds `lmin` [bp].
+    PAR_SEN_A = 19  # [lmin]
+    PAR_SEN_B = 16
+
+elif P_SEN_CHOICE == 'gaussian':
+    # Probabilistic, normally distributed (mu, sigma), threshold.
+    PAR_SEN_A = [33, 37.5]  # [mu, sigma] (Martin PhD thesis).
+    PAR_SEN_A = [33, 37.5]
+# ................................
+
+
+# Concatenation.
+# ...........................................................
+PAR = [PAR_NTA, [PAR_SEN_A, PAR_SEN_B], PAR_L_INIT]
 
 # PAR = ([0.025154449389371336, 0.25637137728070253], # 48-42.20 16.35% (n1e4)
 #         [[0.5588440524832747, 0.7861336757668571, 0.0],
@@ -101,71 +202,11 @@ PAR = ([0.0247947389, 0.440063202],
 # if __name__ == "__main__":
     # parf.plot_laws(PAR, fig_name='fit_10', is_par_plot=True)
     # parf.plot_laws(PAR, fig_name='fit_10_wo_par', is_par_plot=False)
-P_ONSET = PAR[:2]
 
-# Law for the onset of non-terminal arrests.
-# ------------------------------------------
-TRIG_ARREST_CHOICE = 'exp'
-# ....................................
-# > case TRIG_ARREST_CHOICE == 'exp' .
-#   Telomere-dependent probability to enter a arrest given by the exponential
-#   law with parameters (a, b): b exp(-al).
-A_EXP_AR = PAR[0][0] # 0.01 # (0.023, 0.276) in (Martin et al. 2021).
-B_EXP_AR = PAR[0][1] # 0.1
-PAR_NTA = [A_EXP_AR, B_EXP_AR]
-# >> Plotting b exp(-al) wrt. l for different values of a and b.
-# if __name__ == "__main__":
-#     a_to_test = [.005, .01, .05, .1]
-#     b = .2
-#     parf.plot_laws_nta_various_a(a_to_test, b, is_saved=True, font_scale=1.5)
-#     b_to_test = [.005, .01, .05, .1]
-#     a = .01
-#     parf.plot_laws_nta_various_b(b_to_test, a, is_saved=True, font_scale=1.5)
-
-# > case TRIG_ARREST_CHOICE == 'sigmoid'.
-#   Deterministic generation-dependent probability to enter an arrest given by
-#   sigmoid law with parameters (a, b) in (Martin thesis).
-#   See also function (2) in (Martin et al. 2021).
-A_SIGMOID = 61.25
-B_SIGMOID = 13.47
-# > case TRIG_ARREST_CHOICE == 'lmin_const'.
-#   Deterministic (<L_MIN_AR> [bp]) minimal length triggering an arrest.
-L_MIN_AR = 61
-# > case TRIG_ARREST_CHOICE == 'lmin_gaussian'.
-#   Probabilistic: a truncated gaussian law with par from (Martin thesis).
-L_MIN_AR_MU = 49
-L_MIN_AR_SIGMA = 35.5
-# ....................................
-
-
-# Law for the onset of senescence.
-# --------------------------------
-TRIG_SEN_CHOICE = 'exp_new'
-
-# ................................
-# > case TRIG_SEN_CHOICE == 'exp'.
-#   Exponential law: b exp(-al) (Martin et al. 2021).
-A_EXP_SEN = 0.0195
-B_EXP_SEN = 0.165
-
-# > case TRIG_SEN_CHOICE == 'exp_new'.
-#   Exponential law w deterministic threshold possibly differentiating A and B.
-#   >> 0: for type-A cells, 1: for type-B cells.
 PAR_SEN = PAR[1]
-# >> Plotting.
-# if __name__ == "__main__":
-#     a, b, lmin = (.01, .4, 20)
-#     parf.plot_law_sen(a, b, lmin, is_saved=True, font_scale=1.5)
-
-# > case TRIG_SEN_CHOICE == 'lmin_const'.
-#   Deterministic threshold.
-L_MIN_SEN_ATYPE = 19
-L_MIN_SEN_BTYPE = 16
-# > case TRIG_SEN_CHOICE == 'lmin_gaussian'.
-#   Probabilistic threshold, following a gaussin distribution.
-L_MIN_SEN_MU = 33
-L_MIN_SEN_SIGMA = 37.5
-# ................................
+P_ONSET = PAR[:2]
+P_EXIT = [P_ACCIDENT, P_DEATH, P_REPAIR, MAX_SEN_CYCLE_COUNT]
+# ...........................................................
 
 
 # Cycle duration times [min].
@@ -176,13 +217,13 @@ L_MIN_SEN_SIGMA = 37.5
 CYCLES_CHOICE = 'exp_new'
 
 # ................................
-# > case CYCLES_CHOICE == 'const'.
-CYCLES_A_CONST = 90 # Mean division time (mdt.) of A non-senescent.
-CYCLES_B_CONST = 155 # Mdt. normal cycles of B-type.
-CYCLES_B_LONG_CONST = 440 # Mdt. B cells in 1st seq of long.
-CYCLES_B_AVG_CONST = 155 # Mdt. B cells between end of 1st seq. of lc and sen.
-CYCLES_SEN_CONST = 610 # Mdt. in senescence (last cycle excluded).
-CYCLES_SEN_LAST_CONST = 610 # Mdt. of the last cycle of senescence.
+if CYCLES_CHOICE == 'const':
+    CYCLES_A_CONST = 90  # Mean division time (mdt.) of A non-senescent.
+    CYCLES_B_CONST = 155  # Mdt. normal cycles of B-type.
+    CYCLES_B_LONG_CONST = 440  # Mdt. B cells in 1st seq of long.
+    CYCLES_B_AVG_CONST = 155  # Mdt. B between end of 1st seq. of lc and sen.
+    CYCLES_SEN_CONST = 610  # Mdt. in senescence (last cycle excluded).
+    CYCLES_SEN_LAST_CONST = 610  # Mdt. of the last cycle of senescence.
 # ................................
 
 
@@ -218,29 +259,6 @@ else:
     PAR_FINAL_CUT = None
 PAR_FINAL_CUT_P = None  # Temporary
 
-
-# Initial telomere lengths [bp].
-# ------------------------------
-CHROMOSOME_COUNT = 16
-#   'const': constant initial length, equal to <L_INF>.
-#   'gaussian': gaussian law of parameter (L_INF, L_SIGMA).
-#   'exp': experimental (from 'etat_asymp_val_juillet') translated by `L_INIT`.
-#   'two_normal-long': 2 cells, one with long shortest telomere and one with
-#       medium (loaded from data obtained from running `af.draw_lengths_one_*`
-#       that extracts shortest and medium from `C_FOR_EXTREMUM_LENGHT` cells.
-#   'two_normal-short': same with 'short' instead of 'long'.
-L_INIT_CHOICE = 'exp'
-
-# ..............................
-# > case L_INIT_CHOICE == 'exp'.
-PAR_L_INIT = PAR[2]
-LTRANS, L0, L1 = PAR_L_INIT
-# > case L_INIT_CHOICE == 'gaussian' or 'const'.
-L_INF = 342 # Mean telomere length at equilibrium [bp].
-L_SIGMA = 100.0
-# > case L_INIT_CHOICE == 'two_normal-long' or 'two_normal-short'.
-C_FOR_EXTREMUM_LENGHT = 1e6
-# ...............................
 
 
 # Initial clocks (i.e. remaining times before division).
@@ -289,8 +307,9 @@ STEP = 0.001
 HIST_LMIN_X_AXIS = np.linspace(0, 250, 251)
 
 
+# =============================================================================
 # "Fixed" parameters
-# ===================
+# =============================================================================
 
 # Creation of time related arrays for population simulations.
 # -----------------------------------------------------------
@@ -427,7 +446,7 @@ EVO_L_EXP = np.transpose(np.loadtxt('data/population/BioRad_2012-04-26_18hr_36'
 #                                       np.mean(EVO_L_EXP, 0),
 #                                       np.std(EVO_L_EXP, 0), FIG_DIRECTORY)
 
-DEFAULT_PARAMETERS_L = {'is_htype_accounted': HYBRID_CHOICE,
+DEFAULT_PARAMETERS_L = {'is_htype_accounted': HTYPE_CHOICE,
                         'is_htype_seen': True,
                         'parameters': PAR,
                         'postreat_dt': None,
@@ -438,7 +457,7 @@ DEFAULT_PARAMETERS_L = {'is_htype_accounted': HYBRID_CHOICE,
                         'par_finalCut': PAR_FINAL_CUT
                         }
 
-DEFAULT_PARAMETERS_P = {'hybrid_choice': HYBRID_CHOICE,
+DEFAULT_PARAMETERS_P = {'htype_choice': HTYPE_CHOICE,
                         'p_exit': P_EXIT,
                         'p_onset': P_ONSET,
                         'par_l_init': PAR_L_INIT,

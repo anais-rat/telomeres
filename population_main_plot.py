@@ -276,7 +276,7 @@ anc_prop = 0.1
 # # Variable death rate
 # # -------------------
 
-# P_DEATH_S = par.P_ACCIDENTAL_DEATH * np.array([1., 10., 20, 30., 40., 50.])
+# P_DEATH_S = par.P_ACCIDENT * np.array([1., 10., 20, 30., 40., 50.])
 # LINESTYLES = ['-', '-', '--', '-', '-', '-']
 
 # p_exit = deepcopy(par.P_EXIT)

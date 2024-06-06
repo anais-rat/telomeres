@@ -532,7 +532,7 @@ else:
 # # Detailed simulations on senescence onset.
 # if FORMAT == 'article':
 #     MFACTORS = np.array([1., 5, 10., 15,  20, 25, 30., 40., 50.])
-#     P_ACC_S = par.P_ACCIDENTAL_DEATH * MFACTORS
+#     P_ACC_S = par.P_ACCIDENT * MFACTORS
 #     LINESTYLES = ['-', '-', '-', '-', '-', '--', '-', '-', '-']
 #     median = np.median(GSEN_EXP_MUTANT)
 #     # median = GSEN_EXP_MUTANT[int(len(GSEN_EXP_MUTANT) / 2)]
@@ -559,7 +559,7 @@ else:
 # #  Detailed simulations on senescence onset.
 # if FORMAT == 'article':
 #     MFACTORS = np.array([1., 20.])
-#     P_ACC_S = par.P_ACCIDENTAL_DEATH * MFACTORS
+#     P_ACC_S = par.P_ACCIDENT * MFACTORS
 #     LINESTYLES = ['-', '-']
 #     median = np.median(GSEN_EXP_MUTANT)
 #     # median = GSEN_EXP_MUTANT[int(len(GSEN_EXP_MUTANT) / 2)]
@@ -578,7 +578,7 @@ else:
 #                             bbox_to_anchor=(1, 1), add_to_name='rad51_test')
 
 
-# P_ACC_S = par.P_ACCIDENTAL_DEATH * np.array([1., 10., 20, 30., 40., 50.])
+# P_ACC_S = par.P_ACCIDENT * np.array([1., 10., 20, 30., 40., 50.])
 # LINESTYLES = ['-', '-', '--', '-', '-', '-']
 
 # p_exit = deepcopy(par.P_EXIT)

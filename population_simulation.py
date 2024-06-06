@@ -486,7 +486,7 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data,
                                     ar =  int(1 - d['nta_counts'][dau])
                                     d['nta_counts'][dau] = ar
                         # Otherwise the mother was non-senescent arrested (B).
-                        elif par.HYBRID_CHOICE: # If H type taken into account.
+                        elif par.HTYPE_CHOICE: # If H type taken into account.
                             # Mother retrieve from non-sen B counts.
                             d['evo_c_B_ancs'][i, anc] -= 1
                             # For each daughter we test if sen is triggered.
@@ -583,7 +583,7 @@ def population_evolution(times, time_saved_idxs, ancestor_count, cells_data,
     #     sen_A = np.sum(d['sen_counts'][:c_idx_max][nta_counts == 0] > 0)
     #     sen_B = np.sum(d['sen_counts'][:c_idx_max][nta_counts < 0] > 0)
     #     sen_H = np.sum(d['sen_counts'][:c_idx_max][nta_counts > 0] > 0)
-    #     if par.HYBRID_CHOICE:
+    #     if par.HTYPE_CHOICE:
     #         if sen_H != np.sum(d['evo_c_H_ancs'][i]):
     #             print('Error: H count failed. Time index: ', i,
     #                   '\n sen_H', sen_H, "np.sum(d['evo_c_H_ancs'][i])",

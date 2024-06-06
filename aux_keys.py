@@ -20,7 +20,7 @@ data_stored_keys = ['nta_counts','lengths', 'ancestors', 'generations',
 data_keys = data_stored_keys.copy()
 data_keys.append('clocks')
 
-if par.HYBRID_CHOICE:
+if par.HTYPE_CHOICE:
     type_keys = ['atype', 'btype', 'mtype', 'htype']
     # Type M for misclassified cells (type B that would be recognize as A).
 else:
@@ -46,7 +46,7 @@ evo_c_anc_keys = ['evo_c_ancs', 'evo_c_B_ancs', 'evo_c_B_sen_ancs',
                   'evo_c_sen_ancs']
 # > With respect to the generation.
 evo_c_gen_keys = ['evo_c_gens']
-if par.HYBRID_CHOICE:
+if par.HTYPE_CHOICE:
     evo_c_anc_keys.append('evo_c_H_ancs')
 # > All.
 evo_c_keys = evo_c_anc_keys.copy()
@@ -76,7 +76,7 @@ all_keys.extend(history_keys)
 evo_p_anc_keys = evo_c_anc_keys.copy() # evo_anc_keys_new
 evo_p_anc_keys = [evo_p_anc_keys[i].replace('_c', '_p') for i in
                   range(len(evo_c_anc_keys))]
-if par.HYBRID_CHOICE:
+if par.HTYPE_CHOICE:
     evo_p_anc_keys.append('evo_p_H_sen_ancs')
 
 evo_c_keys_new = [evo_c_anc_keys[i].replace('_ancs', '') for i in
@@ -85,7 +85,7 @@ evo_1Dkeys_new = evo_c_keys_new.copy()
 for key in evo_c_keys_new:
     if '_c_' in key:
         evo_1Dkeys_new.append(key.replace('_c_', '_p_'))
-    if par.HYBRID_CHOICE:
+    if par.HTYPE_CHOICE:
         evo_1Dkeys_new.append('evo_p_H_sen')
 
 evo_l_keys_af_postreat = [key.replace('_sum', '_avg') for key in evo_l_keys]

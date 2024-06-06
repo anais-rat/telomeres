@@ -24,7 +24,7 @@ FOLDER_L = "lineage/"
 FOLDER_P = "population/"
 FOLDER_FC = "final_cut/"
 
-# DEFAULT_PARAMETERS_L = {'is_htype_accounted': par.HYBRID_CHOICE,
+# DEFAULT_PARAMETERS_L = {'is_htype_accounted': par.HTYPE_CHOICE,
 #                         'is_htype_seen': True,
 #                         'parameters': par.PAR,
 #                         'postreat_dt': None,
@@ -32,7 +32,7 @@ FOLDER_FC = "final_cut/"
 #                         'is_lcycle_counts': False,
 #                         'is_evo_stored': False,
 #                         'p_exit': par.P_EXIT}
-# DEFAULT_PARAMETERS_P = {'hybrid_choice': par.HYBRID_CHOICE,
+# DEFAULT_PARAMETERS_P = {'htype_choice': par.HTYPE_CHOICE,
 #                         'p_exit': par.P_EXIT,
 #                         'p_onset': par.P_ONSET,
 #                         'par_l_init': par.PAR_L_INIT,
@@ -496,7 +496,7 @@ def write_simu_pop_directory(par_update=None):
             path = path + "/psat_varying"
         else:
             path = path + f"/psat{int(p['prop_sat'])}"
-    if not p['hybrid_choice']:
+    if not p['htype_choice']:
         path = path + "_wo_htype"
     path = path + "/" + fc_data
     if not isinstance(p['p_exit'], type(None)):

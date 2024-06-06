@@ -476,9 +476,9 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
     p_exit : list, optional
         The parameters of death and exit of a sequence of arrest if different
         from par.P_EXIT:
-        0: rate of accidental death (p_accident / par.P_ACCIDENTAL_DEATH)
-        1: terminal arrest (p_death / par.P_GEO_SEN)
-        2: non-terminal arrest (p_repair / par.P_GEO_NTA)
+        0: rate of accidental death (p_accident / par.P_ACCIDENT)
+        1: terminal arrest (p_death / par.P_DEATH)
+        2: non-terminal arrest (p_repair / par.P_REPAIR)
     par_finalCut : ndarray, optional
         Default is None which corresponds to usual experimental setting with
         Dox addition at time 0 up to lineage death.
@@ -516,7 +516,7 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
     lineage_type : str
         Type of the lineage (0 for A type, 1 for B or np.NaN for H).
     is_unseen_htype : bool or NoneType
-        If no H-type (i.e. `par.HYBRID_CHOICE` is False) or `is_htype_seen` is
+        If no H-type (i.e. `par.HTYPE_CHOICE` is False) or `is_htype_seen` is
         True, always None, otherwise True if the lineage was H but classified
         as A or B and False if the lineage was A or B type.
         (NB: NaN in the case of experimental lineages for unknown).
@@ -526,7 +526,7 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
     """
     par_nta, par_sen, par_l_init = parameters
     is_unseen_htype = False
-    if is_htype_seen or (not par.HYBRID_CHOICE):
+    if is_htype_seen or (not par.HTYPE_CHOICE):
         is_unseen_htype = None
 
     # Initialization of <evo_*> arrays (t = 0) with the data of the first cell:
@@ -603,8 +603,8 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
                 # If the mother is (non-senescent) type A.
                 if nta_count == 0:
                     # If senescence is triggered, the cell enters senescence.
-                    if fct.is_sen_atype_trig(evo_lmin[-1], evo_lengths[-1],
-                                             par_sen[0]):
+                    if fct.is_sen_trig(evo_lmin[-1], evo_lengths[-1],
+                                       par_sen[0]):
                         is_senescent = True
                         gtrigs['sen'] = generation
                         lcycle_per_seq_count['sen'] = 1
@@ -619,8 +619,8 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
                 # Otherwise mother was (non-senescent) type B.
                 elif nta_count < 0: # > If not arrested type B.
                     # If senescence is triggered, the cell enters sen.
-                    if fct.is_sen_btype_trig(evo_lmin[-1], evo_lengths[-1],
-                                             par_sen[1]):
+                    if fct.is_sen_trig(evo_lmin[-1], evo_lengths[-1],
+                                       par_sen[1]):
                         is_senescent = True
                         gtrigs['sen'] = generation
                         lcycle_per_seq_count['sen'] = 1
@@ -635,8 +635,8 @@ def simulate_lineage_evolution(lineage_idx, is_htype_seen=True,
                             lcycle_per_seq_count['nta'], 1)
                 else: # > Otherwise mother was (non-senescent) arrested B.
                     # If H type taken into account, cell can turn sen (H).
-                    if par.HYBRID_CHOICE and fct.is_sen_btype_trig(
-                            evo_lmin[-1], evo_lengths[-1], par_sen[1]):
+                    if par.HTYPE_CHOICE and fct.is_sen_trig(evo_lmin[-1],
+                                                evo_lengths[-1], par_sen[1]):
                         is_senescent = True
                         if is_htype_seen:
                             gtrigs['sen'] = generation
@@ -788,7 +788,7 @@ def simulate_lineages_evolution(lineage_count, characteristics,
     lineage_types : ndarray
         1D array (lineage_count,) of lineages types (0, 1 or NaN for A B or H).
     is_unseen_htypes : ndarray or Nonetype
-        If no H-type (i.e. `par.HYBRID_CHOICE` is False) or `is_htype_seen` is
+        If no H-type (i.e. `par.HTYPE_CHOICE` is False) or `is_htype_seen` is
         True, always None, otherwise 1D array (lineage_count,) of the
         `is_unseen_htype` values of lineages.
     is_accidental_deaths : ndarray
@@ -880,7 +880,7 @@ def simulate_lineages_evolution(lineage_count, characteristics,
             seq_count) for count in lcycle_per_seq_count_s['nta']]),
                                 'sen': np.array(lcycle_per_seq_count_s['sen'])}
     # If no type H to keep track of `is_unseen_htypes` simply set to nan.
-    if is_htype_seen or (not par.HYBRID_CHOICE):
+    if is_htype_seen or (not par.HTYPE_CHOICE):
         is_unseen_htypes = None
     return (evo_s, gtrigs_s, lineage_types, is_unseen_htypes,
             is_accidental_deaths, lcycle_per_seq_counts)
@@ -968,7 +968,7 @@ def compute_lineage_type_stats(lineage_types_s, is_unseen_htypes_s,
         {'atype': fct.stat(is_atype.astype(int), fp.P_UP, fp.P_DOWN, 0),
          'btype': fct.stat(is_btype.astype(int), fp.P_UP, fp.P_DOWN, 0),
          'accidental_death': np.mean(is_accidental_deaths_s.astype(int), 0)}
-    if par.HYBRID_CHOICE:
+    if par.HTYPE_CHOICE:
         # keys.append('htype')
         is_htype_seen = isinstance(is_unseen_htypes_s, type(None))
         if not is_htype_seen:
@@ -1805,7 +1805,7 @@ def compute_lcycle_histogram_data(exp_data, simulation_count, characteristics,
     if 'is_htype_accounted' in list(p_update.keys()):
         is_htype_accounted = p_update['is_htype_accounted']
     else:
-        is_htype_accounted = par.HYBRID_CHOICE
+        is_htype_accounted = par.HTYPE_CHOICE
 
     # Definition of some parameters
     exp_data_selected = select_exp_lineages(exp_data, characteristics)

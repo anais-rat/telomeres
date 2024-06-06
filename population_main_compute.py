@@ -64,10 +64,10 @@ TIMES, TIME_SAVED_IDXS, DIL_IDXS = par.TIMES, par.TIME_SAVED_IDXS, par.DIL_IDXS
 
 # Printing of chosen parameters
 # -----------------------------
-print('P_ACCIDENTAL_DEATH: ', par.P_ACCIDENTAL_DEATH)
+print('P_ACCIDENT: ', par.P_ACCIDENT)
 print('MAX_SEN_CYCLE_COUNT: ' + str(par.MAX_SEN_CYCLE_COUNT))
 print('PROP_SAT: ', par.PROP_SAT)
-print('HYBRID_CHOICE: ', par.HYBRID_CHOICE)
+print('HTYPE_CHOICE: ', par.HTYPE_CHOICE)
 print('PAR_NTA: ', par.PAR_NTA)
 print('PAR_SEN: ', par.PAR_SEN)
 print('PAR_L_INIT: ', par.PAR_L_INIT)
