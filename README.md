@@ -56,8 +56,6 @@ Please contact us.
 
 ## Code 
 
-A case test will be available soon.
-
 ### Result Reproducibility 
 
 Reproducing our results is costly in time and memory. 
