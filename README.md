@@ -15,8 +15,6 @@ Code for "Individual cell fate and population dynamics revealed by a mathematica
    - [Additional Requirements for Ubuntu Users](#additional-requirements-for-ubuntu-users)
 3. [Dataset](#dataset)
 4. [Code](#code)
-   - [Overview](#overview)
-   - [Demo](#demo)
    - [Result Reproducibility](#result-reproducibility)
 
 ## Software Requirements
@@ -55,12 +53,6 @@ sudo apt install texlive-full
 Please contact us.
 
 ## Code 
-
-### Overview
-
-### Demo
-
-A case test will be available soon.
 
 ### Result Reproducibility 
 
