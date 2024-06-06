@@ -56,10 +56,6 @@ Please contact us.
 
 ## Code 
 
-### Overview
-
-### Demo
-
 A case test will be available soon.
 
 ### Result Reproducibility 
