@@ -31,8 +31,9 @@ The code has been tested on the following systems:
 
 The code has been developed in *Python 3.8* and maintained with *Python 3.11.7*.
 
-Errors might occur on a machine or cluster that is missing some Python packages, like `latex` and `mpl-axes-aligner`. They can be installed via Python console with:
+Errors might occur on a machine or cluster that is missing some Python packages, like `cma`, `latex` and `mpl-axes-aligner`. They can be installed via Python console with:
 ```bash
+pip install cma
 pip install latex
 pip install mpl-axes-aligner
 ```

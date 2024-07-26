@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --job-name=lin
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=anais.rat@gmail.com
+#SBATCH --time=2-00:00:00
+#SBATCH --output=%x.out.%j 
+#SBATCH --error=%x.err.%j
+#SBATCH --partition=cpu_devel
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=12
+#SBATCH --array=0-181
+
+source /home/arat/.bashrc
+
+python compute.py

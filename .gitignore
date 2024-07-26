@@ -2,15 +2,13 @@
 __pycache__/
 *.py[cod]
 
-# Define by me
+# NEW
 *~
-data/
 data_finalCut/
 figures/
 ignore/
-__pycache__/
 simulations/
-final_cut*
+test/
 
 # C extensions
 *.so

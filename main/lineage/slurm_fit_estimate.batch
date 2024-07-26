@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --job-name=10_1
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=anais.rat@gmail.com
+#SBATCH --time=6-00:00:00
+#SBATCH --output=%x.out.%j 
+#SBATCH --error=%x.err.%j
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=64
+
+source /home/arat/.bashrc
+
+python fit_estimate.py
