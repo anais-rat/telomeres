@@ -15,19 +15,14 @@ from os.path import join
 from copy import deepcopy
 import math
 import matplotlib.ticker as ticker
-import matplotlib.pylab as plt
+# import matplotlib.pylab as plt
 import numpy as np
 import seaborn as sns
-from os.path import join
 import matplotlib.pyplot as plt
-import numpy as np
 import os
-import seaborn as sns
 
 import telomeres.auxiliary.figures_properties as fp
 import telomeres.auxiliary.write_paths as wp
-import telomeres.auxiliary.parameters as par
-import telomeres.auxiliary.parameters_functions as parf
 import telomeres.model.functions as mfct
 
 

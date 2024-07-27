@@ -455,7 +455,6 @@ pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
 if FORMAT == 'article':  # RAD51 data.
     # WARNING: additional plots, not simulted in lineage.main.compute yet.
     # --> Need to simulate, with `PROC_COUNT` processor (to adjust).
-    PROC_COUNT = 11
     MFACTORS = np.array([25, 34.8, 30, 40])
     P_ACC_S = par.P_ACCIDENT * MFACTORS
     p_exit = deepcopy(par.P_EXIT)

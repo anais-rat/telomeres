@@ -517,7 +517,7 @@ def simulate_lineages_evolutions(simulation_count, lineage_count,
     # > Otherwise, initialization of the parallelization.
     else:
         if proc_count > os.cpu_count() - 1:
-            raise Exception("`proc_count` is to big for your computing "
+            raise Exception("`proc_count` is too big for your computing "
                             f"capacity of {os.cpu_count()} processors.")
         pool = mp.Pool(processes=proc_count)
         pool_s = [pool.apply_async(simulate_lineages_evolution,

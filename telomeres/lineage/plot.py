@@ -1258,7 +1258,7 @@ def plot_histogram_from_lcycle_counts(lcycle_per_seq_counts, lcycle_type,
                          yerr=hist[2][:x_max], linestyle='', capsize=5,
                          color=colors[1])
         axes.margins(y=0)
-        if hist[0][x_max] < 10:
+        if hist[0][:x_max][-1] < 10:
             axes.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
     else:
         lineage_count = len(lcycle_per_seq_counts['sen'])
