@@ -57,16 +57,14 @@ Please contact us.
 
 ### Result Reproducibility 
 
-Reproducing our results is costly in time and memory.
+Reproducing our results is costly in terms of time and memory.
 We therefore recommend simulating with "small" parameters first.
-For example, compute average on $k=2$ simulations:
-- in *main/lineage/compute.py*, using `SIMU_COUNT = 2` instead of `1000`
-- in *main/population/compute.py*, choosing `SIMU_COUNT = 3` instead of `30`, and for initially $N_{init} = 5$ cells rather than $300$ or $1000$ through
-`C_EXP = np.array([15])` instead of `C_EXP = np.array([300])`.
+For example, compute averages on $k = 2$ simulations:
+- In *main/lineage/compute.py* taking `SIMU_COUNT = 2` instead of `1000`
+- In *main/population/compute.py* taking `SIMU_COUNT = 3` instead of `30`, and start with $N_{init} = 5$ cells rather than $300$ or $1000$ by setting `C_EXP = np.array([15])` instead of `C_EXP = np.array([300])`.
 
-For "larger" parameters, parallel computing on a cluster is strongly recommended. 
-We used the [CLEPS cluster](https://paris-cluster-2019.gitlabpages.inria.fr/cleps/cleps-userguide/index.html) from Inria Paris. 
-Our *Slurm* submission scripts are the `.batch` files contained in the `main` repertory.
+For "larger" parameters, parallel computing on a cluster is strongly recommended.
+We used the [CLEPS cluster](https://paris-cluster-2019.gitlabpages.inria.fr/cleps/cleps-userguide/index.html) from Inria Paris. Our Slurm submission scripts are the `.batch` files contained in the *main* directory.
 
-Please contact me directly if you need some of our raw simulated data (250 Go total, including less then 5 Go for lineage simulations).
+Please contact me directly if you need some of our raw simulated data (250 Go total, including less than 5 Go for lineage simulations).
 
