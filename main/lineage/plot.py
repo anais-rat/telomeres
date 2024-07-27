@@ -453,8 +453,11 @@ pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
                                linestyles=LINESTYLES, fig_size=FIG_SIZE2)
 
 if FORMAT == 'article':  # RAD51 data.
-    # WARNING: additional plots, not simulted in lineage.main.compute yet.
-    # --> Need to simulate, with `PROC_COUNT` processor (to adjust).
+    # WARNING: additional plots, not simulated in lineage.main.compute yet.
+    # --> Need to simulate, with `PROC_COUNT_TEMP` processor (to adjust).
+    print('WARNING: you might want to adjust PROC_COUNT_TEMP before running '
+          ' the following simulation')
+    PROC_COUNT_TEMP = 1  # 11
     MFACTORS = np.array([25, 34.8, 30, 40])
     P_ACC_S = par.P_ACCIDENT * MFACTORS
     p_exit = deepcopy(par.P_EXIT)
@@ -468,7 +471,7 @@ if FORMAT == 'article':  # RAD51 data.
         pl.compute_n_plot_gcurve(DATA_EXP_MUTANT, SIMU_COUNT, ['senescent'],
                                  FIG_DIR, par_update=par_update,
                                  is_exp_plotted=True, bbox_to_anchor=(1.3, 0),
-                                 title=curve_label, proc_count=PROC_COUNT,
+                                 title=curve_label, proc_count=PROC_COUNT_TEMP,
                                  add_to_name='rad51')
 
 
