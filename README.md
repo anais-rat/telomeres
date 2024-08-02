@@ -10,10 +10,11 @@ Code for "Individual cell fate and population dynamics revealed by a mathematica
 The `telomeres` package contains all the necessary auxiliary code.
 This is where the mathematical model is encoded, with its
 default parameters (`parameters.py`).  More generally, it contains all
-the functions necessary to
+the functions allowing to
 - Posttreat the raw data (`make_*.py`)
 - Simulate the model (`simulation.py`)
-- Plot the data simulated and experimental), laws of the model... (`plot.py`)
+- Plot the simulated and experimental data, the laws of the model... (`plot.py`)
+
 The scripts in this folder are not intended to be modified (unless
 you find errors, in which case please let me know) or used directly to
 run simulations.
