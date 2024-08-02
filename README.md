@@ -41,7 +41,7 @@ the simulations and plot their results.
 The code has been tested on the following systems:
 
 - **Linux**: Ubuntu 24.04 LTS
-- **Mac**:
+- **Mac**: MacOS Big Sur 11.6.2 
 - **Windows**:
 
 ## Dependencies
