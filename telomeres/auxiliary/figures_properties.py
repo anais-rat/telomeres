@@ -5,10 +5,14 @@ Created on Wed Dec  8 15:21:50 2021
 
 @author: arat
 
-Global parameters of the figures, which are common to all plots or should not
-be changed locally, are defined below. Other global parameters are also defined
-at the beginning of `*_plot.py` scripts; more versatile ones are defined at the
-beginning of `main_plot_*.py` scripts.
+Global parameters of the figures (which are common to all plots or should not
+be changed locally) are defined below.
+
+Other global parameters are also defined at the beginning of
+`telomeres/.../plot.py` scripts ; more versatile ones are defined at the
+beginning of `main/.../plot.py` scripts.
+
+Run the script to visualize the color palettes defined here.
 
 """
 
@@ -52,6 +56,7 @@ PAR_RC_UPDATE_MANUSCRIPT = {
 
 PAR_RC_UPDATE_ARTICLE = {
     'figure.dpi': DPI,
+    'text.latex.preamble': r'\usepackage{dsfont}',  # to remove?
     'font.family': ['sans-serif'],
     'font.sans-serif': ['Arial'],
     'legend.frameon': False
@@ -68,13 +73,13 @@ CMAP_LINEAGE = LinearSegmentedColormap.from_list('rg', list(zip(v, c)), N=256)
 
 # Creation of a color maps and palettes for the lines to plot.
 # > Viridis color maps.
-color_map = matplotlib.cm.get_cmap('viridis')
+color_map = matplotlib.colormaps['viridis']
 MY_COLORS = [color_map(.01), color_map(.3), color_map(.7), color_map(.9)]
 MY_COLORS_3 = [color_map(.01), color_map(.75), color_map(.9)]
 MY_COLORS_5 = [color_map(.01), color_map(.2), color_map(.53), color_map(.7),
                color_map(.9)]
 # > Rocket color map.
-color_map_rocket = plt.cm.get_cmap('rocket')
+color_map_rocket = matplotlib.colormaps['rocket']
 MY_COLORS_2_ROCKET = [color_map_rocket(.15), color_map_rocket(.61)]
 MY_COLORS_3_ROCKET = [color_map_rocket(.18), color_map_rocket(.48),
                       color_map_rocket(.69)]
@@ -84,6 +89,7 @@ MY_PALETTE_2 = sns.color_palette(MY_COLORS_2_ROCKET)
 MY_PALETTE_3 = sns.color_palette(MY_COLORS_3)
 MY_PALETTE_5 = sns.color_palette(MY_COLORS_5, desat=0.9)
 MY_PALETTE = sns.color_palette(MY_COLORS, desat=0.9)
+
 # Definition and display of the current palette.
 sns.set_palette(MY_PALETTE)
 if __name__ == "__main__":
@@ -96,6 +102,7 @@ if __name__ == "__main__":
     sns.palplot(sns.color_palette('rocket', n_colors=3))
     sns.palplot(MY_COLORS_3)
     sns.palplot(sns.color_palette('viridis', n_colors=3))
+    plt.show()
 
 # > Colors for "simulation" and "experiment" curves.
 COLORS_SIM_VS_EXP = MY_COLORS[:2]

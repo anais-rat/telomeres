@@ -94,7 +94,6 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
 
     # Global plotting parameters.
     matplotlib.rcParams.update(matplotlib.rcParamsDefault)  # Reset to default.
-    matplotlib.rcParams['text.latex.preamble'] = r'\usepackage{dsfont}'
     if FORMAT == 'manuscript':
         sns.set_style("darkgrid")
         sns.set_context("talk", font_scale=1)

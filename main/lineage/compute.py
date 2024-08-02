@@ -23,7 +23,9 @@ change accordingly to `PROC_COUNT` (set to `= PROC_COUNT + 1` ideally).
 
 """
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # Required on mac to use multiprocessing called in
+    # telomeres.lineages.simulation for PROC_COUNT > 1.
+    # Need to be removed if run from cluster_compute.batch.
 
     from copy import deepcopy
     import os

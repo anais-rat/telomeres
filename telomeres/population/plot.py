@@ -907,7 +907,7 @@ def plot_evo_l_pcfixed_from_stat(c, p, simu_count, fig_supdirectory, t_max,
     plt.figure()
     plt.xticks(days)
     plt.xlabel(LABELS['ax_time'])
-    plt.ylabel(LABELS_['ax_lmode'])
+    plt.ylabel(LABELS['ax_lmode'], wrap=True)
     plt.errorbar(days, evo_l_exp['mean'][:day_max],
                  yerr=evo_l_exp['std'][:day_max], capsize=2, fmt='x-',
                  label=LABELS['exp'], color=fp.COLORS_SIM_VS_EXP[1])
@@ -981,7 +981,7 @@ def plot_evo_p_anc_pcfixed_from_stat(c, p, simu_count, group_count,
         evo_group = np.array([fct.nansum(evo[:, i*group_size:(i+1)*group_size],
                                          axis=1) for i in range(group_count)])
         plt.figure()
-        plt.xlabel(LABELS_['ax_time'])
+        plt.xlabel(LABELS['ax_time'], wrap=True)
         plt.xticks(XTICKS)
         plt.ylim(-.05, 1.05)
         plt.ylabel(LABELS[key.replace('evo', 'ax').replace('_lavg', '')])
@@ -1162,7 +1162,7 @@ def plot_extinct_pfixed(cell_counts, simu_counts, fig_supdirectory,
     # Plotting.
     plt.figure(figsize=fig_size)  # default: (6.4, 4.8)
     plt.xlabel(LABELS['ax_c_init'], labelpad=6)
-    plt.ylabel(LABELS_['ax_textinct'], labelpad=8)
+    plt.ylabel(LABELS['ax_textinct'], labelpad=8, wrap=True)
     plt.xscale('log')
     xticks_ = xticks or cell_counts
     plt.xticks(xticks_)
@@ -1182,7 +1182,7 @@ def plot_extinct_pfixed(cell_counts, simu_counts, fig_supdirectory,
 
     plt.figure(figsize=fig_size)  # default: (6.4, 4.8)
     plt.xlabel(LABELS['ax_c_init'], labelpad=6)
-    plt.ylabel(LABELS_['ax_tsen'], labelpad=8)
+    plt.ylabel(LABELS['ax_tsen'], labelpad=8, wrap=True)
     plt.xscale('log')
     xticks_ = xticks or cell_counts
     plt.xticks(xticks_)
@@ -1225,7 +1225,7 @@ def plot_sat_pfixed(cell_counts, simu_counts, fig_supdirectory, para_count=1,
 
     plt.figure(figsize=fig_size)  # default: (6.4, 4.8)
     plt.xlabel(LABELS['ax_c_init'], labelpad=6)
-    plt.ylabel(LABELS_['ax_t_sat'], labelpad=8)
+    plt.ylabel(LABELS['ax_t_sat'], labelpad=8, wrap=True)
     plt.xscale('log')
     xticks_ = xticks or cell_counts
     plt.xticks(xticks_)
@@ -1328,7 +1328,7 @@ def plot_sat_pfixed(cell_counts, simu_counts, fig_supdirectory, para_count=1,
 
 #     plt.figure(figsize=fig_size)  # default: (6.4, 4.8)
 #     plt.xlabel(LABELS['ax_c_init'], labelpad=6)
-#     plt.ylabel(LABELS_['ax_t_sat'], labelpad=8)
+#     plt.ylabel(LABELS['ax_t_sat'], labelpad=8, wrap=True)
 #     plt.xscale('log')
 #     xticks_ = xticks or cell_counts
 #     plt.xticks(xticks_)
@@ -1401,8 +1401,8 @@ def plot_p_pfixed(cell_counts, simu_counts, pupdate_sim_btype,
     #     ax[i].set_xticks(xticks_)
     #     ax[i].get_xaxis().set_major_formatter(
     #         matplotlib.ticker.ScalarFormatter())
-    # ax[0].set_ylabel(LABELS_['ax_prop_B_bf_dil'], labelpad=8)
-    # ax[1].set_ylabel(LABELS_['ax_prop_sen_bf_dil'], labelpad=8)
+    # ax[0].set_ylabel(LABELS['ax_prop_B_bf_dil'], labelpad=8, wrap=True)
+    # ax[1].set_ylabel(LABELS['ax_prop_sen_bf_dil'], labelpad=8, wrap=True)
     # for day in days:
     #     ax[0].errorbar(cell_counts, prop_B_avg_s[day], yerr=prop_B_std_s[day],
     #                    capsize=2, label=legends[day], color=colors_B[day])
@@ -1421,7 +1421,7 @@ def plot_p_pfixed(cell_counts, simu_counts, pupdate_sim_btype,
 
     plt.figure(figsize=fig_size)  # figsize=(7.5, 4.8))
     plt.xlabel(LABELS['ax_c_init'], labelpad=6)
-    plt.ylabel(LABELS_['ax_prop_B_bf_dil'], labelpad=8)
+    plt.ylabel(LABELS['ax_prop_B_bf_dil'], labelpad=8, wrap=True)
     plt.xscale('log')
     plt.xticks(xticks_)
     ax = plt.gca()
@@ -1441,7 +1441,7 @@ def plot_p_pfixed(cell_counts, simu_counts, pupdate_sim_btype,
 
     plt.figure(figsize=fig_size)
     plt.xlabel(LABELS['ax_c_init'], labelpad=6)
-    plt.ylabel(LABELS_['ax_prop_sen_bf_dil'], labelpad=8)
+    plt.ylabel(LABELS['ax_prop_sen_bf_dil'], labelpad=8, wrap=True)
     plt.xscale('log')
     plt.xticks(xticks_)
     ax = plt.gca()
@@ -1592,7 +1592,7 @@ def plot_evo_pfixed(cell_counts, simu_counts, anc_prop, fig_supdirectory,
     plt.figure()
     plt.xlabel(LABELS['ax_time'], labelpad=6)
     plt.xticks(XTICKS)
-    plt.ylabel(LABELS_['ax_lavg'], labelpad=8)
+    plt.ylabel(LABELS['ax_lavg'], labelpad=8, wrap=True)
     plt.errorbar(days, evo_l_exp['mean'][:day_max],
                  yerr=evo_l_exp['std'][:day_max], capsize=2, fmt='x-',
                  label=LABELS['exp'], color='black')
@@ -1611,7 +1611,7 @@ def plot_evo_pfixed(cell_counts, simu_counts, anc_prop, fig_supdirectory,
     plt.figure()
     plt.xlabel(LABELS['ax_time'], labelpad=6)
     plt.xticks(XTICKS)
-    plt.ylabel(LABELS_['ax_lmode'], labelpad=8)
+    plt.ylabel(LABELS['ax_lmode'], labelpad=8, wrap=True)
     plt.errorbar(days, evo_l_exp['mean'][:day_max],
                  yerr=evo_l_exp['std'][:day_max], capsize=2, fmt='x-',
                  label=LABELS['exp'], color='black')
@@ -1667,7 +1667,7 @@ def plot_evo_pfixed(cell_counts, simu_counts, anc_prop, fig_supdirectory,
     plt.figure()
     plt.xlabel(LABELS['ax_time'], labelpad=6)
     plt.xticks(XTICKS)
-    plt.ylabel(LABELS_['ax_gen_avg'], labelpad=8)
+    plt.ylabel(LABELS['ax_gen_avg'], labelpad=8, wrap=True)
     for i in range(curve_count):
         folder = wp.write_path_directory_from_file(stat_paths[i])
         d = pps.postreat_cgen(is_stat, folder, simu_counts[i])
@@ -1887,8 +1887,8 @@ def plot_evo_w_variable(c, p, simu_count, varying_par_updates, varying_key,
 
     # Generations over time.
     plt.figure()
-    plt.xlabel(LABELS_['ax_time'], labelpad=6)
-    plt.ylabel(LABELS_['ax_gen_avg'], labelpad=8)
+    plt.xlabel(LABELS['ax_time'], labelpad=6, wrap=True)
+    plt.ylabel(LABELS['ax_gen_avg'], labelpad=8, wrap=True)
     for i in range(curve_count):
         folder = wp.write_path_directory_from_file(stat_data_paths[i])
         d = pps.postreat_cgen(is_stat, folder, simu_count)

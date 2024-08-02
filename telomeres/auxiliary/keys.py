@@ -4,6 +4,13 @@
 Created on Wed Jul  6 11:45:46 2022
 
 @author: arat
+
+List the keys of commonly-used dictionaries of the `telomeres` package to avoid
+rewriting them elsewhere and risking spelling mistakes.
+
+Importing the lists of keys of this script, rather that writing them again, is
+thus recommanded.
+
 """
 
 from telomeres.model.parameters import HTYPE_CHOICE
@@ -13,7 +20,7 @@ from telomeres.model.parameters import HTYPE_CHOICE
 # ----------------
 
 data_saved_keys = ['nta_counts', 'lengths', 'ancestors', 'generations',
-                    'sen_counts']
+                   'sen_counts']
 data_keys = data_saved_keys.copy()
 data_keys.append('clocks')
 
@@ -22,6 +29,7 @@ if HTYPE_CHOICE:
     # Type M for misclassified cells (type B that would be recognize as A).
 else:
     type_keys = ['atype', 'btype']
+
 
 # History data
 # ------------
@@ -86,13 +94,6 @@ for key in evo_c_keys_new:
         evo_1Dkeys_new.append('evo_p_H_sen')
 
 evo_l_keys_af_postreat = [key.replace('_sum', '_avg') for key in evo_l_keys]
-
-# c_to_prop_keys = {}
-# for key in all_keys:
-#     if '_c_' in key:
-#         c_to_prop_keys[key] = key.replace('_c_', '_p_')
-#     elif '_sum' in key:
-#         c_to_prop_keys[key] = key.replace('_sum', '_avg')
 
 evo_c_keys_to_postreat = evo_c_anc_keys.copy()
 evo_c_keys_to_postreat.extend(evo_p_anc_keys)

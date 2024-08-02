@@ -317,7 +317,7 @@ def stat_all(arr_stat, p_up=fp.P_UP, p_down=fp.P_DOWN, axis=0):
 
 def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
                 law_nta=law_nta_usual, law_sen=law_sen_usual, fig_name='',
-                fig_supdirectory=None, is_zoomed=False):
+                fig_supdirectory=None, is_zoomed=False, tick_spacing=None):
     is_senA_neq_senB = parameters_s[0][1][0] != parameters_s[0][1][1]
     colors = sns.color_palette('viridis', len(parameters_s))
     probas = {}
@@ -377,6 +377,10 @@ def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
             axes[i].text(.95, .95, LABELS[key], horizontalalignment='right',
                          verticalalignment='top', transform=axes[i].transAxes,
                          bbox=dict(boxstyle='round', fc="w", ec="w"))
+            if not isinstance(tick_spacing, type(None)):
+                fig.tight_layout()
+                axes[i].xaxis.set_major_locator(
+                    ticker.MultipleLocator(tick_spacing))
             i += 1
         axes[-1].legend(loc='upper right', bbox_to_anchor=(1, 0.85))
         for figure in [fig, fig_all]:

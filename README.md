@@ -7,6 +7,20 @@ Code for "Individual cell fate and population dynamics revealed by a mathematica
 - Preprint version: [biorxiv.org](https://doi.org/10.1101/2023.11.22.568287)
 - See also Chapter 3 of the PhD thesis: [HAL theses](https://theses.hal.science/tel-04250492)
 
+The package `telomeres` should not be modified (unless you find errors, in which case please let me know).
+This is where the mathematical model is encoded, with its default parameters (`parameters.py`).
+More generally, it contains all the functions necessary to
+- Posttreat the raw data (`make_*.py`)
+- Simulate the model (`simulation.py`)
+- Plot the data simulated and experimental), laws of the model... (`plot.py`)
+
+The `makeFiles` folder contains scripts to run to generate the
+`data/processed` directory, that contains the posstreated data.
+
+The `main` folder contains the scripts that should be run to perform
+the simulations and plot their results.
+
+
 ## Contents
 
 1. [Software Requirements](#software-requirements)

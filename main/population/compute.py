@@ -65,6 +65,10 @@ C_EXP = np.array([300])  # 250, 300. Cas test: 15
 # Number of parallelization.s per simulation.
 # NB: s.t. PARA_COUNT[i] 1D array of the numbers of paralelizations to simulate
 #     at concentration C_EXP[i].
+# WARNING: parallelization might alter the outputs for small `C_EXP` since the
+#     resulting subpopulations simulated in parallel are not independent, their
+#     saturation times should be coupled. `PARA_COUNT > 1` can be used to study
+#     the bias introduced by saturation.
 PARA_COUNT = [np.array([1])]
 
 # Number of times the simulation is run.
@@ -74,19 +78,23 @@ PARA_COUNT = [np.array([1])]
 SIMU_COUNT = 30  # 25, 20. Cas test: 3
 
 # Modification of default model parameters given by `par.PAR_DEFAULT_POP`.
-# Exemple 1. Non updates, default parameters:
+# Exemple 1. No updates, default parameters:
 #    PAR_UPDATES = None
+#
 # Exemple 2. To modify p_accident, the rate of accidental death, one should use
 #    P_EXIT_NEW = par.P_EXIT.deepcopy()
 #    P_EXIT_NEW['accident'] = p_accident_new
 #    PAR_UPDATES = {'p_exit': P_EXIT_NEW}
+#
 # Exemple 3. To modify weither or not type H are accounted:
 #    PAR_UPDATES = {'htype': False}
+#
 # Exemple 4. To modified both previous:
 #    PAR_UPDATES = {'htype': False,
 #                   'p_exit': P_EXIT_NEW}
+#
 # ect.. for every key of `PAR_DEFAULT_POP`, making sure that the updated
-# parameter confort to the original format given in `PAR_DEFAULT_POP`.
+# parameter conforms to the original format given by `PAR_DEFAULT_POP`.
 PAR_UPDATES = None
 
 

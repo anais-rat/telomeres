@@ -66,7 +66,7 @@ import telomeres.model.parameters as par
 # np.random.seed(1)  # NB: comment to generate new random.
 
 # True to save figures.
-IS_SAVED = True
+IS_SAVED = False
 
 # Plotting style: 'manuscript' or 'article'.
 FORMAT = 'article'
@@ -99,7 +99,6 @@ if IS_SAVED:
 
 # Global plotting parameters.
 matplotlib.rcParams.update(matplotlib.rcParamsDefault)  # Reset to default.
-matplotlib.rcParams['text.latex.preamble'] = r'\usepackage{dsfont}'  # pmatrix
 if FORMAT == 'manuscript':
     sns.set_style("darkgrid")
     sns.set_context("talk", font_scale=1)
