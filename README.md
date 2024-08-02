@@ -70,7 +70,7 @@ sudo apt install texlive-full
 
 ## Dataset
 
-Please contact us.
+Available in the `data` folder.
 
 ## Code 
 
