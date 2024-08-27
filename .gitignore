@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 
 # NEW
+.gitignore
 *~
 data_finalCut/
 figures/
