@@ -29,15 +29,9 @@ from copy import deepcopy
 from os.path import join
 import numpy as np
 import os
-import sys
 import time
 
-absolute_path = os.path.abspath(__file__)
-current_dir = os.path.dirname(absolute_path)
-parent_dir = os.path.dirname(current_dir)
-projet_dir = os.path.dirname(parent_dir)
-sys.path.append(projet_dir)
-
+import project_path
 import telomeres.auxiliary.write_paths as wp
 import telomeres.population.simulation as sim
 import telomeres.model.parameters as par

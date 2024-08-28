@@ -28,14 +28,9 @@ if __name__ == "__main__":
     import seaborn as sns
     import sys
 
-    absolute_path = os.path.abspath(__file__)
-    current_dir = os.path.dirname(absolute_path)
-    parent_dir = os.path.dirname(current_dir)
-    projet_dir = os.path.dirname(parent_dir)
-    sys.path.append(projet_dir)
-
     import fit_estimate as fct_fit
     import fit_compute as cfit
+    import project_path
     from telomeres.model.plot import plot_laws, plot_laws_s
     import telomeres.auxiliary.figures_properties as fp
     from telomeres.dataset.extract_processed_dataset import \

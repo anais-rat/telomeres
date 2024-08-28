@@ -30,14 +30,8 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     from copy import deepcopy
     import os
     import numpy as np
-    import sys
 
-    absolute_path = os.path.abspath(__file__)
-    current_dir = os.path.dirname(absolute_path)
-    parent_dir = os.path.dirname(current_dir)
-    projet_dir = os.path.dirname(parent_dir)
-    sys.path.append(projet_dir)
-
+    import project_path
     from telomeres.lineage.simulation import simulate_lineages_evolutions, \
         compute_postreat_data_vs_exp
     import telomeres.model.parameters as par

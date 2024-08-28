@@ -29,14 +29,8 @@ change accordingly to `PROC_COUNT` (set to `= PROC_COUNT + 1` ideally).
 
 import numpy as np
 import os
-import sys
 
-absolute_path = os.path.abspath(__file__)
-current_dir = os.path.dirname(absolute_path)
-parent_dir = os.path.dirname(current_dir)
-projet_dir = os.path.dirname(parent_dir)
-sys.path.append(projet_dir)
-
+import project_path
 from telomeres.model.plot import plot_laws
 import fit_estimate as lfit
 

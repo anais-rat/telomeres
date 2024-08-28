@@ -22,20 +22,9 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 import matplotlib.font_manager
 import numpy as np
-import os
 import seaborn as sns
-# import scipy.io as sio
-import sys
 
-absolute_path = os.path.abspath(__file__)
-current_dir = os.path.dirname(absolute_path)
-parent_dir = os.path.dirname(current_dir)
-projet_dir = os.path.dirname(parent_dir)
-sys.path.append(projet_dir)
-
-# import fit as lfit
-# import fit_results as lfitr
-import telomeres.model.functions as mfct
+import project_path
 import telomeres.auxiliary.figures_properties as fp
 import telomeres.dataset.plot as pd
 from telomeres.dataset.extract_processed_dataset import \

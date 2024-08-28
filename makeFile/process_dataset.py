@@ -10,15 +10,7 @@ This will create the folder `data/processed`, filled with processed data.
 
 """
 
-import os
-import sys
-# sys.path.append('..')
-
-absolute_path = os.path.abspath(__file__)
-current_dir = os.path.dirname(absolute_path)
-projet_dir = os.path.dirname(current_dir)
-sys.path.append(projet_dir)
-
+import project_path
 import telomeres.dataset.make_processed_dataset as mk
 
 

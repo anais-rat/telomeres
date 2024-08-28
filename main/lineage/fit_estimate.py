@@ -14,16 +14,9 @@ from copy import deepcopy
 import numpy as np
 import multiprocessing as mp
 import os
-import sys
-# import scipy.io as sio
 # import pickle
 
-absolute_path = os.path.abspath(__file__)
-current_dir = os.path.dirname(absolute_path)
-parent_dir = os.path.dirname(current_dir)
-projet_dir = os.path.dirname(parent_dir)
-sys.path.append(projet_dir)
-
+import project_path
 from telomeres.lineage.plot import compute_n_plot_gcurve_error
 from telomeres.lineage.simulation import type_of_sort_from_characteristics
 from telomeres.dataset.extract_processed_dataset import \

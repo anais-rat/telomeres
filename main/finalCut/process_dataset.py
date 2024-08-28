@@ -13,14 +13,8 @@ and fill it with processed data.
 
 import os
 import scipy.io as sio
-import sys
 
-ABSOLUTE_PATH = os.path.abspath(__file__)  # Path to the current .py
-CURRENT_DIR = os.path.dirname(ABSOLUTE_PATH)  # Path to 'finalCut' directory.
-PARENT_DIR = os.path.dirname(CURRENT_DIR)  # Path to 'main' directory.
-PROJECT_DIR = os.path.dirname(PARENT_DIR)
-sys.path.append(PROJECT_DIR)
-
+import project_path
 import telomeres.finalCut.make_cycles_dataset as mk
 
 
