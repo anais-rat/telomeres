@@ -148,18 +148,18 @@ pd.plot_cycles_from_dataset(FIG_DIR, IS_SAVED)
 # > Cycle duration times in generation and lineage.
 if FORMAT == 'manuscript':  # With legend for types.
 
-    pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR, FONT_SIZE,
+    pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR, font_size=FONT_SIZE,
                             lineage_types=DATA_EXP[2], gmax=GMAX,
                             fig_size=FIG_SIZE)
     pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR,
-                            sns.plotting_context()['axes.labelsize'],
+                            font_size=sns.plotting_context()['axes.labelsize'],
                             is_dead=DATA_EXP[1]['death'], gmax=GMAX,
                             fig_size=(5.8, 9.5))
 
 else:  # Without legend.
 
-    pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR, FONT_SIZE, gmax=GMAX,
-                            fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR, font_size=FONT_SIZE,
+                            gmax=GMAX, fig_size=FIG_SIZE)
 
     # Same plots for RAD51 data.
     # > Extract data.
@@ -167,11 +167,12 @@ else:  # Without legend.
     CYCLES_EXP_MUTANT_SEN = DATA_EXP_MUTANT_SEN[0]['cycle']
 
     # > Plot.
-    pl.plot_lineages_cycles(CYCLES_EXP_MUTANT, IS_EXP, FIG_DIR, FONT_SIZE,
-                            gmax=None, add_to_name='rad51', fig_size=FIG_SIZE)
-    pl.plot_lineages_cycles(CYCLES_EXP_MUTANT_SEN, IS_EXP, FIG_DIR, FONT_SIZE,
-                            gmax=None, add_to_name='rad51_sen',
+    pl.plot_lineages_cycles(CYCLES_EXP_MUTANT, IS_EXP, FIG_DIR,
+                            font_size=FONT_SIZE, gmax=None, add_to_name='rad51',
                             fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(CYCLES_EXP_MUTANT_SEN, IS_EXP, FIG_DIR,
+                            font_size=FONT_SIZE, gmax=None,
+                            add_to_name='rad51_sen', fig_size=FIG_SIZE)
 
 # Simulated.
 IS_EXP = False
@@ -183,9 +184,9 @@ if FORMAT == 'manuscript':
     data = sim.simulate_lineages_evolution(len(CYCLES_EXP), ['senescent'],
                                            PAR_DEFAULT, is_evo_returned=True)
     data = sim.sort_lineages(data, 'gdeath')
-    pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR, FONT_SIZE,
-                            lineage_types=data[2], gmax=GMAX,
-                            fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR,
+                            font_size=FONT_SIZE, lineage_types=data[2],
+                            gmax=GMAX, fig_size=FIG_SIZE)
 
 # > Type H unseen.
 PAR = deepcopy(PAR_DEFAULT)
@@ -193,22 +194,22 @@ PAR['is_htype_seen'] = False
 data = sim.simulate_lineages_evolution(len(CYCLES_EXP), ['senescent'], PAR,
                                        is_evo_returned=True)
 data = sim.sort_lineages(data, 'gdeath')
-pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR, FONT_SIZE,
+pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR, font_size=FONT_SIZE,
                         gmax=GMAX, fig_size=FIG_SIZE)
 
 if FORMAT == 'manuscript':  # With legend for types.
-    pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR, FONT_SIZE,
-                            lineage_types=data[2], gmax=GMAX,
-                            fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(
+        data[0]['cycle'], IS_EXP, FIG_DIR, font_size=FONT_SIZE,
+        lineage_types=data[2], gmax=GMAX, fig_size=FIG_SIZE)
 elif FORMAT == 'article':  # 2 additional simulations.
     for seed in [2, 3]:
         np.random.seed(seed)
         data = sim.simulate_lineages_evolution(len(CYCLES_EXP), ['senescent'],
                                                PAR, is_evo_returned=True)
         data = sim.sort_lineages(data, 'gdeath')
-        pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR, FONT_SIZE,
-                                gmax=GMAX, add_to_name=str(seed),
-                                fig_size=FIG_SIZE)
+        pl.plot_lineages_cycles(
+            data[0]['cycle'], IS_EXP, FIG_DIR, font_size=FONT_SIZE, gmax=GMAX,
+            add_to_name=str(seed), fig_size=FIG_SIZE)
     np.random.seed(1)
 
 
@@ -237,14 +238,14 @@ DATA_SIM2 = sim.compute_evo_avg_data(DATA_EXP, SIMU_COUNT, CHARACTERISTICS_2,
 # > Cycle duration times.
 for key_sort in TYPES_OF_SORT_1:  # Config. 1 for various types of sort.
     pl.plot_lineages_cycles(
-        DATA_SIM1[key_sort][0]['cycle'], IS_EXP, FIG_DIR, FONT_SIZE,
+        DATA_SIM1[key_sort][0]['cycle'], IS_EXP, FIG_DIR, font_size=FONT_SIZE,
         fig_size=FIG_SIZE, curve_to_plot=DATA_SIM1[key_sort][1]['sen']['mean'],
         evo_avg={'simu_count': SIMU_COUNT, 'type_of_sort': key_sort},
         bbox_to_anchor=bbox_to_anchor)
 
 pl.plot_lineages_cycles(  # Config. 2, sort by gdeath.
-    DATA_SIM2[TYPE_OF_SORT_2][0]['cycle'], IS_EXP, FIG_DIR, FONT_SIZE,
-    fig_size=FIG_SIZE,
+    DATA_SIM2[TYPE_OF_SORT_2][0]['cycle'], IS_EXP, FIG_DIR,
+    font_size=FONT_SIZE, fig_size=FIG_SIZE,
     curve_to_plot=DATA_SIM2[TYPE_OF_SORT_2][1]['sen']['mean'],
     evo_avg={'simu_count': SIMU_COUNT, 'type_of_sort': TYPE_OF_SORT_2},
     bbox_to_anchor=bbox_to_anchor)

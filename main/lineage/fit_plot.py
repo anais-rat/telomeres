@@ -26,7 +26,6 @@ if __name__ == "__main__":
     import numpy as np
     import os
     import seaborn as sns
-    import sys
 
     import fit_estimate as fct_fit
     import fit_compute as cfit

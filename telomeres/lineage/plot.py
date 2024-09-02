@@ -117,6 +117,7 @@ PAR_RC_HEATMAP = {'axes.facecolor': ".94",
                   'legend.fancybox': True,
                   }
 
+FONT_SIZE = sns.plotting_context()['axes.labelsize']
 
 def type_of_sort_to_label_string(type_of_sort):
     """Return the readable string that indicates the type of sort given in
@@ -361,7 +362,7 @@ def compute_n_plot_gcurve_error(exp_data_raw, lineage_count_on_all_simu,
 
 # > Cycle duration times.
 
-def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, font_size,
+def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, font_size=FONT_SIZE,
                          curve_to_plot=None, lineage_types=None, is_dead=None,
                          evo_avg=None, gmax=None, add_to_name=None,
                          bbox_to_anchor=None, fig_size=None):
@@ -387,7 +388,8 @@ def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, font_size,
 
         # Plot.
         plt.figure(figsize=fig_size)  # default: (6.4, 4.8)
-        df = pd.DataFrame(data=cycles, columns=generations, index=lineages)
+        df = pd.DataFrame(data=cycles.astype(float), columns=generations,
+                          index=lineages)
         if isinstance(evo_avg, type(None)):
             ylabel = LABELS['ax_lin']
             blabel = LABELS['cycle']
@@ -407,6 +409,8 @@ def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, font_size,
         # Legend.
         gen_counts = np.sum(~np.isnan(cycles), 1)
         fs = plt.rcParams['legend.fontsize']
+        if isinstance(fs, str):
+            fs = 24
         if not isinstance(lineage_types, type(None)):
             is_htype_seen = np.any(np.isnan(lineage_types))
             btype_idxs = lineage_types == 1
@@ -425,10 +429,10 @@ def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, font_size,
             else:
                 leg_btype = LABELS['btype']
                 leg_htype = None
-            plt.scatter(gen_counts[btype_idxs], lineages[btype_idxs]+.5,
+            plt.scatter(gen_counts[btype_idxs], lineages[btype_idxs] + .5,
                         s=2*fs, marker=r'$--$', color='black', label=leg_btype)
             htype_idxs = np.isnan(lineage_types)
-            plt.scatter(gen_counts[htype_idxs], lineages[htype_idxs]+.5,
+            plt.scatter(gen_counts[htype_idxs], lineages[htype_idxs] + .5,
                         s=2*fs, marker=r'$\times$', color='black',
                         label=leg_htype)
             if isinstance(bbox_to_anchor, type(None)):
@@ -437,7 +441,7 @@ def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, font_size,
                 plt.legend(bbox_to_anchor=bbox_to_anchor, loc="lower right")
         if not isinstance(is_dead, type(None)):
             is_alive = np.isnan(is_dead)
-            plt.scatter(gen_counts[is_alive]+.85, lineages[is_alive]+.5,
+            plt.scatter(gen_counts[is_alive]+.85, lineages[is_alive] + .5,
                         s=1.8*fs, marker='>', color='black',
                         label=LABELS['alive'])
             if isinstance(bbox_to_anchor, type(None)):
@@ -1161,7 +1165,8 @@ def plot_histogram_from_lcycle_counts(lcycle_per_seq_counts, lcycle_type,
     Parameters
     ----------
     lcycle_per_seq_counts : dict
-        Output of `lineage.posttreat.compute_exp_lcycle_counts`: dictionnary of
+        Output of `lineage.posttreat.compute_exp_lcycle_counts` or
+        `lineage.simulation.simulate_lineages_evolution`: dictionnary of
         the number of long cycles per sequence of long cycles gathered by
         entries st.:
         nta : ndarray

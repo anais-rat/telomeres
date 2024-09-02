@@ -372,8 +372,18 @@ def simulate_lineages_evolution(lineage_count, characteristics, parameters,
     is_accidental_deaths : ndarray
         1D array (lineage_count,) of bool st. `is_accidental_deaths[i]` is True
         if the ith lineage has died accidentally, False otherwise.
-    lcycle_per_seq_counts :
-        
+    lcycle_per_seq_counts : dict
+        Dictionnary of the number of arrests (/long cycles) per sequence of
+        arrests gathered by entries st.:
+        nta : ndarray
+            2D array with same shape as `gtrigs_s['nta']` s.t.
+            `lcycle_per_seq_counts['nta'][i, j]` is the number of successive
+            long cycles of the jth nta of the ith lineage.
+        sen : ndarray
+            1D array (lineage_count, ) (ie with shape of `gtrigs_s['sen']`) st.
+            `lcycle_per_seq_counts['sen'][i]` is the number of successive
+            senescent cycles of the ith lineage.
+        NB: Nan value whenever there is if no such sequence.
 
     """
     # Initialization.
@@ -1064,10 +1074,9 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
                                 proc_count=1, is_saved=None):
     """Simulates `simulation_count` times the evolution, through
     `simulate_lineages_evolution`, of `lineage_count` lineages with given
-    characteristics (corresponding to `characteristic` and
-    `nta_idx`) and return statistics (average and `par.PERCENT` percentiles)
-    on those sets of lineages for every way of orderring lineages given by
-    `types_of_sort`.
+    characteristics (corresponding to `characteristics`) and return statistics
+    (average and `par.PERCENT` percentiles) on those sets of lineages for every
+    way of orderring lineages given by `types_of_sort`.
 
     Parameters
     ----------
@@ -1080,11 +1089,6 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
         `sort_lineage` docstring).
     characteristics : list of string
         Charateristics of lineages to keep (cf `is_expected_lineage` docstring)
-    parameters_comput : list or Nonetpype, optional
-        If None no specific time limit for computing, otherwise if the time
-        to compute `simulate_lineages_evolution` with `parameters_comput[0]`
-        lineages is greater than `parameters_comput[1]` (sec) the whole
-        simulation (with a priori more) is not run (None result instead).
     par_update : dict or None, optional
         Dictionnary with the updates of the default paramerters (namely
         `par.PAR_DEFAULT_LIN`) to make to simulate. In particular the only
@@ -1108,7 +1112,12 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
         is_lcycle_counts : bool
             If True, the number of consecutive long cycles per sequence of
             arrest is computed and saved, otherwise set to None.
-
+    parameters_comput : list or Nonetpype, optional
+        If None no specific time limit for computing, otherwise if the time
+        to compute `simulate_lineages_evolution` with `parameters_comput[0]`
+        lineages is greater than `parameters_comput[1]` (sec) the whole
+        simulation (with a priori more) is not run (None result instead).
+    
     Returns
     -------
     stats : dict
@@ -1194,6 +1203,7 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
                             # need to store data in a first time.
                             is_evo_saved = (is_evo_temp or
                                             type_of_sort[0] == 'l')
+                            print(is_evo_temp, is_evo_saved)
                             data_s_0 = simulate_lineages_evolutions(
                                 simulation_count, lineage_count,
                                 characteristics, par_update=par_update,

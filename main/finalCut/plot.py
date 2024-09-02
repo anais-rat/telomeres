@@ -143,13 +143,13 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
         cycles = data[0]['cycle']
         gmax = np.shape(cycles)[1]  # Maximum lineage length in the dataset.
 
-        pl.plot_lineages_cycles(cycles, IS_EXP, FIG_DIR, FONT_SIZE,
+        pl.plot_lineages_cycles(cycles, IS_EXP, FIG_DIR, font_size=FONT_SIZE,
                                 lineage_types=data[2], gmax=gmax,
                                 fig_size=FIG_SIZE)
-        pl.plot_lineages_cycles(cycles, IS_EXP, FIG_DIR,
-                                sns.plotting_context()['axes.labelsize'],
-                                is_dead=data[1]['death'], gmax=gmax,
-                                fig_size=(5.8, 9.5))
+        pl.plot_lineages_cycles(
+            cycles, IS_EXP, FIG_DIR,
+            font_size=sns.plotting_context()['axes.labelsize'],
+            is_dead=data[1]['death'], gmax=gmax, fig_size=(5.8, 9.5))
 
 
 # Parameters

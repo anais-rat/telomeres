@@ -21,10 +21,6 @@ We might use the following notations:
 import math
 import numpy as np
 
-# if __name__ == "__main__":
-#     import sys
-#     sys.path.append('../../')
-
 
 # =============================================================================
 # Adjustable parameters
