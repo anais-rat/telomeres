@@ -9,8 +9,7 @@ figures/
 ignore/
 simulations/
 test/
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
+demo/.ipynb_checkpoints
 
 # C extensions
 *.so
