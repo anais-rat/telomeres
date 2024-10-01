@@ -20,6 +20,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+from textwrap import wrap
 
 import telomeres.auxiliary.figures_properties as fp
 import telomeres.auxiliary.write_paths as wp
@@ -161,77 +162,6 @@ def print_data_on_special_initial_distributions(l_short, l_medium, l_long):
     return None
 
 
-def plot_data_exp_concentration_curves(x, y, x_sat, y_sat, sem, is_saved):
-    # colors = fp.MY_COLORS_2_BIS_ROCKET # colors = fp.MY_COLORS_2_ROCKET
-    colors = fp.MY_COLORS[:2]
-    sns.set_palette(colors)
-    folder = join('figures', 'parameters')
-
-    # Pop. doublings per day w.r.t. pop. doublings when no saturation.
-    plt.figure()
-    plt.errorbar(x[:, 0], y[:, 0], yerr=y[:, 2], capsize=2, fmt='.-',
-                 label=LABELS['telo+'])
-    plt.errorbar(x[:, 1], y[:, 1], yerr=y[:, 3], capsize=2,
-                 label=LABELS['telo-'])
-    plt.legend(borderaxespad=.9)
-    plt.xlabel('Cumulative population doubling number')
-    plt.ylabel('Population doubling number')
-    sns.despine()
-    if is_saved:
-        plt.savefig(join(folder, 'pop_doublings_no_sat.pdf'),
-                    bbox_inches='tight')
-
-    # Concentration w.r.t days when no saturation.
-    plt.figure()
-    x = np.arange(len(y[:, 0]))
-    plt.plot(x, 1e5 * 2**y[:, 0], '.-', label=LABELS['telo+'])
-    plt.plot(x, 1e5 * 2**y[:, 1], '+-', label=LABELS['telo-'])
-    plt.legend()
-    plt.xlabel(LABELS['ax_time'])
-    plt.ylabel(LABELS['ax_cexp'])
-    plt.xticks(x)
-    sns.despine()
-    if is_saved:
-        plt.savefig(join(folder, 'concentration_no_sat.pdf'),
-                    bbox_inches='tight')
-
-    # Population doublings per day w.r.t. population doublings.
-    plt.figure()
-    plt.errorbar(x_sat[:, 0], y_sat[:, 0], yerr=y_sat[:, 2], capsize=2,
-                 fmt='.-', label=LABELS['telo-'])
-    plt.errorbar(x_sat[:, 1], y_sat[:, 1], yerr=y_sat[:, 3], capsize=2,
-                 label=LABELS['telo+'])
-    plt.legend()
-    plt.xlabel('Cumulative population doubling number')
-    plt.ylabel('Population doubling number')
-    sns.despine()
-    if is_saved:
-        plt.savefig(join(folder, 'pop_doublings.pdf'), bbox_inches='tight')
-
-    # Concentration w.r.t days.
-    w, h = plt.figaspect(.7)
-    plt.figure(figsize=(w, h))
-    x = np.arange(len(y_sat[:, 0])) + 1
-    # First version (on manuscript).
-    plt.errorbar(x, 1e5 * 2**y_sat[:, 1], yerr=sem[:, 1], capsize=2,
-                 label=LABELS['telo+'])
-    plt.errorbar(x, 1e5 * 2**y_sat[:, 0], yerr=sem[:, 0], capsize=2, fmt='.-',
-                 label=LABELS['telo-'])
-    # Second version (on paper).
-    # plt.errorbar(x, 3 * 10 ** 7 * y_sat[:, 1], yerr=sem[:, 1], capsize=2,
-    #              label=LABELS['telo+'])
-    # plt.errorbar(x,  3 * 10 ** 7 * y_sat[:, 0], yerr=sem[:, 0], capsize=2,
-    #              fmt='.-', label=LABELS['telo-'])
-    plt.legend(loc="lower left")
-    plt.xlabel(LABELS['ax_time'])
-    plt.ylabel(LABELS['ax_cexp'])
-    plt.xticks(x)
-    sns.despine()
-    if is_saved:
-        plt.savefig(join(folder, 'concentration.pdf'), bbox_inches='tight')
-    return
-
-
 LENGTHS = np.linspace(0, 250, 2501)
 
 
@@ -247,10 +177,11 @@ def law_nta_usual(lmins, a, b):
 
 
 def plot_laws_nta_various_a(a_to_test, b, lengths=LENGTHS,
-                            law_nta=law_nta_usual, is_saved=False,
+                            law_nta=law_nta_usual, fig_subdirectory=None,
                             font_scale=FONT_SCALE):
     """Plot on `lengths` the laws for non-terminal arrests defined by
-    parameter `b` fixed and parameter a in `a_to_test` and save it if asked.
+    parameter `b` fixed and parameter a in `a_to_test` and save it in
+    `figure/<fig_subdirectory>` if `fig_subdirectory` is not None.
 
     """
     sns.set_context(CONTEXT, font_scale=font_scale)
@@ -266,21 +197,25 @@ def plot_laws_nta_various_a(a_to_test, b, lengths=LENGTHS,
              transform=ax.transAxes)
     plt.legend()
     sns.despine()
-
     # Saving.
-    if is_saved:
-        plt.savefig(join('figures', 'parameters', f'law_nta_A{a_to_test}_B{b}',
-                         '.pdf'), bbox_inches='tight')
-    sns.set_context(CONTEXT, font_scale=FONT_SCALE)
+    if not isinstance(fig_subdirectory, type(None)):
+        folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        path = join(folder, f'law_nta_A{a_to_test}_B{b}.pdf')
+        print("\n Saved at: ", path)
+        plt.savefig(path, bbox_inches='tight')
     plt.show()
+    sns.set_context(CONTEXT, font_scale=FONT_SCALE)
     return None
 
 
 def plot_laws_nta_various_b(b_to_test, a, lengths=LENGTHS,
-                            law_nta=law_nta_usual, is_saved=False,
+                            law_nta=law_nta_usual, fig_subdirectory=None,
                             font_scale=FONT_SCALE):
     """Plot on `lengths` the laws for non-terminal arrests defined by
-    parameter `a` fixed and parameter b in `b_to_test` and save it if asked.
+    parameter `a` fixed and parameter b in `b_to_test` and save it in
+    `figure/<fig_subdirectory>` if `fig_subdirectory` is not None.
 
     """
     sns.set_context(CONTEXT, font_scale=font_scale)
@@ -297,9 +232,13 @@ def plot_laws_nta_various_b(b_to_test, a, lengths=LENGTHS,
     plt.legend()
     sns.despine()
     # Saving.
-    if is_saved:
-        plt.savefig(join('figures', 'parameters', f'law_nta_A{a}_B{b_to_test}',
-                         '.pdf'), bbox_inches='tight')
+    if not isinstance(fig_subdirectory, type(None)):
+        folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        path = join(folder, f'law_nta_A{a}_B{b_to_test}.pdf')
+        print("\n Saved at: ", path)
+        plt.savefig(path, bbox_inches='tight')
     plt.show()
     sns.set_context(CONTEXT, font_scale=FONT_SCALE)
     return None
@@ -317,7 +256,7 @@ def stat_all(arr_stat, p_up=fp.P_UP, p_down=fp.P_DOWN, axis=0):
 
 def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
                 law_nta=law_nta_usual, law_sen=law_sen_usual, fig_name='',
-                fig_supdirectory=None, is_zoomed=False, tick_spacing=None):
+                fig_subdirectory=None, is_zoomed=False, tick_spacing=None):
     is_senA_neq_senB = parameters_s[0][1][0] != parameters_s[0][1][1]
     colors = sns.color_palette('viridis', len(parameters_s))
     probas = {}
@@ -393,13 +332,16 @@ def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
             ax.set_ylabel(LABELS['ax_proba'], labelpad=16)
             sns.despine(fig=figure)
 
-        if not isinstance(fig_supdirectory, type(None)):
-            folder = join(fig_supdirectory, FDIR_PAR)
+        if not isinstance(fig_subdirectory, type(None)):
+            folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
+            if not os.path.exists(folder):
+                os.makedirs(folder)
             if j == 1:
                 path = join(folder, f"fit_{fig_name}_sensitivity_zoomed.pdf")
             else:
                 path = join(folder, f"fit_{fig_name}_sensitivity.pdf")
             path = path.replace('__', '_')
+            print("\n Saved at: ", path)
             fig.savefig(path, bbox_inches='tight')
             fig_all.savefig(path.replace('.pdf', '_all.pdf'),
                             bbox_inches='tight')
@@ -408,36 +350,9 @@ def plot_laws_s(parameters_s, idx_best=None, lengths=LENGTHS,
     return None
 
 
-def plot_law_sen(a, b, lmin, lengths=LENGTHS, law_nta=law_nta_usual,
-                 law_sen=law_sen_usual, is_saved=False,
-                 font_scale=FONT_SCALE):
-    """Plot for all `lengths` as argument their corresponding `densities` and
-    save it if asked.
-
-    """
-    # Plotting.
-    sns.set_context(CONTEXT, font_scale=font_scale)
-    plt.figure()
-    plt.clf()
-    plt.plot(lengths, law_sen(lengths, a, b, lmin), linewidth=2.5,
-             label=rf'$(a_{{sen}}, b_{{sen}}, {{\ell}}_{{min}}) '
-             rf'= ({a}, {b}, {lmin})$')
-    plt.xlabel(LABELS['ax_lmin_min'], labelpad=6)
-    plt.ylabel(r'$p_{sen}$', labelpad=8)  # LABELS['ax_proba_sen'],
-    plt.legend()
-    sns.despine()
-    # Saving.
-    if is_saved:
-        plt.savefig(join('figures', 'parameters', f'law_sen_A{a}_B{b}.pdf'),
-                    bbox_inches='tight')
-    plt.show()
-    sns.set_context(CONTEXT, font_scale=font_scale)
-    return None
-
-
 def plot_laws(parameters, lengths=LENGTHS, law_nta=law_nta_usual,
               law_sen=law_sen_usual, fig_name='', is_par_plot=False,
-              fig_supdirectory=None, fig_size=(6.2, 3.6),
+              fig_subdirectory=None, fig_size=(6.2, 3.6),
               decimal_count=DECIMAL_COUNT, tick_spacing=None):
     if isinstance(parameters[1][0], list):
         is_sen_common_AnB = parameters[1][0] == parameters[1][1]
@@ -482,52 +397,15 @@ def plot_laws(parameters, lengths=LENGTHS, law_nta=law_nta_usual,
         plt.legend(title=labels['linit'])
     sns.despine()
     # Saving.
-    if not isinstance(fig_supdirectory, type(None)):
-        path = join(fig_supdirectory, FDIR_PAR, f"laws_par{name}.pdf")
+    if not isinstance(fig_subdirectory, type(None)):
+        folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        path = join(folder, f"laws_par{name}.pdf")
+        print("\n Saved at: ", path)
         plt.savefig(path, bbox_inches='tight')
     plt.show()
     return None
-
-
-def plot_exp_data(days, concentration, length):
-    plt.clf()
-    day_count = len(days)
-    fig, axes = plt.subplots(day_count, 1, sharex=True, sharey=False)
-    # Concentration w.r.t days.
-    count = len(concentration[:, 0])
-    days_t = np.linspace(0, count - 1, count)
-
-    axes[0].errorbar(days_t, 1e5 * 2**concentration[0][:, 1],
-                     yerr=concentration[1][:, 1], capsize=2,
-                     label=LABELS['telo+'])
-    axes[0].errorbar(days_t, 1e5 * 2**concentration[:, 0],
-                     yerr=concentration[:, 0], capsize=2, fmt='.-',
-                     label=LABELS['telo-'])
-    axes[0].text(.85, .76, fontsize=11, borderaxespad=.9, facecolor="w",
-                 edgecolor="w")
-    axes[0].xlabel(LABELS['ax_t'])
-    axes[0].ylabel(LABELS['ax_cexp'])
-
-    axes[1].errorbar(days, length[0], yerr=length[1], capsize=2, fmt='.-')
-    axes[1].ylabel(LABELS['ax_lavg'], labelpad=8)
-    sns.despine()
-    plt.xlabel(LABELS['ax_t'], labelpad=8)
-    # if is_saved:
-    #     plt.savefig(join('figures', 'parameters', 'evo_lengths.pdf'),
-    #                 bbox_inches='tight')
-    # # Plotting of axis titles.
-    # fig.add_subplot(111, frameon=False)  # Add big axes, hide frame.
-    # plt.tick_params(labelcolor='none',  # Hide tick of the big axes.
-    #                 top=False, bottom=False, left=False, right=False)
-    # plt.grid(False)  # And hide grid. Set common titles:
-    # plt.xlabel(LABELS['ax_count'], fontsize=axes_fontsize, labelpad=6)
-    # plt.ylabel(LABELS['ax_count'], fontsize=axes_fontsize, labelpad=9)
-    # if is_saved:
-    #     path = join(wp.write_fig_pop_path(cell_count, para_count),
-    #                 'hist_per_day.pdf')
-    #     plt.savefig(path, bbox_inches='tight')
-    # plt.show()
-    return
 
 
 # Initial distribution of telomere lengths.
@@ -596,7 +474,11 @@ def plot_distributions_shortest_wrt_linit(par_l_inits, cell_count,
 
 
 def plot_distributions_shortest_min(cell_counts, is_rescaled=False,
-                                    fig_supdirectory=None):
+                                    fig_subdirectory=None):
+    """Plot the initial distribution of the shortest telomere length in several
+    populations, with varying sizes (`cell_counts`).
+
+    """
     cell_counts = np.sort(cell_counts).astype(int)
     curve_count = len(cell_counts)
     plt.figure()
@@ -613,14 +495,15 @@ def plot_distributions_shortest_min(cell_counts, is_rescaled=False,
             plt.plot(distrib[:350], label=cell_counts[i], color=colors[i])
     plt.legend(title=LABELS['leg_cell_count'])
     sns.despine()
-
-    if not isinstance(fig_supdirectory, type(None)):
-        directory_path = join(fig_supdirectory, 'dataset')
-        if not os.path.exists(directory_path):
-            os.makedirs(directory_path)
-        fig_name = join(directory_path, "distributions_shortest_min_c" +
-                        wp.list_to_string(cell_counts) + ".pdf")
-        plt.savefig(fig_name, bbox_inches='tight')
+    if not isinstance(fig_subdirectory, type(None)):
+        folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        fig_name = "distributions_shortest_min_c" + \
+            wp.list_to_string(cell_counts) + ".pdf"
+        path = join(folder, fig_name)
+        print("\n Saved at: ", path)
+        plt.savefig(path, bbox_inches='tight')
     plt.show()
 
 
@@ -640,7 +523,7 @@ def distribution_shortest_max(cell_count, is_plotted=False, par_l_init=None):
 
 
 def plot_distributions_shortest(cell_counts, is_rescaled=False,
-                                fig_supdirectory=None):
+                                fig_subdirectory=None):
     cell_counts = np.sort(cell_counts).astype(int)
     curve_count = len(cell_counts)
     fig, axes = plt.subplots(1, 2, sharey=True, sharex=True, figsize=(9, 5))
@@ -666,11 +549,12 @@ def plot_distributions_shortest(cell_counts, is_rescaled=False,
     plt.grid(False)  # And hide grid.
     plt.xlabel(LABELS['ax_l'], labelpad=8)  # Set common titles
     plt.ylabel("Density", labelpad=23)
-    if not isinstance(fig_supdirectory, type(None)):
-        directory_path = join(fig_supdirectory, 'dataset')
-        if not os.path.exists(directory_path):
-            os.makedirs(directory_path)
-        fig_name = join(directory_path, "distributions_shortest_c" +
-                        wp.list_to_string(cell_counts) + ".pdf")
-        plt.savefig(fig_name, bbox_inches='tight')
+    if not isinstance(fig_subdirectory, type(None)):
+        folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        fig_name = "distributions_shortest_c" + wp.list_to_string(cell_counts)
+        path = join(folder, fig_name + ".pdf")
+        print("\n Saved at: ", path)
+        plt.savefig(path, bbox_inches='tight')
     plt.show()

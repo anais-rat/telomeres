@@ -5,8 +5,8 @@ Created on Fri Sep  2 15:54:16 2022
 
 @author: arat
 
-Script to plot figures of Chapter 3 of the PhD thesis and paper
-https://doi.org/10.1101/2023.11.22.568287 (and more).
+Script to plot figures, related to lineage simulations, of Chapter 3 of the PhD
+thesis and paper https://doi.org/10.1101/2023.11.22.568287 (and more).
 
 Ideally, the data needed to plot these figures should have been already
 computed with the script `main.lineage.compute.py` on a cluster in order to
@@ -55,10 +55,10 @@ import telomeres.model.parameters as par
 # np.random.seed(1)  # NB: comment to generate new random.
 
 # True to save figures.
-IS_SAVED = False
+IS_SAVED = True
 
 # Plotting style: 'manuscript' or 'article'.
-FORMAT = 'article'
+FORMAT = 'manuscript'
 
 # Number of processor used for parallel computing.
 PROC_COUNT = 1  # Add one for cluster.
@@ -83,8 +83,6 @@ POSTREAT_DT = 5  # !!!! par.CYCLE_MIN
 FIG_DIR = None
 if IS_SAVED:
     FIG_DIR = FORMAT
-    # if (not os.path.exists(FIG_DIR)):
-    #     os.makedirs(FIG_DIR)
 
 # Global plotting parameters.
 matplotlib.rcParams.update(matplotlib.rcParamsDefault)  # Reset to default.
@@ -127,10 +125,8 @@ GSEN_EXP_MUTANT = DATA_EXP_MUTANT_SEN[1]['sen']
 
 if FORMAT == "manuscript":
     FIG_SIZE = (4.7, 8)
-    FONT_SIZE = 24
 else:
     FIG_SIZE = (5.8, 9.5)
-    FONT_SIZE = sns.plotting_context()['axes.labelsize']
 
 
 # > Cycle duration times
@@ -143,23 +139,23 @@ GMAX = np.shape(CYCLES_EXP)[1]  # Maximum lineage length in the dataset.
 
 
 # > Distributions of cycle duration time (cdt) per category.
-pd.plot_cycles_from_dataset(FIG_DIR, IS_SAVED)
+# pd.plot_cycles_from_dataset(FIG_DIR, IS_SAVED)
+
 
 # > Cycle duration times in generation and lineage.
 if FORMAT == 'manuscript':  # With legend for types.
 
-    pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR, font_size=FONT_SIZE,
+    pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR,
                             lineage_types=DATA_EXP[2], gmax=GMAX,
                             fig_size=FIG_SIZE)
     pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR,
-                            font_size=sns.plotting_context()['axes.labelsize'],
                             is_dead=DATA_EXP[1]['death'], gmax=GMAX,
                             fig_size=(5.8, 9.5))
 
 else:  # Without legend.
 
-    pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR, font_size=FONT_SIZE,
-                            gmax=GMAX, fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR, gmax=GMAX,
+                            fig_size=FIG_SIZE)
 
     # Same plots for RAD51 data.
     # > Extract data.
@@ -167,11 +163,9 @@ else:  # Without legend.
     CYCLES_EXP_MUTANT_SEN = DATA_EXP_MUTANT_SEN[0]['cycle']
 
     # > Plot.
-    pl.plot_lineages_cycles(CYCLES_EXP_MUTANT, IS_EXP, FIG_DIR,
-                            font_size=FONT_SIZE, gmax=None, add_to_name='rad51',
-                            fig_size=FIG_SIZE)
-    pl.plot_lineages_cycles(CYCLES_EXP_MUTANT_SEN, IS_EXP, FIG_DIR,
-                            font_size=FONT_SIZE, gmax=None,
+    pl.plot_lineages_cycles(CYCLES_EXP_MUTANT, IS_EXP, FIG_DIR, gmax=None,
+                            add_to_name='rad51', fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(CYCLES_EXP_MUTANT_SEN, IS_EXP, FIG_DIR, gmax=None,
                             add_to_name='rad51_sen', fig_size=FIG_SIZE)
 
 # Simulated.
@@ -184,9 +178,8 @@ if FORMAT == 'manuscript':
     data = sim.simulate_lineages_evolution(len(CYCLES_EXP), ['senescent'],
                                            PAR_DEFAULT, is_evo_returned=True)
     data = sim.sort_lineages(data, 'gdeath')
-    pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR,
-                            font_size=FONT_SIZE, lineage_types=data[2],
-                            gmax=GMAX, fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR, gmax=GMAX,
+                            lineage_types=data[2], fig_size=FIG_SIZE)
 
 # > Type H unseen.
 PAR = deepcopy(PAR_DEFAULT)
@@ -194,22 +187,21 @@ PAR['is_htype_seen'] = False
 data = sim.simulate_lineages_evolution(len(CYCLES_EXP), ['senescent'], PAR,
                                        is_evo_returned=True)
 data = sim.sort_lineages(data, 'gdeath')
-pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR, font_size=FONT_SIZE,
+pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR,
                         gmax=GMAX, fig_size=FIG_SIZE)
 
 if FORMAT == 'manuscript':  # With legend for types.
-    pl.plot_lineages_cycles(
-        data[0]['cycle'], IS_EXP, FIG_DIR, font_size=FONT_SIZE,
-        lineage_types=data[2], gmax=GMAX, fig_size=FIG_SIZE)
+    pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR,
+                            lineage_types=data[2], gmax=GMAX,
+                            fig_size=FIG_SIZE)
 elif FORMAT == 'article':  # 2 additional simulations.
     for seed in [2, 3]:
         np.random.seed(seed)
         data = sim.simulate_lineages_evolution(len(CYCLES_EXP), ['senescent'],
                                                PAR, is_evo_returned=True)
         data = sim.sort_lineages(data, 'gdeath')
-        pl.plot_lineages_cycles(
-            data[0]['cycle'], IS_EXP, FIG_DIR, font_size=FONT_SIZE, gmax=GMAX,
-            add_to_name=str(seed), fig_size=FIG_SIZE)
+        pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR,  gmax=GMAX,
+                                add_to_name=str(seed), fig_size=FIG_SIZE)
     np.random.seed(1)
 
 
@@ -238,14 +230,13 @@ DATA_SIM2 = sim.compute_evo_avg_data(DATA_EXP, SIMU_COUNT, CHARACTERISTICS_2,
 # > Cycle duration times.
 for key_sort in TYPES_OF_SORT_1:  # Config. 1 for various types of sort.
     pl.plot_lineages_cycles(
-        DATA_SIM1[key_sort][0]['cycle'], IS_EXP, FIG_DIR, font_size=FONT_SIZE,
-        fig_size=FIG_SIZE, curve_to_plot=DATA_SIM1[key_sort][1]['sen']['mean'],
+        DATA_SIM1[key_sort][0]['cycle'], IS_EXP, FIG_DIR, fig_size=FIG_SIZE,
+        curve_to_plot=DATA_SIM1[key_sort][1]['sen']['mean'],
         evo_avg={'simu_count': SIMU_COUNT, 'type_of_sort': key_sort},
         bbox_to_anchor=bbox_to_anchor)
 
 pl.plot_lineages_cycles(  # Config. 2, sort by gdeath.
-    DATA_SIM2[TYPE_OF_SORT_2][0]['cycle'], IS_EXP, FIG_DIR,
-    font_size=FONT_SIZE, fig_size=FIG_SIZE,
+    DATA_SIM2[TYPE_OF_SORT_2][0]['cycle'], IS_EXP, FIG_DIR, fig_size=FIG_SIZE,
     curve_to_plot=DATA_SIM2[TYPE_OF_SORT_2][1]['sen']['mean'],
     evo_avg={'simu_count': SIMU_COUNT, 'type_of_sort': TYPE_OF_SORT_2},
     bbox_to_anchor=bbox_to_anchor)
@@ -253,7 +244,7 @@ pl.plot_lineages_cycles(  # Config. 2, sort by gdeath.
 # > Proportion of type-B.
 for key_sort in ['lmin', 'gsen', 'lavg']:
     pl.plot_lineage_avg_proportions(
-        DATA_SIM1[key_sort][0]['prop_btype'], True, FIG_DIR, FONT_SIZE,
+        DATA_SIM1[key_sort][0]['prop_btype'], True, FIG_DIR,
         curve_to_plot=DATA_SIM1[key_sort][1]['sen']['mean'],
         evo_avg={'simu_count': SIMU_COUNT, 'type_of_sort': key_sort})
 
@@ -431,13 +422,13 @@ for p_death_acc in P_ACC_S:
     par_updates.append({'p_exit': deepcopy(p_exit)})
     curve_labels.append(r'$\times$' + str(int(p_death_acc / P_ACC_S[0])))
 pl.plot_gcurves_wrt_par(DATA_EXP, SIMU_COUNT, CHARAC_NTA, par_updates,
-                        'p_death_acc', FIG_DIR, curve_labels=curve_labels,
+                        'accident', FIG_DIR, curve_labels=curve_labels,
                         linestyles=LINESTYLES)
 pl.plot_gcurves_wrt_par(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S[0], par_updates,
-                        'p_death_acc', FIG_DIR, curve_labels=curve_labels,
+                        'accident', FIG_DIR, curve_labels=curve_labels,
                         linestyles=LINESTYLES)
 pl.plot_gcurves_wrt_par_n_char(DATA_EXP, SIMU_COUNT, CHARAC_SEN_S,
-                               par_updates, 'p_death_acc', FIG_DIR,
+                               par_updates, 'accident', FIG_DIR,
                                texts=TEXTS, curve_labels=curve_labels,
                                linestyles=LINESTYLES, fig_size=FIG_SIZE2)
 
@@ -462,6 +453,15 @@ if FORMAT == 'article':  # RAD51 data.
                                  is_exp_plotted=True, bbox_to_anchor=(1.3, 0),
                                  title=curve_label, proc_count=PROC_COUNT_TEMP,
                                  add_to_name='rad51')
+    p_exit = deepcopy(par.P_EXIT)
+    p_exit['accident'] = 5.4 / 100
+    par_update = {'p_exit': deepcopy(p_exit)}
+    curve_label = fr"$p_{{accident}} = ${p_exit['accident'] * 100}%"
+    pl.compute_n_plot_gcurve(DATA_EXP_MUTANT, 50, ['senescent'],
+                             FIG_DIR, par_update=par_update,
+                             is_exp_plotted=True, bbox_to_anchor=(1.3, 0),
+                             title=curve_label, proc_count=PROC_COUNT_TEMP,
+                             add_to_name='rad51')
 
 
 # > Initial distribution of telomere lengths

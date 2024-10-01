@@ -26,7 +26,7 @@ DIR = os.path.join(PROJECT_DIR, 'data', 'processed')
 
 def write_parameters_linit(par_linit):
     if isinstance(par_linit, type(None)):
-        return 'linit_sensitivity'
+        return 'linit_variable'
     ltrans, l0, l1 = np.round(par_linit).astype(int)
     return f'linit{ltrans}-{l0}-{l1}'
 

@@ -35,17 +35,13 @@ FOLDER_FC = "finalCut"
 FOLDER_DAT = 'dataset'
 
 # PAR_DEFAULT_LIN = {'is_htype_accounted': par.HTYPE_CHOICE,
-#                         'is_htype_seen': True,
-#                         'fit': par.PAR,
-#                         'postreat_dt': None,
-#                         'hist_lmins_axis': None,
-#                         'is_lcycle_count_saved': False,
-#                         'is_evo_saved': False,
-#                         'p_exit': par.P_EXIT}
-# PAR_DEFAULT_POP = {'htype': par.HTYPE_CHOICE,
-#                         'p_exit': par.P_EXIT,
-#                         'fit': par.PAR,
-#                         'sat': par.PAR_SAT}
+#                    'fit': par.PAR,
+#                    'p_exit': par.P_EXIT,
+#                    'finalCut': None}
+# PAR_DEFAULT_POP = {'is_htype_accounted': par.HTYPE_CHOICE,
+#                    'p_exit': par.P_EXIT,
+#                    'fit': par.PAR,
+#                    'sat': par.PAR_SAT}
 
 # -------------------
 # Auxiliary functions
@@ -147,10 +143,18 @@ def write_parameters_onset(parameters):
 
 
 def write_parameters_exit(p_exit):
-    par_string = f"pdeath{p_exit['accident']}-{p_exit['death']}" + \
-        f"_prepair{p_exit['repair']}"
+    p_exit_tmp = deepcopy(p_exit)
+    for key in p_exit:
+        if isinstance(p_exit[key], type(None)):
+            # None used to write path of figures with warying `p_exit`.
+            p_exit_tmp[key] = "_variable"
+    par_string = f"pdeath{p_exit_tmp['accident']}-{p_exit_tmp['death']}" + \
+        f"_prepair{p_exit_tmp['repair']}"
     if p_exit['sen_limit'] != math.inf:
-        par_string = par_string + f"_maxSEN{p_exit['sen_limit']}"
+        if isinstance(p_exit['sen_limit'], type(None)):
+            par_string = par_string + f"_maxSEN_variable"
+        else:
+            par_string = par_string + f"_maxSEN{int(p_exit['sen_limit'])}"
     return par_string
 
 
@@ -242,7 +246,6 @@ def types_of_sort_to_string(types_of_sort):
 # Simulation paths
 # ----------------
 
-
 def write_stat_path(simulation_count, lineage_count, types_of_sort,
                     characteristics, par_update=None, par_sim_update=None,
                     make_dir=False):
@@ -274,14 +277,8 @@ def write_stat_path(simulation_count, lineage_count, types_of_sort,
         fc_data = write_parameters_finalCut(p['finalCut']) + '_'
     path = join(folder, write_parameters_to_fit(p['fit']), fc_data)
 
-    if not isinstance(p['p_exit'], type(None)):  # None used to write path of
-        if 'p_death_acc' in list(p.keys()):  # figures with warying `p_exit`.
-            if not isinstance(p['p_death_acc'], type(None)):
-                path = path + write_parameters_exit(p['p_exit'])
-            else:
-                path = path + 'pdeath_sensitivity'
-        else:
-            path = path + write_parameters_exit(p['p_exit'])
+    if not isinstance(p['p_exit'], type(None)):
+        path = path + write_parameters_exit(p['p_exit'])
     path = join(path, characteristics_string + "_lineages")
     if not p['is_htype_accounted']:
         path = join(path, "no_htype")
@@ -408,8 +405,7 @@ def write_gcurve_path(simulation_count, lineage_count, types_of_sort,
     path = write_stat_path(simulation_count, lineage_count, types_of_sort,
                            characteristics, par_update=par_update)
     folder = FOLDER_SIM
-
-    if 'finalCut' in par_update.keys():
+    if 'finalCut' in (par_update or {}).keys():
         par_fc = par_update['finalCut']
     else:
         par_fc = par.PAR_DEFAULT_LIN['finalCut']
@@ -498,9 +494,9 @@ def write_simu_pop_directory(par_update=None):
     above by `PAR_DEFAULT_POP` updated through `par_update`.
 
     NB: value of `par_update` with usual type (see `parameter.py`) except for
-       'p_exit' and 'l_init' that can be None (no reference in the path
+       'p_exit' and 'fit'[2] that can be None (no reference in the path
        returned). This is useful for example to create the folder path of
-       figures gathering simulations obtained w different 'p_exit' or 'l_init'.
+       figures gathering simulations obtained w different 'p_exit' or 'fit'[2]'
 
     Parameters
     ----------
@@ -508,16 +504,16 @@ def write_simu_pop_directory(par_update=None):
         A dictionary containing parameter updates. Default None (no update).
 
     """
-    p = deepcopy(par.PAR_DEFAULT_POP.copy)
+    p = deepcopy(par.PAR_DEFAULT_POP)
     if isinstance(par_update, dict):
         p.update(par_update)
 
-    if isinstance(p['finalCut'], type(None)):
-        folder = join(FOLDER_SIM, FOLDER_P)
-        fc_data = ''
-    else:
-        folder = join(FOLDER_SIM, FOLDER_FC, FOLDER_P)
-        fc_data = write_parameters_finalCut(p['finalCut']) + '_'
+    # if isinstance(p['finalCut'], type(None)):
+    folder = join(FOLDER_SIM, FOLDER_P)
+    fc_data = ''
+    # else:
+    #     folder = join(FOLDER_SIM, FOLDER_FC, FOLDER_P)
+    #     fc_data = write_parameters_finalCut(p['finalCut']) + '_'
 
     path = join(folder, write_parameters_onset(p['fit'][:2]))
     if p['sat']['choice'][0] == 'time':
@@ -530,17 +526,17 @@ def write_simu_pop_directory(par_update=None):
             path = join(path, "psat_varying")
         else:
             path = join(path, f"psat{int(p['sat']['prop'])}")
-    if not p['htype_choice']:
+    if not p['is_htype_accounted']:
         path = path + "_wo_htype"
     path = join(path, fc_data)
     if not isinstance(p['p_exit'], type(None)):
         path = path + write_parameters_exit(p['p_exit'])
-        if not isinstance(p['l_init'], type(None)):
-            path = join(path, write_parameters_linit(p['l_init']))
+        path = join(path, write_parameters_linit(p['fit'][2]))
     return path
 
 
 def write_simu_pop_subdirectory(cell=None, para=None, par_update=None):
+    # !!! par_sim_update to add? and update in demo.
     """Add to the directory path (string) returned by
     `write_simu_pop_directory(par_update)` the subfolders corresponding
     to the simulations of a specific number of parallelization and cell given
@@ -555,6 +551,12 @@ def write_simu_pop_subdirectory(cell=None, para=None, par_update=None):
     return path
 
 
+def write_simu_pop_file(cell, para, output_index, par_update=None):
+    sub_dir_path = write_simu_pop_subdirectory(cell, para,
+                                               par_update=par_update)
+    return join(sub_dir_path, f'output_{output_index:02d}.npy')
+
+
 # Postreat path
 # -------------
 
@@ -564,8 +566,15 @@ def write_sim_pop_postreat_average(folder_name, simu_count, is_stat=True):
     return join(folder_name, f'postreat_s{simu_count}_evo_as_one_simu.npy')
 
 
-def write_sim_pop_postreat_evo(file_name):
+def write_sim_pop_postreat_evo_from_path(file_name):
     return file_name.replace('.npy', '_p_from_c.npy')
+
+
+def write_sim_pop_postreat_evo(cell_count, para_count, output_index,
+                               par_update=None):
+    output_path = write_simu_pop_file(cell_count, para_count, output_index,
+                                      par_update=par_update)
+    return write_sim_pop_postreat_evo_from_path(output_path)
 
 
 def write_sim_pop_postreat_perf(folder_name, simu_count):
@@ -576,7 +585,7 @@ def write_sim_pop_postreat_perf(folder_name, simu_count):
 # --------
 
 def write_fig_pop_directory(cell=None, para=None, par_update=None,
-                            supdirectory='figures'):
+                            subdirectory=''):
     """Return the string corresponding to the path to the directory assumed
     to contain a set of figures from simulations sharing same parameters
     (defined by `par_update`, see `write_simu_pop_directory` docstring)
@@ -588,7 +597,7 @@ def write_fig_pop_directory(cell=None, para=None, par_update=None,
 
     """
     path = write_simu_pop_subdirectory(cell, para, par_update)
-    path = path.replace('simulations', supdirectory)
+    path = path.replace('simulations', join('figures', subdirectory))
     if not os.path.exists(path):
         os.makedirs(path)
     return path

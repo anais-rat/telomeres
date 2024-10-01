@@ -12,16 +12,16 @@ Ideally, this should be run using parallel computing (e.g. on a cluster through
 slrum using `slrum_compute.batch`) otherwise, the present script will run the
 `SIMU_COUNT` required simulations in serie, which is not recommanded because
 very long.
-If you use `slrum_compute.batch`, the varible `#SBATCH --array`must be set to
+If you use `slrum_compute.batch`, the varible `#SBATCH --array` must be set to
 `0-SIMU_COUNT`. Moreover, the script will need to be run twice.
 One with `slrum_compute.batch` to simulate `SIMU_COUNT` populations, and once
 with `slrum_posttreat.batch` to postreat and average them.
 
 Contrarily to `main.lineage.compute` the present script will not run all the
 simulations needed. The user need to adjust manually the parameters `C_EXP`,
-and `SIMU_COUNT` (`PARA_COUNT` set to 1 in published data) and `PAR_UPDATES`.
-The reason is that population simulations are way longer than lineage
-simulations and it is more efficient to run them separately.
+`SIMU_COUNT` and `PAR_UPDATES` (and possibly `PARA_COUNT` but it is 1 in our
+published data). The reason is that population simulations are way longer than
+lineage simulations and it is more efficient to run them separately.
 
 """
 
@@ -36,6 +36,46 @@ import telomeres.auxiliary.write_paths as wp
 import telomeres.population.simulation as sim
 import telomeres.model.parameters as par
 import telomeres.population.posttreat as pps
+
+
+# PARA_COUNT = 1
+# N_INIT = 20
+# out = sim.simu_parallel(PARA_COUNT, N_INIT, par_update=None, par_sim_update=None)
+# stop
+
+
+import time
+
+cell_count = 100
+para_count = 1
+output_index = 1
+
+start = time.time()
+sub_dir_path = wp.write_simu_pop_subdirectory(cell_count, para_count)
+file_name = join(sub_dir_path, f'output_{output_index:02d}.npy')
+pps.postreat_from_evo_c_from_path(file_name, is_loaded=False)
+end = time.time()
+print(end - start)
+
+
+start = time.time()
+output = sim.simu_parallel(para_count, cell_count, output_index)
+file_postreated_name = wp.write_sim_pop_postreat_evo(
+    cell_count, para_count, output_index)
+pps.postreat_from_evo_c_from_output(output, file_postreated_name)
+end = time.time()
+print(end - start)
+
+
+start = time.time()
+file_postreated_name = wp.write_sim_pop_postreat_evo(
+    cell_count, para_count, output_index)
+pps.postreat_from_evo_c(para_count, cell_count, output_index, is_loaded=False)
+end = time.time()
+print(end - start)
+
+stop
+
 
 # Recall
 # ------
@@ -54,7 +94,7 @@ import telomeres.population.posttreat as pps
 # ----------
 
 # Experimental concentration initially / at dilution [cell].
-C_EXP = np.array([300])  # 250, 300. Cas test: 15
+C_EXP = np.array([12])  # 250, 300. Cas test: 15
 
 # Number of parallelization.s per simulation.
 # NB: s.t. PARA_COUNT[i] 1D array of the numbers of paralelizations to simulate
@@ -69,7 +109,7 @@ PARA_COUNT = [np.array([1])]
 # NB: Ignored for parallel computing with `slurm_compute.batch`. In this case
 #     the number of simulations is set through `#SBATCH --array=0-<to_adust>`
 #     with  `<to_ajust>`equal to `SIMU_COUNT - 1`, in `slurm_compute.batch`.
-SIMU_COUNT = 30  # 25, 20. Cas test: 3
+SIMU_COUNT = 5  # 25, 20. Cas test: 3
 
 # Modification of default model parameters given by `par.PAR_DEFAULT_POP`.
 # Exemple 1. No updates, default parameters:
@@ -81,15 +121,15 @@ SIMU_COUNT = 30  # 25, 20. Cas test: 3
 #    PAR_UPDATES = {'p_exit': P_EXIT_NEW}
 #
 # Exemple 3. To modify weither or not type H are accounted:
-#    PAR_UPDATES = {'htype': False}
+#    PAR_UPDATES = {'is_htype_accounted': False}
 #
 # Exemple 4. To modified both previous:
-#    PAR_UPDATES = {'htype': False,
+#    PAR_UPDATES = {'is_htype_accounted': False,
 #                   'p_exit': P_EXIT_NEW}
 #
 # ect.. for every key of `PAR_DEFAULT_POP`, making sure that the updated
 # parameter conforms to the original format given by `PAR_DEFAULT_POP`.
-PAR_UPDATES = None
+PAR_UPDATE = None
 
 
 # True to plot (only possible from local simulation).
@@ -150,26 +190,24 @@ for cell_count in C_EXP:
     for para_count in PARA_COUNT[run_idx]:
         print('Number of parallelizations: ', para_count)
 
-        # If not already done, creation of a folder for simulations.
-        # NB: made only for the first simu to avoid creation of the subdir
-        #   inside the if from another job when parallel compputing is run.
-        sub_dir_path = wp.write_simu_pop_subdirectory(cell_count, para_count)
-        if not os.path.exists(sub_dir_path) and idx == 1:
-            os.makedirs(sub_dir_path)
-
         # If parallel computation run from sbacth command.
         if is_run_in_parallel_from_slurm:
+            # If not already done, creation of a folder for simulations.
+            # NB: made only for the first simu to avoid creation of the subdir
+            #   inside the if from another job when parallel compputing is run.
+            sub_dir_path = wp.write_simu_pop_subdirectory(
+                cell_count, para_count, par_update=PAR_UPDATE)
+            if not os.path.exists(sub_dir_path) and idx == 1:
+                os.makedirs(sub_dir_path)
+
             print('Simulation n°', idx)
             time.sleep(10)  # To avoid non created subdirectory.
-            np.random.seed(idx)
+            np.random.seed(idx)  # To ensure reproducibility.
 
-            file_path = join(sub_dir_path, f'output_{idx:02d}.npy')
-            if not os.path.exists(file_path):
-                outputs = sim.simu_parallel(para_count, cell_count)
-                # Save dictionary 'output' and postreat.
-                np.save(file_path, outputs)
-                pps.postreat_from_evo_c(file_path)
-            pps.postreat_from_evo_c_if_not_saved(file_path)
+            sim.simu_parallel(para_count, cell_count, output_index=idx,
+                              par_update=PAR_UPDATE)
+            pps.postreat_from_evo_c(para_count, cell_count, idx,
+                                    par_update=PAR_UPDATE)
 
         # Otherwise computation in serie.
         else:
@@ -177,17 +215,16 @@ for cell_count in C_EXP:
                 np.random.seed(i)
                 print(f'Simulation n° {i}/{SIMU_COUNT}')
 
-                file_path = join(sub_dir_path, f'output_{i:02d}.npy')
-                if not os.path.exists(file_path):
-                    outputs = sim.simu_parallel(para_count, cell_count)
-                    # Save dictionary 'output' and postreat.
-                    np.save(file_path, outputs)
-                    pps.postreat_from_evo_c(file_path)
-                pps.postreat_from_evo_c_if_not_saved(file_path)
+                sim.simu_parallel(para_count, cell_count, output_index=i,
+                                  par_update=PAR_UPDATE)
+                pps.postreat_from_evo_c(para_count, cell_count, i,
+                                        par_update=PAR_UPDATE)
 
             # Average on all simulations.
-            out_p = pps.postreat_performances(sub_dir_path, SIMU_COUNT)
-            out_s = pps.statistics_simus_if_not_saved(sub_dir_path, SIMU_COUNT)
+            out_p = pps.postreat_performances(
+                para_count, cell_count, SIMU_COUNT, par_update=PAR_UPDATE)
+            out_s = pps.statistics_simus(
+                para_count, cell_count, SIMU_COUNT, par_update=PAR_UPDATE)
             print('Computation time (average):', out_p['computation_time'])
 
             # Plot average at `c_exp` and `para_count` fixed.
@@ -196,7 +233,7 @@ for cell_count in C_EXP:
                                          FIG_DIRECTORY, day_count=7, width=4)
                 pl.plot_evo_c_n_p_pcfixed_from_stat(
                     cell_count, para_count, SIMU_COUNT, FIG_DIRECTORY,
-                    TMAX_TO_PLOT, psat=par.PROP_SAT,)
+                    TMAX_TO_PLOT)
                 pl.plot_evo_l_pcfixed_from_stat(
                     cell_count, para_count, SIMU_COUNT, FIG_DIRECTORY,
                     TMAX_TO_PLOT)

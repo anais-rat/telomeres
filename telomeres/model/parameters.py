@@ -235,7 +235,7 @@ PAR_DEFAULT_LIN = {'is_htype_accounted': HTYPE_CHOICE,
                    'p_exit': P_EXIT,
                    'finalCut': PAR_FINAL_CUT}
 
-PAR_DEFAULT_POP = {'htype': HTYPE_CHOICE,
-                   'p_exit': P_EXIT,
+PAR_DEFAULT_POP = {'is_htype_accounted': HTYPE_CHOICE,
                    'fit': PAR,  # Fitted parameters: p_onset, par_l_init.
+                   'p_exit': P_EXIT,
                    'sat': PAR_SAT}

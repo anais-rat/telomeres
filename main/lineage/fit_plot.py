@@ -70,8 +70,6 @@ if __name__ == "__main__":
     FIG_DIR = None
     if IS_SAVED:
         FIG_DIR = FORMAT
-        # if (not os.path.exists(FIG_DIR)):
-        #     os.makedirs(FIG_DIR)
 
     # Global plotting parameters.
     matplotlib.rcParams.update(matplotlib.rcParamsDefault)  # Reset to default.
@@ -142,14 +140,14 @@ if __name__ == "__main__":
                     bbox_to_anchor = None
                     FIG_SIZE_PARS = (5.5, 3)
                 plot_laws(parameters, is_par_plot=True, fig_name=key,
-                          fig_supdirectory=FIG_DIR, fig_size=FIG_SIZE_PARS,
+                          fig_subdirectory=FIG_DIR, fig_size=FIG_SIZE_PARS,
                           tick_spacing=2 * TICK_SPACING)
             plot_laws(parameters, is_par_plot=False, fig_name=key,
-                      fig_supdirectory=FIG_DIR, tick_spacing=TICK_SPACING)
+                      fig_subdirectory=FIG_DIR, tick_spacing=TICK_SPACING)
             par_update = {'fit': parameters}
             pl.compute_n_plot_gcurves_wrt_charac(DATA_EXP, SIMU_COUNT,
                                                  CHARACTERISTICS_S, FIG_DIR,
                                                  par_update=par_update,
-                                                 labels=LABELS, path=PATH,
+                                                 labels=LABELS,  # path=PATH,
                                                  bbox_to_anchor=bbox_to_anchor,
                                                  fig_size=FIG_SIZE)

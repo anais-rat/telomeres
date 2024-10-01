@@ -9,6 +9,7 @@ Created on Mon Aug 28 19:17:55 2023
 from os.path import join
 from textwrap import wrap
 import math
+import matplotlib as mpl
 import matplotlib.pylab as plt
 import numpy as np
 import os
@@ -16,8 +17,8 @@ import seaborn as sns
 
 from telomeres.dataset.extract_processed_dataset import \
     extract_distribution_cycles
-from telomeres.auxiliary.figures_properties import LABELS as LABELS_FP
-from telomeres.auxiliary.figures_properties import MY_PALETTE, MY_COLORS
+from telomeres.auxiliary.figures_properties import LABELS as LABELS_FP, \
+    MY_PALETTE, MY_COLORS
 from telomeres.model.posttreat import transform_l_init
 from telomeres.auxiliary.write_paths import characteristics_to_string, \
     FOLDER_FIG
@@ -25,12 +26,6 @@ from telomeres.auxiliary.write_paths import characteristics_to_string, \
 
 DIR_DAT = 'dataset'
 DIR_PAR = 'parameters'
-
-# Global labels.
-# > Maximal number of caracters per line. (24-7 for article plotting).
-LABEL_MAX = 32
-TO_ADD = 18  # For tex text use (unplotted caracters countted as plottedd one).
-
 
 LABELS = {'ax_dens': 'Density',
           #
@@ -48,9 +43,70 @@ LABELS = {'ax_dens': 'Density',
           'nta_short': r"$nta$",
           'sen_short': r"$sen$"}
 LABELS.update(LABELS_FP)
-LABELS_ = {}
-for key, label in LABELS.items():
-    LABELS_[key] = "\n".join(wrap(label[::-1], LABEL_MAX))[::-1]
+
+
+def plot_data_exp_length_curves(x, y, std, fig_subdirectory):
+    w, h = plt.figaspect(.95)
+    fig, axes = plt.subplots(1, 1, figsize=(w, h))
+    plt.tight_layout()
+    plt.errorbar(x, y, yerr=std, capsize=2, fmt='.-')
+    plt.ylabel(LABELS['ax_lmode'], wrap=True)
+    plt.xlabel(LABELS['ax_time'])
+    plt.xticks(x)
+    sns.despine()
+    if not isinstance(fig_subdirectory, type(None)):
+        folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        path = join(folder, 'evo_lengths.pdf')
+        print("\n Saved at: ", path)
+        plt.savefig(path, bbox_inches='tight')
+    plt.show()
+
+
+def plot_data_exp_concentration_curves(
+        stat_telo_m, stat_telo_p, fig_subdirectory, bbox_to_anchor=None,
+        ylabel=LABELS['ax_cexp'], fig_name=None):
+    """Plot experimental cell concentration."""
+    colors = MY_COLORS[:2]
+    sns.set_palette(colors)
+    # Concentration w.r.t days.
+    fig, axes = plt.subplots(1, 1)
+    x = np.arange(len(stat_telo_m['avg'])) + 1
+    plt.errorbar(x, stat_telo_p['avg'], yerr=stat_telo_p['std'], capsize=2,
+                 label=LABELS['telo+'])
+    plt.errorbar(x, stat_telo_m['avg'], yerr=stat_telo_m['std'], capsize=2,
+                 label=LABELS['telo-'])
+    plt.legend(bbox_to_anchor=bbox_to_anchor)
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
+                         useMathText=True)
+    plt.xlabel(LABELS['ax_time'], labelpad=6)
+    plt.ylabel(ylabel, labelpad=8, wrap=True)
+    plt.xticks(x)
+    sns.despine()
+    if not isinstance(fig_subdirectory, type(None)):
+        folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        path = join(folder, f"{fig_name or 'concentration_final'}.pdf")
+        print("\n Saved at: ", path)
+        plt.savefig(path, bbox_inches='tight')
+    plt.show()
+    return
+
+
+def weighted_std(values, weights, origin=None):
+    """Return the weighted standard deviation with respect to `origin` (the
+    average if None).
+
+    values, weights : ndarrays with the same shape.
+
+    """
+    # np.sqrt(np.cov(lengths, aweights=densities))
+    if isinstance(origin, type(None)):
+        origin = np.sum(values * weights)
+    variance = np.sum(weights * (values - origin) ** 2)
+    return math.sqrt(variance)
 
 
 def plot_ltelomere_init_wrt_par(ltrans=0, l0=0, l1=0, distribution=None,
@@ -94,72 +150,10 @@ def plot_ltelomere_init_wrt_par(ltrans=0, l0=0, l1=0, distribution=None,
         if not os.path.exists(folder):
             os.makedirs(folder)
         path = join(folder, f'linit_wrt_{legend_key}.pdf')
-        print("Saved at ", path, '\n')
+        print("\n Saved at: ", path)
         plt.savefig(path, bbox_inches='tight')
     plt.show()
     return
-
-
-def plot_data_exp_length_curves(x, y, std, fig_subdirectory):
-    w, h = plt.figaspect(.85)
-    plt.figure(figsize=(w, h))
-    plt.errorbar(x, y, yerr=std, capsize=2, fmt='.-')
-    plt.ylabel(LABELS_['ax_lmode'])
-    plt.xlabel(LABELS['ax_time'])
-    plt.xticks(x)
-    sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
-        folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        path = join(folder, 'evo_lengths.pdf')
-        print("Saved at ", path, '\n')
-        plt.savefig(path, bbox_inches='tight')
-    plt.show()
-
-
-def plot_data_exp_concentration_curves_final(stat_telo_m, stat_telo_p,
-                                             fig_subdirectory,
-                                             bbox_to_anchor=None,
-                                             ylabel=LABELS_['ax_cexp'],
-                                             fig_name=None):
-    colors = MY_COLORS[:2]
-    sns.set_palette(colors)
-    # Concentration w.r.t days.
-    plt.figure()
-    x = np.arange(len(stat_telo_m['avg'])) + 1
-    plt.errorbar(x, stat_telo_p['avg'], yerr=stat_telo_p['std'], capsize=2,
-                 label=LABELS['telo+'])
-    plt.errorbar(x, stat_telo_m['avg'], yerr=stat_telo_m['std'], capsize=2,
-                 label=LABELS['telo-'])
-    plt.legend(bbox_to_anchor=bbox_to_anchor)
-    plt.xlabel(LABELS['ax_time'], labelpad=6)
-    plt.ylabel(ylabel, labelpad=8)
-    plt.xticks(x)
-    sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
-        folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        path = join(folder, f"{fig_name or 'concentration_final'}.pdf")
-        print("Saved at ", path, '\n')
-        plt.savefig(path, bbox_inches='tight')
-    plt.show()
-    return
-
-
-def weighted_std(values, weights, origin=None):
-    """Return the weighted standard deviation with respect to `origin` (the
-    average if None).
-
-    values, weights -- Numpy ndarrays with the same shape.
-
-    """
-    # np.sqrt(np.cov(lengths, aweights=densities))
-    if isinstance(origin, type(None)):
-        origin = np.sum(values * weights)
-    variance = np.sum(weights * (values - origin) ** 2)
-    return math.sqrt(variance)
 
 
 def plot_n_print_l_init(distribution, fig_subdirectory, fig_name=None,
@@ -207,7 +201,8 @@ def plot_n_print_l_init(distribution, fig_subdirectory, fig_name=None,
         + rf"median = {int(np.round(median))}" + '\n' \
         + rf"mode = {mode}" + '\n' \
         + rf"support = [{int(linf)}, {int(lsup)}]"
-    plt.text(.45, .6, text, transform=ax.transAxes, bbox=dict(facecolor='w'))
+    plt.text(.52, .7, text, transform=ax.transAxes, bbox=dict(facecolor='w'),
+             fontsize="small")
     plt.xlabel('Telomere length (bp)', labelpad=6)
     plt.ylabel('Density', labelpad=8)
     sns.despine()
@@ -218,7 +213,7 @@ def plot_n_print_l_init(distribution, fig_subdirectory, fig_name=None,
             os.makedirs(folder)
         fig_name = fig_name or 'linit_original'
         path = join(folder, f"{fig_name}.pdf")
-        print("Saved at ", path, '\n')
+        print("\n Saved at: ", path)
         plt.savefig(path, bbox_inches='tight')
     plt.show()
     return None
@@ -259,7 +254,7 @@ def plot_ltelomere_init(fig_subdirectory, distribution=None, par_l_init=None,
         if not os.path.exists(folder):
             os.makedirs(folder)
         path = join(folder, 'linit_comparison.pdf')
-        print("Saved at ", path, '\n')
+        print("\n Saved at: ", path)
         plt.savefig(path, bbox_inches='tight')
     plt.show()
 
@@ -307,6 +302,9 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
         print(f"Figures saved in {folder} \n")
     cycles = extract_distribution_cycles()
     path = None
+    is_tex_used = True
+    if fig_subdirectory == 'manuscript':
+        is_tex_used = False
 
     # Histograms of cdt per categories of the model.
     keys_to_plot_ = [['norA', 'norB', 'arr'],
@@ -336,13 +334,16 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
     # Distributions in kernel density estimate (KDE).
     # > Classical.
     keys = ['norA', 'norB', 'nta', 'sen']
+    fig, axes = plt.subplots(1, 1)
     sns.kdeplot(data=[cycles[key] for key in keys][::-1], log_scale=False,
                 fill=True, common_norm=False, palette=MY_PALETTE, alpha=.5,
                 linewidth=0, bw_adjust=2, legend=False)
-    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0))
+
+    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
+                         useMathText=is_tex_used)
     plt.legend(labels=[LABELS[key] for key in keys], bbox_to_anchor=(1.1, 1))
     plt.xlabel(LABELS['cycle'], labelpad=6)
-    plt.ylabel(LABELS_['ax_dens'], labelpad=8)
+    plt.ylabel(LABELS['ax_dens'], labelpad=8, wrap=True)
     sns.despine()
     if is_saved:
         name = f'cycles_kde_{characteristics_to_string(keys)}'
@@ -352,12 +353,13 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
 
     # > Log-scale.
     keys = ['norA', 'norB', 'nta', 'sen']
+    fig, axes = plt.subplots(1, 1)
     sns.kdeplot(data=[cycles[key] for key in keys][::-1], log_scale=True,
                 fill=True, common_norm=True, palette=MY_PALETTE, alpha=.5,
                 linewidth=0, bw_adjust=2, legend=False)
     plt.legend(labels=[LABELS[key] for key in keys], bbox_to_anchor=(1.2, 1))
     plt.xlabel(LABELS['cycle_log'], labelpad=6)
-    plt.ylabel(LABELS_['ax_dens'], labelpad=8)
+    plt.ylabel(LABELS['ax_dens'], labelpad=8, wrap=True)
     sns.despine()
     if is_saved:
         name = f'cycles_kde_{characteristics_to_string(keys)}_logscale'
@@ -368,14 +370,16 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
     # > Other (to remore?).
     # >> Legend in full text.
     keys = ['norA', 'norB', 'nta', 'sen']
+    fig, axes = plt.subplots(1, 1)
     sns.kdeplot(data=[cycles[key] for key in keys][::-1], log_scale=False,
                 fill=True, common_norm=False, palette=MY_PALETTE, alpha=.5,
                 linewidth=0, bw_adjust=2.5, legend=False)
-    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0))
+    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
+                         useMathText=is_tex_used)
     plt.xlim(0, 1000)
     plt.legend(labels=[LABELS[key] for key in keys])
     plt.xlabel(LABELS['cycle'], labelpad=6)
-    plt.ylabel(LABELS_['ax_dens'], labelpad=8)
+    plt.ylabel(LABELS['ax_dens'], labelpad=8, wrap=True)
     sns.despine()
     if is_saved:
         name = f'cycles_kde_{characteristics_to_string(keys)}_xlim100'
@@ -384,14 +388,16 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
     plt.show()
     # >> Legend with accronyms.
     keys = ['norA', 'norB', 'nta', 'sen']
+    fig, axes = plt.subplots(1, 1)
     sns.kdeplot(data=[cycles[key] for key in keys][::-1], log_scale=False,
                 fill=True, common_norm=False, palette=MY_PALETTE, alpha=.5,
                 linewidth=0, bw_adjust=2.5, legend=False)
-    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0))
+    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
+                         useMathText=is_tex_used)
     plt.xlim(0, 1000)
     plt.legend(labels=[LABELS[key + '_short'] for key in keys])
     plt.xlabel(LABELS['cycle'], labelpad=6)
-    plt.ylabel(LABELS_['ax_dens'], labelpad=8)
+    plt.ylabel(LABELS['ax_dens'], labelpad=8, wrap=True)
     sns.despine()
     if is_saved:
         name = f'cycles_kde_{characteristics_to_string(keys)}_xlim100'

@@ -17,6 +17,7 @@ import telomeres.auxiliary.functions as fct
 import telomeres.auxiliary.keys as ks
 import telomeres.auxiliary.write_paths as wp
 import telomeres.model.parameters as par
+import telomeres.population.simulation as sim
 
 
 # Parameters for plottings
@@ -58,15 +59,15 @@ def statistics(arr):
 # Make time-related arrays from parameters
 # ----------------------------------------
 
-def make_time_arrays(par_sim):
-    times_day = np.array([])
+def make_time_arrays(par_sim, is_printed=True):
+    times_day = np.array([])  # Initialization of times in day.
     time_saved_idxs = {}
     q, r = np.divmod(par_sim['t_day_count'], par_sim['tsaved_day_count'])
     tspd_count_new = int(par_sim['t_day_count'] / q)
-    # if r != 0:
-    #     print("WARNING: `par_sim['tsaved_day_count']` the actual number of "
-    #           f"times saved is not {par_sim['tsaved_day_count']} anymore but"
-    #           f" {tspd_count_new}")
+    if r != 0 and is_printed:
+        print("WARNING: the actual number of times saved per day is not "
+              f"{par_sim['tsaved_day_count']} as required but "
+              f"{tspd_count_new}.")
     for day in range(par_sim['day_count']):
         times_temp = np.linspace(day, day + 1, par_sim['t_day_count'])
         times_temp[-1] = times_temp[-1] - par_sim['step']
@@ -74,6 +75,8 @@ def make_time_arrays(par_sim):
                               len(times_day) + par_sim['t_day_count'] + 1,
                               par_sim['t_day_count'] // tspd_count_new)
         idxs_temp[-1] -= 1
+        if idxs_temp[-1] == idxs_temp[-2]:
+            idxs_temp = idxs_temp[:-1]
         times_day = np.append(times_day, times_temp)
         time_saved_idxs[day] = idxs_temp
     times_day = np.append(times_day, day + 1)
@@ -105,8 +108,8 @@ def make_hist_lmin_gsen_from_evo(evo_lmin_gsen, x_axis=par.X_AXIS_HIST_LMIN):
     return hist
 
 
-def postreat_from_evo_c(file_name):
-    """Return postreated data from data of file 'file_name'.
+def postreat_from_evo_c_from_output(output, file_postreated_name):
+    """ Post-treat the `simu_parallel` output data `outputs`.
 
     More specifically converts evolution array from concentration of cells to
     proportion of cells and create histograms of lmin at senescence onset.
@@ -115,12 +118,9 @@ def postreat_from_evo_c(file_name):
     p = {}
 
     # We create vectors needeed to create `evo_p` arrays.
-    # > Load.
-    evo_c_anc = np.load(file_name, allow_pickle='TRUE').any().get('evo_c_ancs')
-    evo_c_sen_anc = np.load(file_name, allow_pickle='TRUE').any().get(
-                            'evo_c_sen_ancs')
-    evo_lmin_gsen = np.load(file_name, allow_pickle='TRUE').any().get(
-                            'evo_lmin_gsen')
+    evo_c_anc = output['evo_c_ancs']
+    evo_c_sen_anc = output['evo_c_sen_ancs']
+    evo_lmin_gsen = output['evo_lmin_gsen']
 
     # > Summing on ancestors and saving.
     evo_c = fct.nansum(evo_c_anc, axis=1)
@@ -131,10 +131,10 @@ def postreat_from_evo_c(file_name):
     # evo_c[evo_c == 0] = np.nan
     # evo_c_sen[evo_c_sen == 0] = 1
     for key in ks.evo_c_anc_keys:
-        evo = np.load(file_name, allow_pickle='TRUE').any().get(key)
+        evo = output[key]
         # > Creation of 'evo_*' from 'evo_*_anc' by summing on ancestors.
         sum_key = key.replace('_ancs', '')
-        if not(sum_key in ['evo_c', 'evo_c_sen']):  # if not already computed.
+        if not (sum_key in ['evo_c', 'evo_c_sen']):  # If not already computed.
             p[sum_key] = fct.nansum(evo, axis=1)
         # > Creation of 'evo_p_*_anc' from 'evo_c_*_anc' and of 'evo_p_*' from
         #   'evo_c_*' by dividing.
@@ -160,12 +160,11 @@ def postreat_from_evo_c(file_name):
                     p['evo_p_H_sen_ancs'] = evo / evo_c_sen[:, None]
                     p['evo_p_H_sen'] = p['evo_c_H'] / evo_c_sen
     # > gen key.
-    p['evo_p_gen'] = np.load(file_name, allow_pickle='TRUE').any(
-                              ).get('evo_c_gens') / evo_c[:, None]
+    p['evo_p_gen'] = output['evo_c_gens'] / evo_c[:, None]
     # > Time evolution of telomere lengths.
     for key in ks.evo_l_to_sum_keys:
         if 'sum' in key:
-            evo = np.load(file_name, allow_pickle='TRUE').any().get(key)
+            evo = output[key]
             avg_key = key.replace('_sum', '_avg')
             p[avg_key] = evo / evo_c
 
@@ -173,47 +172,92 @@ def postreat_from_evo_c(file_name):
     p.update(make_hist_lmin_gsen_from_evo(evo_lmin_gsen))
 
     # Saving.
-    file_postreated_name = wp.write_sim_pop_postreat_evo(file_name)
     np.save(file_postreated_name, p)
-
-
-def postreat_from_evo_c_if_not_saved(file_name):
-    file_postreated_name = wp.write_sim_pop_postreat_evo(file_name)
-    if not os.path.exists(file_postreated_name):
-        postreat_from_evo_c(file_name)
-
-
-def postreat_from_evo_c_if_not_saved_whole_folder(generic_name, simu_count):
-    for i in range(1, simu_count + 1):
-        file_name = generic_name + f'{i:02d}.npy'
-        file_postreated_name = wp.write_sim_pop_postreat_evo(file_name)
-        if not os.path.exists(file_postreated_name):
-            print(f'Postreat from evo_c simulation n°{i}')
-            postreat_from_evo_c(file_name)
-
-def postreat_performances(folder_name, simu_count):  # , is_memory):
-    saving_path = wp.write_sim_pop_postreat_perf(folder_name, simu_count)
-    if not os.path.exists(saving_path):
-        simus = np.arange(simu_count)
-        # Load paths to all simulations in a list.
-        s = [join(folder_name, f'output_{i:02d}.npy') for i in simus + 1]
-        # Initialization of a dictionary w Performance related postreat data.
-        p = {}
-        # > Computation times.
-        p['computation_time'] = statistics(
-            [np.load(s[i], allow_pickle='TRUE').any().get('computation_time')
-             for i in simus])
-        # > Allocated memory.
-        # if is_memory:
-        p['memory'] = statistics([np.load(s[i], allow_pickle='TRUE').any().get(
-                                 'memory') for i in simus])
-        np.save(saving_path, p)
-    else:
-        p = np.load(saving_path, allow_pickle='TRUE').item()
     return p
 
 
-def statistics_simus(folder, simu_count):
+def postreat_from_evo_c_from_path(file_name, is_loaded=True):
+    file_postreated_name = wp.write_sim_pop_postreat_evo_from_path(file_name)
+
+    if os.path.exists(file_postreated_name):
+        if is_loaded:
+            # print("Loaded from: ", file_postreated_name)
+            return np.load(file_postreated_name, allow_pickle=True).item()
+    output = np.load(file_name, allow_pickle=True).item()
+    return postreat_from_evo_c_from_output(output, file_postreated_name)
+
+
+def postreat_from_evo_c(para_count, cell_count, output_index, par_update=None,
+                        is_loaded=True):
+    """Return postreated data corresponding to the simulation identified by
+    the arguments.
+
+    More specifically converts evolution array from concentration of cells to
+    proportion of cells and create histograms of lmin at senescence onset.
+
+    Load the processed data from saved file if already saved, unless
+    `is_loaded` is False, in which case data is processed again.
+
+    """
+    file_name = wp.write_simu_pop_file(
+        cell_count, para_count, output_index, par_update=par_update)
+    file_postreated_name = wp.write_sim_pop_postreat_evo(
+        cell_count, para_count, output_index, par_update=par_update)
+
+    if os.path.exists(file_postreated_name):
+        if is_loaded:
+            # print("Loaded from: ", file_postreated_name)
+            return np.load(file_postreated_name, allow_pickle=True).item()
+    output = np.load(file_name, allow_pickle=True).item()
+    return postreat_from_evo_c_from_output(output, file_postreated_name)
+
+
+def postreat_performances_from_path(folder_name, simu_count):
+    """Return postreated performance-related data over `simu_count`
+    simulations whose output has been saved in 'folder_name'.
+
+    """
+    simus = np.arange(simu_count)
+    # Load paths to all simulations in a list.
+    s = [join(folder_name, f'output_{i:02d}.npy') for i in simus + 1]
+    # Initialization of a dictionary w Performance related postreat data.
+    p = {}
+    # > Computation times.
+    p['computation_time'] = statistics(
+        [np.load(s[i], allow_pickle='TRUE').any().get('computation_time')
+         for i in simus])
+    # > Allocated memory.
+    memory_s = np.array([np.load(s[i], allow_pickle='TRUE').any().get(
+        'memory') for i in simus])  # (Mio)
+    p['memory'] = statistics(memory_s)
+    # Added to correct the unit of memory:
+    p['memory_in_mo'] = statistics(memory_s * 2**20 / 10**6)  # (Mo)
+    return p
+
+
+def postreat_performances(para_count, cell_count, simu_count, par_update=None,
+                          is_loaded=True):
+    """Return postreated performance-related data over `simu_count`
+    simulations of same parameters, those passed to the function.
+
+    Load the processed data from saved file if already saved, unless
+    `is_loaded` is False, in which case data is processed again.
+
+    """
+    sub_dir_path = wp.write_simu_pop_subdirectory(cell_count, para_count,
+                                                  par_update=par_update)
+    out_processed_path = wp.write_sim_pop_postreat_perf(sub_dir_path,
+                                                        simu_count)
+    if os.path.exists(out_processed_path):
+        if is_loaded:
+            # print("Loaded from: ", out_processed_path)
+            return np.load(out_processed_path, allow_pickle=True).item()
+    p = postreat_performances_from_path(sub_dir_path, simu_count)
+    np.save(out_processed_path, p)
+    return p
+
+
+def statistics_simus_from_path(folder, simu_count):
     """Postreat saved data, computing and saving mean, std, min, max... on all
     of the `simu_count` first simulations present in the folder at path
     `folder`.
@@ -283,6 +327,7 @@ def statistics_simus(folder, simu_count):
     cell_count = len(np.load(s[0], allow_pickle='TRUE').any().get(
                      'day_init_data')['lengths'][0])
     # > For all key to postreat.
+    print("\nData processing...")
     for key in ks.evo_c_keys_to_postreat:
         print(key)
         # We reshape to common shape for all simulations.
@@ -344,11 +389,31 @@ def statistics_simus(folder, simu_count):
     return es
 
 
-def statistics_simus_if_not_saved(folder_name, simu_count):
+def statistics_simus_from_path_if_not_saved(folder_name, simu_count,
+                                            is_loaded=True):
     evo_stat_path = wp.write_sim_pop_postreat_average(folder_name, simu_count)
-    if not os.path.exists(evo_stat_path):
+    if os.path.exists(evo_stat_path):
+        if is_loaded:
+            # print("Loaded from: ", file_postreated_name)
+            return np.load(evo_stat_path, allow_pickle=True).item()
         print('\n Averageing on all simulations...')
-        return statistics_simus(folder_name, simu_count)
+    return statistics_simus_from_path(folder_name, simu_count)
+
+
+def statistics_simus(para_count, cell_count, simu_count, par_update=None,
+                     is_loaded=True):
+    """Postreat saved data, computing and saving mean, std, min, max... on all
+    of the `simu_count` first simulations corresponding to the parameters
+    entered in argument.
+
+    Load the processed data from saved file if already saved, unless
+    `is_loaded` is False, in which case data is processed again.
+
+    """
+    sub_dir_path = wp.write_simu_pop_subdirectory(cell_count, para_count,
+                                                  par_update=par_update)
+    return statistics_simus_from_path_if_not_saved(sub_dir_path, simu_count,
+                                                   is_loaded=is_loaded)
 
 
 def postreat_cgen(is_stat, folder, simu_count):
@@ -360,7 +425,7 @@ def postreat_cgen(is_stat, folder, simu_count):
     spath = wp.write_sim_pop_postreat_average(folder, simu_count)
     path = spath.replace('statistics.npy', f'gens_p{precision}.npy')
     if os.path.exists(path):
-        print("Load: ", path)
+        # print("Load: ", path)
         return np.load(path, allow_pickle='TRUE').item()
 
     evo = np.load(spath, allow_pickle='TRUE').any().get('evo_c_gens')['mean']

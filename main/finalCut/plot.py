@@ -171,7 +171,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     plt.show()
 
     # > Laws of arrest
-    plot_laws(PAR, fig_supdirectory=FIG_DIR, fig_name=f'fc-lminA{PAR[0][-1]}',
+    plot_laws(PAR, fig_subdirectory=FIG_DIR, fig_name=f'fc-lminA{PAR[0][-1]}',
               is_par_plot=True)
     plot_laws(PAR, fig_name=f'fc-lminA{PAR[0][-1]}', is_par_plot=False)
 

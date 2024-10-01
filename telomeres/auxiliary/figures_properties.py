@@ -31,28 +31,34 @@ P_DOWN = (100 - PERCENT) / 2  # First percentile to compute.
 P_UP = 100 - (100 - PERCENT) / 2  # Second percentile.
 # ------------------------------
 
-DPI = 600  # Resolution of plots.
+DPI = 300  # Resolution of plots.
 ALPHA = 0.25  # Transparency to fill gaps btw extremum values, std percentiles.
 
 
 # Global plotting parameters
 # --------------------------
 
+
+# create a definition for the short hyphen
+# matplotlib.rcParams["text.latex.preamble"].append(r'\mathchardef\mhyphen="2D')
+
 PAR_RC_UPDATE_MANUSCRIPT = {
     'axes.facecolor': ".94",
-    'text.usetex': True,
     'text.latex.preamble': r'\usepackage{amsfonts, dsfont}',
     'figure.dpi': DPI,
-    'font.family': "sans-serif",  # latex-like: 'serif',
-    'font.sans-serif': "Helvetica",  # ... 'cmr10'
+    # 'text.usetex': True,  # Removed to make `plt.ylabel(wrap=True)` work.
+    # Font changed consequently.
+    # 'font.family': "sans-serif",  # latex-like: 'serif'
+    # 'font.sans-serif': "Helvetica",  # ... 'cmr10'
+    'font.family': "sans-serif",
+    'font.sans-serif': 'cmss10',
+    'axes.unicode_minus': False,
     'legend.frameon': True,
     'legend.framealpha': 1,
     'legend.facecolor': 'white',
-    'legend.edgecolor': '#EAEAF2',
+    'legend.edgecolor': 'white',  # 'F0F0F0', '#EAEAF2'.
     'legend.fancybox': True,
-    'legend.title_fontsize': 15.5,
-    'legend.fontsize': 15,
-    }
+    'legend.frameon': True}
 
 PAR_RC_UPDATE_ARTICLE = {
     'figure.dpi': DPI,
@@ -127,7 +133,7 @@ LABELS = {'ax_time': "Time (day)",
           'ax_l': "Telomere length (bp)",
           'ax_lavg': "Average telomere length (bp)",
           'ax_lmin_min': "Shortest telomere length (bp)",
-          'ax_lmin': "Average shortest telomere length (bp)",
+          'ax_lmin': "Average shortest telomere length (bp)   ",
           'ax_lmode': "Mode of the distribution of telomere lengths (bp)",
           'ax_OD': "Optic density ($OD_{600}$)",
           'ax_prop': "Proportion of cells",
@@ -141,10 +147,9 @@ LABELS = {'ax_time': "Time (day)",
           'cycle': "Cycle duration time (min)",
           'cycle_log': "Cycles duration time (min) in log-scale",
           #
-          'max_sen_count': r"$n_{sen}",
-          'prop_sat': r'$r_{sat}$',
-          'pdeath': r"$p_{accident}$",
-          'p_death_acc': r"$p_{accident}$",
+          'sen_limit': r"$n_{sen}$",
+          'prop': r'$r_{sat}$',
+          'accident': r"$p_{accident}$",
           'ltrans': r"$\ell_{trans}$",
           'l0': r"$\ell_{0}$",
           'l1': r"$\ell_{1}$",
