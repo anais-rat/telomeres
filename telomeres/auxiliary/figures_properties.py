@@ -38,10 +38,6 @@ ALPHA = 0.25  # Transparency to fill gaps btw extremum values, std percentiles.
 # Global plotting parameters
 # --------------------------
 
-
-# create a definition for the short hyphen
-# matplotlib.rcParams["text.latex.preamble"].append(r'\mathchardef\mhyphen="2D')
-
 PAR_RC_UPDATE_MANUSCRIPT = {
     'axes.facecolor': ".94",
     'text.latex.preamble': r'\usepackage{amsfonts, dsfont}',
@@ -53,7 +49,6 @@ PAR_RC_UPDATE_MANUSCRIPT = {
     'font.family': "sans-serif",
     'font.sans-serif': 'cmss10',
     'axes.unicode_minus': False,
-    'legend.frameon': True,
     'legend.framealpha': 1,
     'legend.facecolor': 'white',
     'legend.edgecolor': 'white',  # 'F0F0F0', '#EAEAF2'.
@@ -63,10 +58,14 @@ PAR_RC_UPDATE_MANUSCRIPT = {
 PAR_RC_UPDATE_ARTICLE = {
     'figure.dpi': DPI,
     'text.latex.preamble': r'\usepackage{dsfont}',  # to remove?
-    'font.family': ['sans-serif'],
-    'font.sans-serif': ['Arial'],
-    'legend.frameon': False
-    }
+    'font.family': "Arial",  # ['sans-serif'],
+    'font.sans-serif': "Arial",  # ['Arial'],
+    'legend.frameon': False}
+
+# NB ['Arial' fonts]. If you are on Linux and you prefer not to install
+# proprietary fonts (like Arial), many Linux distributions come with other
+# sans-serif fonts which can substitute Arial well in most cases. Use instead:
+# plt.rcParams["font.family"] = "Liberation Sans"  # or "DejaVu Sans"
 
 
 # Colors management
@@ -96,22 +95,26 @@ MY_PALETTE_3 = sns.color_palette(MY_COLORS_3)
 MY_PALETTE_5 = sns.color_palette(MY_COLORS_5, desat=0.9)
 MY_PALETTE = sns.color_palette(MY_COLORS, desat=0.9)
 
+# > Colors for "simulation" and "experiment" curves (previously MY_COLORS[:2]).
+COLORS_SIM_VS_EXP = ['#942192',  # Simulation. '#ED7D31'
+                     '#007AAA',  # Exp 1. #4472C4
+                     '#3A2194']  # Exp 2. #A5A5A5
+
 # Definition and display of the current palette.
 sns.set_palette(MY_PALETTE)
 if __name__ == "__main__":
     # Here vizualize desired palettes with command sns.palplot(`PALETTE_NAME`).
     sns.palplot(sns.color_palette())  # Default palette.
-
     sns.palplot(MY_COLORS_2_ROCKET)
     sns.palplot(sns.color_palette('rocket', n_colors=2))
     sns.palplot(MY_COLORS_3_ROCKET)
     sns.palplot(sns.color_palette('rocket', n_colors=3))
     sns.palplot(MY_COLORS_3)
     sns.palplot(sns.color_palette('viridis', n_colors=3))
+    sns.palplot(COLORS_SIM_VS_EXP)
     plt.show()
 
-# > Colors for "simulation" and "experiment" curves.
-COLORS_SIM_VS_EXP = MY_COLORS[:2]
+sns.palplot(MY_COLORS)
 
 # > Colors for cell types.
 type_keys = ['b+htype', 'mtype', 'atype']

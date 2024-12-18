@@ -330,7 +330,7 @@ def simulate_lineage_evolution(parameters):
 
 def simulate_lineages_evolution(lineage_count, characteristics, parameters,
                                 is_lcycle_count_returned=False,
-                                is_evo_returned=False):
+                                is_evo_returned=False, seed=None):
     """Simulate the independent evolution of `lineage_count` lineages having
     characteristics `characteristics`.
 

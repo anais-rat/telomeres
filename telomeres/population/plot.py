@@ -30,7 +30,7 @@ from mpl_toolkits.axes_grid1.inset_locator import (InsetPosition, mark_inset)
 from scipy import interpolate
 
 import numpy as np
-# import pandas as pd
+import pandas as pd
 import seaborn as sns
 
 
@@ -41,6 +41,7 @@ import seaborn as sns
 P_ANC_STRINGS = "Proportion of descendants"
 LABELS = {'ax_c_init': "Initial number of cells (log-scale)",
           'ax_c': "Number of cells",
+          'ax_c_log10': r"Log$_{10}$-number of cells",
           'ax_c_norm': "Normalized number of cells",
           'ax_c_sen': "Number of senescent cells",
           'ax_c_B': "Number of type B cells",
@@ -421,7 +422,7 @@ def plot_hist_lmin_at_sen(cell_count, para_count, simu_count, fig_subdirectory,
             to_add = ''
             handles, labels = plt.gca().get_legend_handles_labels()
             plt.legend(handles[::-1], labels[::-1], title='Cell type',
-                       fancybox = True, facecolor='white')
+                       fancybox=True, facecolor='white')
         sns.despine()
         if is_saved:
             type_strs = [key[0] for key in keys]
@@ -473,7 +474,10 @@ def plot_hist_lmin_at_sen(cell_count, para_count, simu_count, fig_subdirectory,
 
 
 def plot_evo_c_n_p_pcfixed_from_stat(c, p, simu_count, fig_subdirectory, t_max,
-                                     is_stat_update=None, par_update=None):
+                                     is_stat_update=None, par_update=None,
+                                     strain='TetO2-TLC1', par_update_bis=None,
+                                     is_only_exp=False, is_all_points=False,
+                                     ysim_scale=None, yexp_scale=None):
     """ Plot time-evolution of cell-number-related data from simulations run
     at `p` and `c` fixed.
 
@@ -490,11 +494,69 @@ def plot_evo_c_n_p_pcfixed_from_stat(c, p, simu_count, fig_subdirectory, t_max,
         unless `fig_subdirectory` is None, in which case figures are not saved.
     t_max : float
         Maximum time (in day) up to which evolution curves are plotted.
+    strain : str
+        'TetO2-TLC1' for the clasical experimental data, or 'RAD51' or 'POL32'.
+    is_only_exp : bool
+        True to plot only curves of comparison with experimental data.
+    ysim_scale : str or None
+        None for usual y-axis scale (number of cell in simulation) for
+        simulations.
+        'log' for a log(10)-scale of the ticks axis (does not transform the
+        data, but only the spacing between ticks, for a more readable).
+        'log10' for a transformation of the data of the form `np.log10(data)`.
+    yexp_scale : str or None
+         Same as ysim_scale for experimental data.
 
     """
     # Import experimental evolution of cell concentration.
     # > Telomerase negative / doxycycline positive.
-    CSTAT_TELO_M = xtd.extract_population_concentration_doxP()
+    # NB: `CSIM`, `CEXP` ADJUSTED MANUALLY!
+    LABELS_SIM, FTM_SIM = [LABELS['sim']], ['x-']
+    if strain == 'POL32':  # Pol32- and Pol32+.
+        CSTAT = xtd.extract_population_concentration_pol32()
+        LABELS_SIM[0] = LABELS_SIM[0] + r' (tlc1$\Delta$ pol32$\Delta$)'
+        LABELS_EXP = {'tlc1': LABELS['exp'] + r' (tlc1$\Delta$)',
+                      'tlc1_pol32': LABELS['exp'] +
+                      r' (tlc1$\Delta$ pol32$\Delta$)'}
+        FTM = {'tlc1': '--',
+               'tlc1_pol32': '-'}
+        CSIM = {'c': 5}  # {'PD': 5, 'c': 5,  'OD': 1.2}
+        CEXP = {'c': 1.5}  # {'PD': 1.5, 'c': 1.5,  'OD': 1.12}
+        if fig_subdirectory == 'article':  # format is 'article'
+            LEGEND_POS = (.95, 1.25)
+        else:  # format is 'manuscript' or None
+            LEGEND_POS = (.83, 1.2)
+    elif strain == 'RAD51':
+        if ysim_scale == 'log':
+            CSIM = {'OD': 15}
+            CEXP = {'OD': 1.1}
+        else:
+            CSIM = {'OD': 1.35}
+            CEXP = {'OD': 1.1}
+        CSTAT = xtd.extract_population_concentration_rad51()
+        CSTAT = {key: CSTAT[key] for key in ['RAD51']}  # Comment for all data.
+        LABELS_EXP = {'RAD51': LABELS['exp'] + r' (rad51$\Delta$)',
+                      'RAD51_sep': r'rad51_sept',
+                      'RAD51_oct': r'rad51_oct'}
+        FTM = {'RAD51': '-', 'RAD51_sep': '-.', 'RAD51_oct': '--'}
+        if fig_subdirectory == 'article':
+            LEGEND_POS = (.9, 1.15)
+        else:
+            LEGEND_POS = (.81, 1.12)
+        if not isinstance(par_update_bis, type(None)):
+            LABELS_SIM = [LABELS['sim'] + r' (rad51$\Delta$)',
+                          LABELS['sim'] + r' (rad51)']
+            FTM_SIM.append('x--')
+    else:
+        CSTAT = {'DOX+': xtd.extract_population_concentration_doxP()}  # Telo-.
+        LABELS_EXP = {'DOX+': LABELS['exp']}
+        FTM = {'DOX+': '-'}
+        if fig_subdirectory == 'article':
+            LEGEND_POS = (0.88, 1.05)
+        else:
+            LEGEND_POS = (0.88, 0.88)
+        CSIM = {'OD': 1.2}
+        CEXP = {'OD': 1.1}
 
     # General `kwargs` (see plot_evo_curves_w_stats) options.
     if isinstance(par_update, type(None)) or not ('sat' in par_update.keys()):
@@ -503,10 +565,10 @@ def plot_evo_c_n_p_pcfixed_from_stat(c, p, simu_count, fig_subdirectory, t_max,
         p_sat = par_update['sat']['prop']
     # > Style dependent parameters (e.g. legend position).
     if (isinstance(fig_subdirectory, type(None))
-            or fig_subdirectory == 'manuscript'):  # format = 'manuscript'
+            or fig_subdirectory == 'manuscript'):
         LEG_POS = (1, 1)  # LEG_POS_L =  (0.6, 1)
-    elif fig_subdirectory == 'article':  # format = 'article'
-        LEG_POS = (.97, 1)  # LEG_POS_L =  (0.6, 1.05)
+    elif fig_subdirectory == 'article':
+        LEG_POS = (.97, 1)  # LEG_POS_L = (0.6, 1.05)
     else:
         raise Exception("Parameters of plotting to adjust manually should be"
                         "specified")
@@ -525,338 +587,481 @@ def plot_evo_c_n_p_pcfixed_from_stat(c, p, simu_count, fig_subdirectory, t_max,
         end_name_std = wp.write_fig_pop_name_end(simu=simu_count, tmax=t_max,
                                                  is_stat=IS_STAT_STD)
 
-        def fpath(name, stat_type=None):
+        def fpath(name, stat_type=None, ysim_scale=None, yexp_scale=None):
             if stat_type == 'std':
-                return join(directory, name + end_name_std)
+                path = join(directory, name + end_name_std)
             if stat_type == 'none':
-                return join(directory, name + end_name_none)
-            return join(directory, name + end_name)
+                path = join(directory, name + end_name_none)
+            else:
+                path = join(directory, name + end_name)
+            if not isinstance(ysim_scale, type(None)):
+                path = path.replace(".pdf", f"_ysim{ysim_scale}.pdf")
+            if not isinstance(yexp_scale, type(None)):
+                path = path.replace(".pdf", f"_yexp{yexp_scale}.pdf")
+            return path
     else:
         def fpath(*_):
             return None
 
     # Genearal data.
     # > Paths to data.
-    sim_path = wp.write_simu_pop_subdirectory(c, p, par_update)
-    stat_data_path = wp.write_sim_pop_postreat_average(sim_path, simu_count)
+    sim_paths = [wp.write_simu_pop_subdirectory(c, p, par_update)]
+    if not isinstance(par_update_bis, type(None)):
+        sim_paths.append(wp.write_simu_pop_subdirectory(c, p, par_update_bis))
+    stat_data_paths = [wp.write_sim_pop_postreat_average(path, simu_count) for
+                       path in sim_paths]
     # > Times array (only up to `t_max`).
-    times = np.load(stat_data_path, allow_pickle='TRUE').any().get('times')
+    times = np.load(stat_data_paths[0], allow_pickle='TRUE').any().get('times')
     t_max = min(t_max, times[-1])
     times = times[times <= t_max]
     # > Days arrays.
-    days_exp = np.arange(1, len(CSTAT_TELO_M['c']['avg']) + 1)
-    idxs_bf_dil = np.array([np.where(times == day)[0][0] - 1 for day in
-                            days_exp[days_exp <= times[-1]]]).astype('int')
-    if len(days_exp) > len(idxs_bf_dil):
-        days_sim = days_exp[:len(idxs_bf_dil)]
+    key0 = list(CSTAT.keys())[0]
+    # NB: following to improve for shorter and clearer code.
+    if strain == 'POL32':
+        # Pol32 data start 3 days after telomerase inactivation.
+        days = np.arange(5, len(CSTAT['tlc1']['c']['avg']) + 5)
+        i0_exp = 0  # Index 0 of exp data corresponds to days[0].
+    elif strain == 'RAD51':
+        i0_exp = 1
+        days = np.arange(1, len(CSTAT[key0]['c']['avg']))
     else:
-        days_sim = days_exp
+        i0_exp = 0
+        days = np.arange(1, len(CSTAT[key0]['c']['avg']) + 1)
+    idxs_bf_dil = np.array([np.where(times == day)[0][0] - 1 for day in
+                            days[days <= times[-1]]]).astype('int')
+    if len(days) > len(idxs_bf_dil):
+        days_sim = days[:len(idxs_bf_dil)]
+    else:
+        days_sim = days
     # > Extraction simulated data in the dictionary `d`.
-    d = np.load(stat_data_path, allow_pickle='TRUE').item()
+    d = np.load(stat_data_paths[0], allow_pickle='TRUE').item()
+    # > And only evolution of concentration but on all simu_count simulations.
+    if is_all_points:
+        #   Index 0 of `np.genfromtxt(wp.write_sim_c_csv...` is day 1 of simu.
+        i0 = days[0] - 1
+        evo_c = [np.genfromtxt(wp.write_sim_c_csv(path, simu_count),
+                               delimiter=',')[:, i0:i0+len(days_sim)] for
+                 path in sim_paths]
+        # > Compute quantities to adjust graphs.
+        ysat_sim = c * p_sat
+        if ysim_scale == 'log10':
+            evo_c = [np.log10(evo_cc) for evo_cc in evo_c]  # / c0) c0 = c * 5
+            ysat_sim = np.log10(ysat_sim)
+        evo_c_mean = [np.mean(ev, axis=0) for ev in evo_c]
+        evo_c_std = [np.std(ev, axis=0) for ev in evo_c]
+    else:
+        evo_c_mean = [d['evo_c']['mean'][idxs_bf_dil]]
+        evo_c_std = [d['evo_c']['std'][idxs_bf_dil]]
+
     # ..... Plot .....
     # Day-to-day evolution of the concentration.
-    # ---------------------------------
+    # ------------------------------------------
     # > Discrete comparison to experimental curves: Fisrt version.
     # NB: MANUALLY ADJUSTED (from ymax_sim).
-    fig, ax1 = plt.subplots()
-    # >> Right axis: simulated data.
-    ax1.set_xlabel(LABELS['ax_time'], labelpad=6)
-    ax1.set_xticks(days_exp)
-    ysat_sim = c * p_sat
-    ax1.set_ylim(ymax=ysat_sim * 1.4)  # ADJUST!
-    ax1.set_ylabel(LABELS['ax_c'], color=fp.COLORS_SIM_VS_EXP[0], labelpad=8)
-    ax1.errorbar(days_sim, d['evo_c']['mean'][idxs_bf_dil],
-                 yerr=d['evo_c']['std'][idxs_bf_dil], capsize=2, fmt='x-',
-                 color=fp.COLORS_SIM_VS_EXP[0], label=LABELS['sim'])
-    ax1.tick_params(axis='y', labelcolor=fp.COLORS_SIM_VS_EXP[0])
-    ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
-                         useMathText=True)
-    # >> Left axis: experimental data.
-    y_exp, y_err = CSTAT_TELO_M['PD']['avg'], CSTAT_TELO_M['PD']['std']
-    # ysat_exp = np.mean([*y_exp[:2], y_exp[3]])
-    ymax_exp = max(y_exp + 1.1 * y_err)  # ADJUST!
-    ax2 = ax1.twinx()
-    ax2.set_ylim(ymax=ymax_exp)
-    ax2.set_ylabel(LABELS['ax_cexp'], color=fp.COLORS_SIM_VS_EXP[1],
-                   labelpad=9)
-    ax2.errorbar(days_exp, y_exp, yerr=y_err, capsize=2, fmt='-',
-                 color=fp.COLORS_SIM_VS_EXP[1], label=LABELS['exp'])
-    ax2.tick_params(axis='y', labelcolor=fp.COLORS_SIM_VS_EXP[1])
-    ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
-                         useMathText=True)
-    ax2.grid(False)
-    # mpl_axes_aligner.align.yaxes(ax1, ysat_sim, ax2, ysat_exp, 0.9)
-    mpl_axes_aligner.align.yaxes(ax1, 0, ax2, 0, 0.05)
-    fig.legend(bbox_to_anchor=(0.88, 0.88))
-    sns.despine(top=True, right=False)
-    if is_saved:
-        path = fpath('evo_c_by_day_w_exp1', 'std')
-        print("\n Saved at: ", path)
-        plt.savefig(path, bbox_inches='tight')
-    plt.show()
+    if 'PD' in CSIM.keys():
+        fig, ax1 = plt.subplots()
+        ax1.set_xlabel(LABELS['ax_time'], labelpad=6)
+        ax1.set_xticks(days)
+        # >> Right axis: simulated data.
+        y_color_sim = [fp.COLORS_SIM_VS_EXP[0], 'black']
+        for idx in range(len(evo_c_mean)):
+            ax1.errorbar(days_sim, evo_c_mean[idx], yerr=evo_c_std[idx],
+                         capsize=2, fmt=FTM_SIM[-idx], label=LABELS_SIM[-idx],
+                         color=fp.COLORS_SIM_VS_EXP[-idx])
+            if ysim_scale == 'log10':
+                y_label = LABELS['ax_c_log10']
+            else:
+                y_label = LABELS['ax_c']
+            if is_all_points:
+                for i in range(simu_count):
+                    ax1.scatter(days_sim, evo_c[idx][i], s=30,
+                                color=fp.COLORS_SIM_VS_EXP[-idx])
+        ax1.set_ylabel(y_label, color=y_color_sim[idx], labelpad=8)
+        ax1.tick_params(axis='y', labelcolor=y_color_sim[idx])
+        ax1.set_ylim(ymax=CSIM['PD'] * ysat_sim)
+        if ysim_scale == 'log':
+            ax1.set_yscale('log')
+        else:
+            ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
+                                 useMathText=True)
+        # >> Left axis: experimental data.
+        idx_color = 1
+        ysat_exp, ymax_exp = [], 0
+        for key, cstat in CSTAT.items():
+            y_exp = cstat['PD']['avg'][i0_exp:]
+            y_err = cstat['PD']['std'][i0_exp:]
+            ysat_exp.append(np.mean(y_exp[:3]))
+            if key == key0:  # Set parameters for axis 2.
+                ax2 = ax1.twinx()
+                ymax_exp = max(ymax_exp, np.max(y_exp + y_err))  # ADJUST!
+                y_color_exp = fp.COLORS_SIM_VS_EXP[1]
+            else:
+                y_color_exp = 'black'
+            ax2.errorbar(days, y_exp, yerr=y_err, capsize=2, fmt=FTM[key],
+                         color=fp.COLORS_SIM_VS_EXP[idx_color],
+                         label=LABELS_EXP[key])
+            if is_all_points:
+                for i in range(len(cstat['PD']['all'][0])):
+                    ax2.scatter(days, cstat['PD']['all'][i0_exp:, i], s=30,
+                                color=fp.COLORS_SIM_VS_EXP[idx_color])
+            idx_color += 1
+        ax2.set_ylim(ymax=CEXP['PD'] * ymax_exp)
+        ax2.grid(False)
+        if yexp_scale == 'log':
+            ax2.set_yscale('log')
+        else:
+            ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
+                                 useMathText=True)
+        ax2.set_ylabel(LABELS['ax_cexp'], color=y_color_exp, labelpad=9)
+        ax2.tick_params(axis='y', labelcolor=y_color_exp)
+        mpl_axes_aligner.align.yaxes(ax1, ysat_sim, ax2, np.mean(ysat_exp),
+                                     0.9)
+        fig.legend(bbox_to_anchor=LEGEND_POS, fontsize="small")
+        sns.despine(top=True, right=False)
+        plt.show()
+        if is_saved:
+            path = fpath('evo_c_by_day_w_exp1', 'std', ysim_scale, yexp_scale)
+            if not isinstance(par_update_bis, type(None)):
+                path = path.replace("_w_exp1_", "_w_exp1_x2_")
+            print("\n Saved at: ", path)
+            plt.savefig(path, bbox_inches='tight')
+        plt.show()
 
     # > Discrete comparison to experimental curves: Second version.
-    fig, ax1 = plt.subplots()
-    # >> Right axis: simulated data.
-    ax1.set_xlabel(LABELS['ax_time'], labelpad=6)
-    ax1.set_xticks(days_exp)
-    ysat_sim = c * p_sat
-    ax1.set_ylim(ymax=ysat_sim * 1.2)  # ADJUST!
-    ax1.set_ylabel(LABELS['ax_c'], color=fp.COLORS_SIM_VS_EXP[0], labelpad=8)
-    ax1.errorbar(days_sim, d['evo_c']['mean'][idxs_bf_dil],
-                 yerr=d['evo_c']['std'][idxs_bf_dil], capsize=2, fmt='x-',
-                 color=fp.COLORS_SIM_VS_EXP[0], label=LABELS['sim'])
-    ax1.tick_params(axis='y', labelcolor=fp.COLORS_SIM_VS_EXP[0])
-    ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
-                         useMathText=True)
-    # >> Left axis: experimental data.
-    y_exp, y_err = CSTAT_TELO_M['c']['avg'], CSTAT_TELO_M['c']['std']
-    ymax_exp = max(y_exp) * 1.12  # ADJUST!
-    ax2 = ax1.twinx()
-    ax2.set_ylim(ymax=ymax_exp)
-    ax2.set_ylabel(LABELS['ax_cexp'], color=fp.COLORS_SIM_VS_EXP[1],
-                   labelpad=9)
-    ax2.errorbar(days_exp, y_exp, yerr=y_err, capsize=2, fmt='-',
-                 color=fp.COLORS_SIM_VS_EXP[1], label=LABELS['exp'])
-    ax2.tick_params(axis='y', labelcolor=fp.COLORS_SIM_VS_EXP[1])
-    ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
-                         useMathText=True)
-    ax2.grid(False)
-    mpl_axes_aligner.align.yaxes(ax1, 0, ax2, 0, 0.05)
-    fig.legend(bbox_to_anchor=(0.88, 0.88))
-    sns.despine(top=True, right=False)
-    if is_saved:
-        path = fpath('evo_c_by_day_w_exp2', 'std')
-        print("\n Saved at: ", path)
-        plt.savefig(path, bbox_inches='tight')
-    plt.show()
+    if 'c' in CSIM.keys():
+        fig, ax1 = plt.subplots()
+        ax1.set_xlabel(LABELS['ax_time'], labelpad=6)
+        ax1.set_xticks(days)
+        # >> Right axis: simulated data.
+        y_color_sim = [fp.COLORS_SIM_VS_EXP[0], 'black']
+        for idx in range(len(evo_c_mean)):
+            ax1.errorbar(days_sim, evo_c_mean[idx], yerr=evo_c_std[idx],
+                         capsize=2, fmt=FTM_SIM[-idx], label=LABELS_SIM[-idx],
+                         color=fp.COLORS_SIM_VS_EXP[-idx])
+            if ysim_scale == 'log10':
+                y_label = LABELS['ax_c_log10']
+            else:
+                y_label = LABELS['ax_c']
+            if is_all_points:
+                for i in range(simu_count):
+                    ax1.scatter(days_sim, evo_c[idx][i], s=30,
+                                color=fp.COLORS_SIM_VS_EXP[-idx])
+        ax1.set_ylabel(y_label, color=y_color_sim[idx], labelpad=8)
+        ax1.tick_params(axis='y', labelcolor=y_color_sim[idx])
+        if ysim_scale == 'log':
+            ax1.set_yscale('log')
+        else:
+            ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
+                                 useMathText=True)
+        ax1.set_ylim(ymax=CSIM['c'] * ysat_sim)
+        # >> Left axis: experimental data.
+        idx_color = 1
+        ymax_exp = 0
+        for key, cstat in CSTAT.items():
+            y_exp = cstat['c']['avg'][i0_exp:]
+            y_err = cstat['c']['std'][i0_exp:]
+            ymax_exp = max(ymax_exp, np.max(y_exp + y_err))
+            if key == key0:
+                ax2 = ax1.twinx()
+                y_color_exp = fp.COLORS_SIM_VS_EXP[1]
+            else:
+                y_color_exp = 'black'
+            ax2.errorbar(days, y_exp, yerr=y_err, capsize=2, fmt=FTM[key],
+                         color=fp.COLORS_SIM_VS_EXP[idx_color],
+                         label=LABELS_EXP[key])
+            if is_all_points:
+                for i in range(len(cstat['c']['all'][0])):
+                    ax2.scatter(days, cstat['c']['all'][i0_exp:, i], s=30,
+                                color=fp.COLORS_SIM_VS_EXP[idx_color])
+            idx_color += 1
+        ax2.grid(False)
+        ax2.set_ylabel(LABELS['ax_cexp'], color=y_color_exp, labelpad=9)
+        ax2.tick_params(axis='y', labelcolor=y_color_exp)
+        if yexp_scale == 'log':
+            ax2.set_yscale('log')
+        else:
+            ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
+                                 useMathText=True)
+        ax2.set_ylim(ymax=CEXP['c'] * ymax_exp)
+        mpl_axes_aligner.align.yaxes(ax1, 0, ax2, 0, 0.05)
+        fig.legend(bbox_to_anchor=LEGEND_POS, fontsize="small")
+        sns.despine(top=True, right=False)
+        if is_saved:
+            path = fpath('evo_c_by_day_w_exp2', 'std', ysim_scale, yexp_scale)
+            if not isinstance(par_update_bis, type(None)):
+                path = path.replace("_w_exp2_", "_w_exp2_x2_")
+            print("\n Saved at: ", path)
+            plt.savefig(path, bbox_inches='tight')
+        plt.show()
 
     # > Discrete comparison to experimental curves: OD.
-    fig, ax1 = plt.subplots()
-    # >> Right axis: simulated data.
-    ax1.set_xlabel(LABELS['ax_time'], labelpad=6)
-    ax1.set_xticks(days_exp)
-    ysat_sim = c * p_sat
-    ax1.set_ylim(ymax=ysat_sim * 1.2)  # ADJUST!
-    ax1.set_ylabel(LABELS['ax_c'], color=fp.COLORS_SIM_VS_EXP[0], labelpad=8)
-    ax1.errorbar(days_sim, d['evo_c']['mean'][idxs_bf_dil],
-                 yerr=d['evo_c']['std'][idxs_bf_dil], capsize=2, fmt='x-',
-                 color=fp.COLORS_SIM_VS_EXP[0], label=LABELS['sim'])
-    ax1.tick_params(axis='y', labelcolor=fp.COLORS_SIM_VS_EXP[0])
-    ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
-                         useMathText=True)
-    # >> Left axis: experimental data.
-    y_exp, y_err = CSTAT_TELO_M['OD']['avg'], CSTAT_TELO_M['OD']['std']
-    ymax_exp = max(y_exp) * 1.12  # ADJUST!
-    ax2 = ax1.twinx()
-    ax2.set_ylim(ymax=ymax_exp)
-    ax2.set_ylabel(LABELS['ax_OD'], color=fp.COLORS_SIM_VS_EXP[1],
-                   labelpad=9)
-    ax2.errorbar(days_exp, y_exp, yerr=y_err, capsize=2, fmt='-',
-                 color=fp.COLORS_SIM_VS_EXP[1], label=LABELS['exp'])
-    ax2.tick_params(axis='y', labelcolor=fp.COLORS_SIM_VS_EXP[1])
-    ax2.grid(False)
-    mpl_axes_aligner.align.yaxes(ax1, 0, ax2, 0, 0.05)
-    fig.legend(bbox_to_anchor=(0.88, 0.88))
-    sns.despine(top=True, right=False)
-    if is_saved:
-        path = fpath('evo_c_by_day_w_exp3', 'std')
-        print("\n Saved at: ", path)
-        plt.savefig(path, bbox_inches='tight')
-    plt.show()
+    if 'OD' in CSIM.keys():
+        fig, ax1 = plt.subplots()
+        ax1.set_xlabel(LABELS['ax_time'], labelpad=6)
+        ax1.set_xticks(days)
+        # >> Right axis: simulated data.
+        y_color_sim = [fp.COLORS_SIM_VS_EXP[0], 'black']
+        ymax_sim = 0
+        for idx in range(len(evo_c_mean)):
+            ys, ys_err = evo_c_mean[idx], evo_c_std[idx]
+            ymax_sim = max(ymax_sim, np.max(ys + ys_err))
+            ax1.errorbar(days_sim, ys, yerr=ys_err, capsize=2,
+                         fmt=FTM_SIM[-idx], label=LABELS_SIM[-idx],
+                         color=fp.COLORS_SIM_VS_EXP[-idx])
+            if ysim_scale == 'log10':
+                y_label = LABELS['ax_c_log10']
+            else:
+                y_label = LABELS['ax_c']
+            if is_all_points:
+                for i in range(simu_count):
+                    ax1.scatter(days_sim, evo_c[idx][i], s=30,
+                                color=fp.COLORS_SIM_VS_EXP[-idx])
+        ax1.set_ylabel(y_label, color=y_color_sim[idx], labelpad=8)
+        ax1.tick_params(axis='y', labelcolor=y_color_sim[idx])
+        ax1.set_ylim(ymax=CSIM['OD'] * ymax_sim)
+        if ysim_scale == 'log':
+            ax1.set_yscale('log')
+        else:
+            ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0),
+                                 useMathText=True)
+        # >> Left axis: experimental data.
+        idx_color = 1
+        ymax_exp = 0
+        for key, cstat in CSTAT.items():
+            y_exp = cstat['OD']['avg'][i0_exp:]
+            y_err = cstat['OD']['std'][i0_exp:]
+            ymax_exp = max(ymax_exp, np.max(y_exp + y_err))
+            if key == key0:
+                ax2 = ax1.twinx()
+                y_color_exp = fp.COLORS_SIM_VS_EXP[1]
+            else:
+                y_color_exp = 'black'
+            ax2.errorbar(days, y_exp, yerr=y_err, capsize=2, fmt=FTM[key],
+                         color=fp.COLORS_SIM_VS_EXP[idx_color],
+                         label=LABELS_EXP[key])
+            if is_all_points:
+                for i in range(len(cstat['OD']['all'][0])):
+                    ax2.scatter(days, cstat['OD']['all'][i0_exp:, i], s=30,
+                                color=fp.COLORS_SIM_VS_EXP[idx_color])
+            idx_color += 1
+        ax2.set_ylim(ymax=CEXP['OD'] * ymax_exp)
+        ax2.grid(False)
+        ax2.set_ylabel(LABELS['ax_OD'], color=y_color_exp, labelpad=9)
+        ax2.tick_params(axis='y', labelcolor=y_color_exp)
+        if yexp_scale == 'log':
+            ax2.set_yscale('log')
+        mpl_axes_aligner.align.yaxes(ax1, 0, ax2, 0, 0.05)
+        fig.legend(bbox_to_anchor=LEGEND_POS, fontsize="small")
+        sns.despine(top=True, right=False)
+        if is_saved:
+            path = fpath('evo_c_by_day_w_exp3', 'std', ysim_scale, yexp_scale)
+            if not isinstance(par_update_bis, type(None)):
+                path = path.replace("_w_exp3_", "_w_exp3_x2_")
+            print("\n Saved at: ", path)
+            plt.savefig(path, bbox_inches='tight')
+        plt.show()
     # ---------------------------------
 
-    # Evolutions at all times.
-    # > Concentration of cells.
-    XTICKS = np.array([0, *days_sim])
-    # >> Simulated data alone with type and senescencent.
-    custom_args = {'curve_labels': [None, LABELS['btype'], LABELS['sen']],
-                   'y_format': 'sci',  # 'linestyles': ['-', '--', '-.'],
-                   'fig_path': fpath('evo_c'), 'bbox_to_anchor': LEG_POS,
-                   'xticks': XTICKS, 'leg_fontsize': 'small'}
-    AXIS_LABELS = [LABELS['ax_time'], LABELS['ax_c']]
-    plot_evo_curves_w_stats(times, [d['evo_c'], d['evo_c_B'], d['evo_c_sen']],
-                            AXIS_LABELS, is_stat, kwargs=custom_args)
+    if not is_only_exp:
+        # Evolutions at all times.
+        # > Concentration of cells.
+        XTICKS = np.array([0, *days_sim])
+        # >> Simulated data alone with type and senescencent.
+        custom_args = {'curve_labels': [None, LABELS['btype'], LABELS['sen']],
+                       'y_format': 'sci',  # 'linestyles': ['-', '--', '-.'],
+                       'fig_path': fpath('evo_c'), 'bbox_to_anchor': LEG_POS,
+                       'xticks': XTICKS, 'leg_fontsize': 'small'}
+        AXIS_LABELS = [LABELS['ax_time'], LABELS['ax_c']]
+        plot_evo_curves_w_stats(times, [d['evo_c'], d['evo_c_B'],
+                                        d['evo_c_sen']], AXIS_LABELS, is_stat,
+                                kwargs=custom_args)
 
-    evo_c_bnhtype = {}
-    for stat_key, evo_c_btype in d['evo_c_B'].items():
-        evo_c_bnhtype[stat_key] = evo_c_btype + d['evo_c_H'][stat_key]
-    custom_args['fig_path'] = fpath('evo_c_woH')
-    plot_evo_curves_w_stats(times, [d['evo_c'], evo_c_bnhtype, d['evo_c_sen']],
-                            AXIS_LABELS, is_stat, kwargs=custom_args)
+        evo_c_bnhtype = {}
+        for stat_key, evo_c_btype in d['evo_c_B'].items():
+            evo_c_bnhtype[stat_key] = evo_c_btype + d['evo_c_H'][stat_key]
+        custom_args['fig_path'] = fpath('evo_c_woH')
+        plot_evo_curves_w_stats(times, [d['evo_c'], evo_c_bnhtype,
+                                        d['evo_c_sen']], AXIS_LABELS, is_stat,
+                                kwargs=custom_args)
 
-    # > Concentration of senescent cells.
-    custom_args.update({'curve_labels': [LABELS['sen'], LABELS['btype'],
-                                         LABELS['htype']],
-                        'fig_path': fpath('evo_c_sen')})
-    plot_evo_curves_w_stats(
-        times, [d['evo_c_sen'], d['evo_c_B_sen'], d['evo_c_H']],
-        [LABELS['ax_time'], LABELS['ax_c_sen']], is_stat, kwargs=custom_args)
+        # > Concentration of senescent cells.
+        custom_args.update({'curve_labels': [LABELS['sen'], LABELS['btype'],
+                                             LABELS['htype']],
+                            'fig_path': fpath('evo_c_sen')})
+        plot_evo_curves_w_stats(
+            times, [d['evo_c_sen'], d['evo_c_B_sen'], d['evo_c_H']],
+            [LABELS['ax_time'], LABELS['ax_c_sen']], is_stat,
+            kwargs=custom_args)
 
-    evo_c_bnhtype_sen = {}
-    for stat_key, c_sen_btype in d['evo_c_B_sen'].items():
-        evo_c_bnhtype_sen[stat_key] = c_sen_btype + d['evo_c_H'][stat_key]
-    custom_args['fig_path'] = fpath('evo_c_sen_woH')
-    plot_evo_curves_w_stats(times, [d['evo_c_sen'], evo_c_bnhtype_sen],
-                            [LABELS['ax_time'], LABELS['ax_c_sen']],
-                            is_stat, kwargs=custom_args)
+        evo_c_bnhtype_sen = {}
+        for stat_key, c_sen_btype in d['evo_c_B_sen'].items():
+            evo_c_bnhtype_sen[stat_key] = c_sen_btype + d['evo_c_H'][stat_key]
+        custom_args['fig_path'] = fpath('evo_c_sen_woH')
+        plot_evo_curves_w_stats(times, [d['evo_c_sen'], evo_c_bnhtype_sen],
+                                [LABELS['ax_time'], LABELS['ax_c_sen']],
+                                is_stat, kwargs=custom_args)
 
-    # > Proportion of cells.
-    evo_p_atype = {}
-    evo_p_bnhtype = {}
-    for stat_key, evo_p_btype in d['evo_p_B'].items():
-        evo_p_atype[stat_key] = 1 - evo_p_btype - d['evo_p_H'][stat_key]
-        evo_p_atype[stat_key][evo_p_atype[stat_key] < 0] = 0
-        evo_p_atype[stat_key][evo_p_atype[stat_key] > 1] = 1
-        evo_p_bnhtype[stat_key] = evo_p_btype + d['evo_p_H'][stat_key]
-        evo_p_bnhtype[stat_key][evo_p_bnhtype[stat_key] < 0] = 0
-        evo_p_bnhtype[stat_key][evo_p_bnhtype[stat_key] > 1] = 1
-    evo_p_sen_atype = {}
-    evo_p_sen_bnhtype = {}
-    for stat_key, evo_p_sen_btype_sen in d['evo_p_B_sen'].items():
-        evo_p_sen_atype[stat_key] = 1 - evo_p_sen_btype_sen - \
-            d['evo_p_H_sen'][stat_key]
-        # evo_p_sen_atype[stat_key][evo_p_sen_atype[stat_key] < 0] = 0
-        # evo_p_sen_atype[stat_key][evo_p_sen_atype[stat_key] > 1] = 1
-        evo_p_sen_bnhtype[stat_key] = evo_p_sen_btype_sen + \
-            d['evo_p_H_sen'][stat_key]
-    AXIS_LABELS = [LABELS['ax_time'], LABELS['ax_prop']]
+        # > Proportion of cells.
+        evo_p_atype = {}
+        evo_p_bnhtype = {}
+        for stat_key, evo_p_btype in d['evo_p_B'].items():
+            evo_p_atype[stat_key] = 1 - evo_p_btype - d['evo_p_H'][stat_key]
+            evo_p_atype[stat_key][evo_p_atype[stat_key] < 0] = 0
+            evo_p_atype[stat_key][evo_p_atype[stat_key] > 1] = 1
+            evo_p_bnhtype[stat_key] = evo_p_btype + d['evo_p_H'][stat_key]
+            evo_p_bnhtype[stat_key][evo_p_bnhtype[stat_key] < 0] = 0
+            evo_p_bnhtype[stat_key][evo_p_bnhtype[stat_key] > 1] = 1
+        evo_p_sen_atype = {}
+        evo_p_sen_bnhtype = {}
+        for stat_key, evo_p_sen_btype_sen in d['evo_p_B_sen'].items():
+            evo_p_sen_atype[stat_key] = 1 - evo_p_sen_btype_sen - \
+                d['evo_p_H_sen'][stat_key]
+            # evo_p_sen_atype[stat_key][evo_p_sen_atype[stat_key] < 0] = 0
+            # evo_p_sen_atype[stat_key][evo_p_sen_atype[stat_key] > 1] = 1
+            evo_p_sen_bnhtype[stat_key] = evo_p_sen_btype_sen + \
+                d['evo_p_H_sen'][stat_key]
+        AXIS_LABELS = [LABELS['ax_time'], LABELS['ax_prop']]
 
-    # >> By type.
-    # is_stat_s = [{'per': False, 'std': False, 'ext': True}, is_stat, is_stat]
-    keys = ['atype', 'btype', 'htype']
-    custom_args = {'curve_labels': [LABELS[key] for key in keys],
-                   'colors': [fp.COLORS_TYPE[key] for key in keys],
-                   # 'bbox_to_anchor': LEG_POS,
-                   'fig_path': fpath('evo_p_type'),
-                   'xticks': XTICKS, 'leg_fontsize': 'small',
-                   'general_labels': {'per': None, 'ext': None}}
-    plot_evo_curves_w_stats(times, [evo_p_atype, d['evo_p_B'], d['evo_p_H']],
-                            AXIS_LABELS, is_stat, kwargs=custom_args)
-    keys = ['atype', 'btype']
-    custom_args = {'curve_labels':  [LABELS[key] for key in keys],
-                   'colors': [fp.COLORS_TYPE[key] for key in keys],
-                   'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
-                   'fig_path': fpath('evo_p_type_woH'), 'xticks': XTICKS}
-    plot_evo_curves_w_stats(times, [evo_p_atype, evo_p_bnhtype],
-                            AXIS_LABELS, is_stat, kwargs=custom_args)
+        # >> By type.
+        # is_stat_s = [{'per': False, 'std': False, 'ext': True}, is_stat,
+        #              is_stat]
+        keys = ['atype', 'btype', 'htype']
+        custom_args = {'curve_labels': [LABELS[key] for key in keys],
+                       'colors': [fp.COLORS_TYPE[key] for key in keys],
+                       # 'bbox_to_anchor': LEG_POS,
+                       'fig_path': fpath('evo_p_type'),
+                       'xticks': XTICKS, 'leg_fontsize': 'small',
+                       'general_labels': {'per': None, 'ext': None}}
+        plot_evo_curves_w_stats(times, [evo_p_atype, d['evo_p_B'],
+                                        d['evo_p_H']], AXIS_LABELS, is_stat,
+                                kwargs=custom_args)
+        keys = ['atype', 'btype']
+        custom_args = {'curve_labels':  [LABELS[key] for key in keys],
+                       'colors': [fp.COLORS_TYPE[key] for key in keys],
+                       'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
+                       'fig_path': fpath('evo_p_type_woH'), 'xticks': XTICKS}
+        plot_evo_curves_w_stats(times, [evo_p_atype, evo_p_bnhtype],
+                                AXIS_LABELS, is_stat, kwargs=custom_args)
 
-    # >> Among senescent cells.
-    custom_args = {'curve_labels': [LABELS['sen']],
-                   'colors': [fp.COLORS_TYPE['sen']],
-                   'fig_path': fpath('evo_p_sen'), 'xticks': XTICKS,
-                   'leg_fontsize': 'small'}
-    plot_evo_curves_w_stats(times, [d['evo_p_sen']], AXIS_LABELS, is_stat,
-                            kwargs=custom_args)
+        # >> Among senescent cells.
+        custom_args = {'curve_labels': [LABELS['sen']],
+                       'colors': [fp.COLORS_TYPE['sen']],
+                       'fig_path': fpath('evo_p_sen'), 'xticks': XTICKS,
+                       'leg_fontsize': 'small'}
+        plot_evo_curves_w_stats(times, [d['evo_p_sen']], AXIS_LABELS, is_stat,
+                                kwargs=custom_args)
 
-    # >> Both previous.
-    # is_stat_s = [{'per': False, 'std': False, 'ext': True}, is_stat, is_stat]
-    keys = ['atype', 'btype', 'htype', 'sen']
-    custom_args = {'curve_labels': [LABELS[key] for key in keys],
-                   'colors': [fp.COLORS_TYPE[key] for key in keys],
-                   'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
-                   'linestyles': ['-', '-', '-', '--'], 'xticks': XTICKS,
-                   'fig_path': fpath('evo_p_type_n_sen')}
-    plot_evo_curves_w_stats(times, [evo_p_atype, d['evo_p_B'], d['evo_p_H'],
-                                    d['evo_p_sen']], AXIS_LABELS, is_stat,
-                            kwargs=custom_args)
+        # >> Both previous.
+        keys = ['atype', 'btype', 'htype', 'sen']
+        custom_args = {'curve_labels': [LABELS[key] for key in keys],
+                       'colors': [fp.COLORS_TYPE[key] for key in keys],
+                       'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
+                       'linestyles': ['-', '-', '-', '--'], 'xticks': XTICKS,
+                       'fig_path': fpath('evo_p_type_n_sen')}
+        plot_evo_curves_w_stats(times, [evo_p_atype, d['evo_p_B'],
+                                        d['evo_p_H'], d['evo_p_sen']],
+                                AXIS_LABELS, is_stat, kwargs=custom_args)
 
-    keys = ['atype', 'btype', 'sen']
-    custom_args = {'curve_labels': [LABELS[key] for key in keys],
-                   'colors': [fp.COLORS_TYPE[key] for key in keys],
-                   'bbox_to_anchor': LEG_POS, 'linestyles': ['-',  '-', '--'],
-                   'xticks': XTICKS, 'fig_path': fpath('evo_p_type_n_sen_woH'),
-                   'leg_fontsize': 'small'}
-    plot_evo_curves_w_stats(
-        times, [evo_p_atype, evo_p_bnhtype, d['evo_p_sen']], AXIS_LABELS,
-        is_stat, kwargs=custom_args)
+        keys = ['atype', 'btype', 'sen']
+        custom_args = {'curve_labels': [LABELS[key] for key in keys],
+                       'colors': [fp.COLORS_TYPE[key] for key in keys],
+                       'bbox_to_anchor': LEG_POS,
+                       'linestyles': ['-',  '-', '--'], 'xticks': XTICKS,
+                       'fig_path': fpath('evo_p_type_n_sen_woH'),
+                       'leg_fontsize': 'small'}
+        plot_evo_curves_w_stats(
+            times, [evo_p_atype, evo_p_bnhtype, d['evo_p_sen']], AXIS_LABELS,
+            is_stat, kwargs=custom_args)
 
-    imax = len(times)
-    plt.figure()
-    plt.plot(times, evo_p_atype['mean'][:imax], color=fp.COLORS_TYPE['atype'],
-             label=LABELS['atype'])
-    plt.plot(times, evo_p_bnhtype['mean'][:imax],
-             color=fp.COLORS_TYPE['btype'], label=LABELS['btype'])
-    plt.plot(times, d['evo_p_sen']['mean'][:imax], '--',
-             color=fp.COLORS_TYPE['sen'], label=LABELS['sen'])
-    evo_p_sen_atype_sen = evo_p_sen_atype['mean'][:imax] * \
-        d['evo_p_sen']['mean'][:imax]
-    plt.fill_between(times, 0 * times, evo_p_sen_atype_sen,
-                     alpha=fp.ALPHA, color=fp.COLORS_TYPE['atype'],
-                     label=LABELS['atype_sen'])
-    plt.fill_between(times, evo_p_sen_atype_sen, d['evo_p_sen']['mean'][:imax],
-                     alpha=fp.ALPHA, color=fp.COLORS_TYPE['btype'],
-                     label=LABELS['atype_sen'])
-    plt.legend(bbox_to_anchor=LEG_POS, loc="upper left")
-    plt.xticks(XTICKS)
-    plt.xlabel(AXIS_LABELS[0], labelpad=6)
-    plt.ylabel(AXIS_LABELS[1], labelpad=8, wrap=True)
-    sns.despine()
-    fig_path = fpath('evo_p_type_n_sen_woH_fill')
-    if not isinstance(fig_path, type(None)):
-        print("\n Saved at: ", fig_path)
-        plt.savefig(fig_path, bbox_inches='tight')
-    plt.show()
+        imax = len(times)
+        plt.figure()
+        plt.plot(times, evo_p_atype['mean'][:imax],
+                 color=fp.COLORS_TYPE['atype'], label=LABELS['atype'])
+        plt.plot(times, evo_p_bnhtype['mean'][:imax],
+                 color=fp.COLORS_TYPE['btype'], label=LABELS['btype'])
+        plt.plot(times, d['evo_p_sen']['mean'][:imax], '--',
+                 color=fp.COLORS_TYPE['sen'], label=LABELS['sen'])
+        evo_p_sen_atype_sen = evo_p_sen_atype['mean'][:imax] * \
+            d['evo_p_sen']['mean'][:imax]
+        plt.fill_between(times, 0 * times, evo_p_sen_atype_sen,
+                         alpha=fp.ALPHA, color=fp.COLORS_TYPE['atype'],
+                         label=LABELS['atype_sen'])
+        plt.fill_between(
+            times, evo_p_sen_atype_sen, d['evo_p_sen']['mean'][:imax],
+            alpha=fp.ALPHA, color=fp.COLORS_TYPE['btype'],
+            label=LABELS['atype_sen'])
+        plt.legend(bbox_to_anchor=LEG_POS, loc="upper left")
+        plt.xticks(XTICKS)
+        plt.xlabel(AXIS_LABELS[0], labelpad=6)
+        plt.ylabel(AXIS_LABELS[1], labelpad=8, wrap=True)
+        sns.despine()
+        fig_path = fpath('evo_p_type_n_sen_woH_fill')
+        if not isinstance(fig_path, type(None)):
+            print("\n Saved at: ", fig_path)
+            plt.savefig(fig_path, bbox_inches='tight')
+        plt.show()
 
-    # > Proportion of senescent cells by type.
-    keys = ['atype', 'btype', 'htype', 'sen']
-    custom_args = {'curve_labels': [LABELS[key] for key in keys],
-                   'colors': [fp.COLORS_TYPE[key] for key in keys],
-                   'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
-                   'linestyles': ['-',  '-', '-', '--'], 'xticks': XTICKS,
-                   'fig_path': fpath('evo_p_type_sen_n_sen', 'none')}
-    AXIS_LABELS = [LABELS['ax_time'], LABELS['ax_p_sen']]
-    plot_evo_curves_w_stats(times, [evo_p_sen_atype, d['evo_p_B_sen'],
-                                    d['evo_p_H_sen'], d['evo_p_sen']],
-                            AXIS_LABELS, IS_STAT_NONE, kwargs=custom_args)
+        # > Proportion of senescent cells by type.
+        keys = ['atype', 'btype', 'htype', 'sen']
+        custom_args = {'curve_labels': [LABELS[key] for key in keys],
+                       'colors': [fp.COLORS_TYPE[key] for key in keys],
+                       'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
+                       'linestyles': ['-',  '-', '-', '--'], 'xticks': XTICKS,
+                       'fig_path': fpath('evo_p_type_sen_n_sen', 'none')}
+        AXIS_LABELS = [LABELS['ax_time'], LABELS['ax_p_sen']]
+        plot_evo_curves_w_stats(times, [evo_p_sen_atype, d['evo_p_B_sen'],
+                                        d['evo_p_H_sen'], d['evo_p_sen']],
+                                AXIS_LABELS, IS_STAT_NONE, kwargs=custom_args)
 
-    keys = ['atype', 'btype', 'htype']
-    custom_args = {'curve_labels': [LABELS[key + '_short'] for key in keys],
-                   'colors': [fp.COLORS_TYPE[key] for key in keys],
-                   'xticks': XTICKS, 'legend_title': "Cell type",
-                   'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
-                   'fig_path': fpath('evo_p_type_sen', 'none')}
-    plot_evo_curves_w_stats(times, [evo_p_sen_atype, d['evo_p_B_sen'],
-                                    d['evo_p_H_sen']],
-                            AXIS_LABELS, IS_STAT_NONE, kwargs=custom_args)
-    keys = ['atype', 'btype', 'sen']
-    custom_args = {'curve_labels': [LABELS[key] for key in keys],
-                   'colors': [fp.COLORS_TYPE[key] for key in keys],
-                   'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
-                   'linestyles': ['-', '-', '--'], 'xticks': XTICKS,
-                   'fig_path': fpath('evo_p_type_sen_n_sen_woH', 'none')}
-    plot_evo_curves_w_stats(times, [evo_p_sen_atype, evo_p_sen_bnhtype,
-                                    d['evo_p_sen']],
-                            AXIS_LABELS, IS_STAT_NONE, kwargs=custom_args)
-    imax = len(times)
-    plt.figure()
-    plt.xlabel(AXIS_LABELS[0], labelpad=6)
-    plt.ylabel(AXIS_LABELS[1], labelpad=8, wrap=True)
-    plt.tight_layout()
-    plt.plot(times, evo_p_sen_atype['mean'][:imax],
-             color=fp.COLORS_TYPE['atype'], label=LABELS['atype'])
-    plt.plot(times, evo_p_sen_bnhtype['mean'][:imax],
-             color=fp.COLORS_TYPE['btype'], label=LABELS['btype'])
-    plt.plot(times, d['evo_p_sen']['mean'][:imax], '--',
-             color=fp.COLORS_TYPE['sen'], label=LABELS['sen'])
-    evo_p_sen_atype_sen = evo_p_sen_atype['mean'][:imax] * \
-        d['evo_p_sen']['mean'][:imax]
-    plt.fill_between(times, 0 * times, evo_p_sen_atype_sen,
-                     alpha=fp.ALPHA, color=fp.COLORS_TYPE['atype'])
-    plt.fill_between(times, evo_p_sen_atype_sen, d['evo_p_sen']['mean'][:imax],
-                     alpha=fp.ALPHA, color=fp.COLORS_TYPE['btype'])
-    plt.legend(bbox_to_anchor=LEG_POS, loc="upper left")
-    plt.xticks(XTICKS)
-    sns.despine()
-    fig_path = fpath('evo_p_type_sen_n_sen_woH_fill')
-    if not isinstance(fig_path, type(None)):
-        print("\n Saved at: ", fig_path)
-        plt.savefig(fig_path, bbox_inches='tight')
-    plt.show()
+        keys = ['atype', 'btype', 'htype']
+        custom_args = {'curve_labels': [LABELS[key+'_short'] for key in keys],
+                       'colors': [fp.COLORS_TYPE[key] for key in keys],
+                       'xticks': XTICKS, 'legend_title': "Cell type",
+                       'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
+                       'fig_path': fpath('evo_p_type_sen', 'none')}
+        plot_evo_curves_w_stats(times, [evo_p_sen_atype, d['evo_p_B_sen'],
+                                        d['evo_p_H_sen']],
+                                AXIS_LABELS, IS_STAT_NONE, kwargs=custom_args)
+        keys = ['atype', 'btype', 'sen']
+        custom_args = {'curve_labels': [LABELS[key] for key in keys],
+                       'colors': [fp.COLORS_TYPE[key] for key in keys],
+                       'bbox_to_anchor': LEG_POS, 'leg_fontsize': 'small',
+                       'linestyles': ['-', '-', '--'], 'xticks': XTICKS,
+                       'fig_path': fpath('evo_p_type_sen_n_sen_woH', 'none')}
+        plot_evo_curves_w_stats(times, [evo_p_sen_atype, evo_p_sen_bnhtype,
+                                        d['evo_p_sen']],
+                                AXIS_LABELS, IS_STAT_NONE, kwargs=custom_args)
+        imax = len(times)
+        plt.figure()
+        plt.xlabel(AXIS_LABELS[0], labelpad=6)
+        plt.ylabel(AXIS_LABELS[1], labelpad=8, wrap=True)
+        plt.tight_layout()
+        plt.plot(times, evo_p_sen_atype['mean'][:imax],
+                 color=fp.COLORS_TYPE['atype'], label=LABELS['atype'])
+        plt.plot(times, evo_p_sen_bnhtype['mean'][:imax],
+                 color=fp.COLORS_TYPE['btype'], label=LABELS['btype'])
+        plt.plot(times, d['evo_p_sen']['mean'][:imax], '--',
+                 color=fp.COLORS_TYPE['sen'], label=LABELS['sen'])
+        evo_p_sen_atype_sen = evo_p_sen_atype['mean'][:imax] * \
+            d['evo_p_sen']['mean'][:imax]
+        plt.fill_between(times, 0 * times, evo_p_sen_atype_sen,
+                         alpha=fp.ALPHA, color=fp.COLORS_TYPE['atype'])
+        plt.fill_between(
+            times, evo_p_sen_atype_sen, d['evo_p_sen']['mean'][:imax],
+            alpha=fp.ALPHA, color=fp.COLORS_TYPE['btype'])
+        plt.legend(bbox_to_anchor=LEG_POS, loc="upper left")
+        plt.xticks(XTICKS)
+        sns.despine()
+        fig_path = fpath('evo_p_type_sen_n_sen_woH_fill')
+        if not isinstance(fig_path, type(None)):
+            print("\n Saved at: ", fig_path)
+            plt.savefig(fig_path, bbox_inches='tight')
+        plt.show()
 
 
 def plot_evo_l_pcfixed_from_stat(c, p, simu_count, fig_subdirectory, t_max,
-                                 is_stat_update=None, par_update=None):
+                                 is_stat_update=None, par_update=None,
+                                 is_all_points=False):
     # General `kwargs` (see plot_evo_curves_w_stats) options.
     # > Style dependent parameters (e.g. legend position).
     if (isinstance(fig_subdirectory, type(None))
@@ -884,7 +1089,6 @@ def plot_evo_l_pcfixed_from_stat(c, p, simu_count, fig_subdirectory, t_max,
                               wp.write_fig_pop_name_end(simu=simu_count,
                                                         tmax=t_max,
                                                         is_stat=IS_STAT_STD))
-
     # Data.
     # > Paths to data.
     sim_path = wp.write_simu_pop_subdirectory(c, p, par_update)
@@ -910,6 +1114,9 @@ def plot_evo_l_pcfixed_from_stat(c, p, simu_count, fig_subdirectory, t_max,
              'evo_lmin_min']
     for key in ckeys:
         d[key] = np.load(stat_data_path, allow_pickle='TRUE').any().get(key)
+    if is_all_points:
+        evo_mode = np.genfromtxt(wp.write_sim_lmode_csv(sim_path, simu_count),
+                                 delimiter=',')
 
     # Plot.
     # > Simulated data, all in one graph.
@@ -923,14 +1130,22 @@ def plot_evo_l_pcfixed_from_stat(c, p, simu_count, fig_subdirectory, t_max,
                             [LABELS['ax_time'], LABELS['ax_l']], is_stat,
                             kwargs=custom_args)
     # > Mode, comparison with experiment.
-    evo_l_exp = pps.statistics(evo_l_exp)
+    evo_l_exp_stat = pps.statistics(evo_l_exp)
     plt.figure()
     plt.xticks(days)
     plt.xlabel(LABELS['ax_time'])
     plt.ylabel(LABELS['ax_lmode'], wrap=True)
-    plt.errorbar(days, evo_l_exp['mean'][:day_max],
-                 yerr=evo_l_exp['std'][:day_max], capsize=2, fmt='x-',
+    plt.errorbar(days, evo_l_exp_stat['mean'][:day_max],
+                 yerr=evo_l_exp_stat['std'][:day_max], capsize=2, fmt='x-',
                  label=LABELS['exp'], color=fp.COLORS_SIM_VS_EXP[1])
+    if is_all_points:
+        for i in range(simu_count):
+            plt.scatter(days, evo_mode[i, days], s=20,
+                        color=fp.COLORS_SIM_VS_EXP[0])
+        for i in range(len(evo_l_exp)):
+            print(len(days), np.shape(evo_l_exp))
+            plt.scatter(days, evo_l_exp[i, :day_max], s=20,
+                        color=fp.COLORS_SIM_VS_EXP[1])
     plt.errorbar(days, d['evo_lmode']['mean'][idxs_bf_dil],
                  yerr=d['evo_lmode']['std'][idxs_bf_dil], capsize=2, fmt='-',
                  color=fp.COLORS_SIM_VS_EXP[0], label=LABELS['sim'])

@@ -26,7 +26,6 @@ lineage simulations and it is more efficient to run them separately.
 """
 
 from copy import deepcopy
-from os.path import join
 import numpy as np
 import os
 import time
@@ -36,45 +35,6 @@ import telomeres.auxiliary.write_paths as wp
 import telomeres.population.simulation as sim
 import telomeres.model.parameters as par
 import telomeres.population.posttreat as pps
-
-
-# PARA_COUNT = 1
-# N_INIT = 20
-# out = sim.simu_parallel(PARA_COUNT, N_INIT, par_update=None, par_sim_update=None)
-# stop
-
-
-import time
-
-cell_count = 100
-para_count = 1
-output_index = 1
-
-start = time.time()
-sub_dir_path = wp.write_simu_pop_subdirectory(cell_count, para_count)
-file_name = join(sub_dir_path, f'output_{output_index:02d}.npy')
-pps.postreat_from_evo_c_from_path(file_name, is_loaded=False)
-end = time.time()
-print(end - start)
-
-
-start = time.time()
-output = sim.simu_parallel(para_count, cell_count, output_index)
-file_postreated_name = wp.write_sim_pop_postreat_evo(
-    cell_count, para_count, output_index)
-pps.postreat_from_evo_c_from_output(output, file_postreated_name)
-end = time.time()
-print(end - start)
-
-
-start = time.time()
-file_postreated_name = wp.write_sim_pop_postreat_evo(
-    cell_count, para_count, output_index)
-pps.postreat_from_evo_c(para_count, cell_count, output_index, is_loaded=False)
-end = time.time()
-print(end - start)
-
-stop
 
 
 # Recall
@@ -94,7 +54,7 @@ stop
 # ----------
 
 # Experimental concentration initially / at dilution [cell].
-C_EXP = np.array([12])  # 250, 300. Cas test: 15
+C_EXP = np.array([300])  # 250, 300. Cas test: 15
 
 # Number of parallelization.s per simulation.
 # NB: s.t. PARA_COUNT[i] 1D array of the numbers of paralelizations to simulate
@@ -109,7 +69,23 @@ PARA_COUNT = [np.array([1])]
 # NB: Ignored for parallel computing with `slurm_compute.batch`. In this case
 #     the number of simulations is set through `#SBATCH --array=0-<to_adust>`
 #     with  `<to_ajust>`equal to `SIMU_COUNT - 1`, in `slurm_compute.batch`.
-SIMU_COUNT = 5  # 25, 20. Cas test: 3
+SIMU_COUNT = 30  # 25, 20. Cas test: 3
+
+# Plotting options.
+IS_PLOT = False  # True to plot (only possible from local simulation).
+# .............................................................................
+if IS_PLOT:
+    STRAIN = 'TetO2-TLC1'
+    import telomeres.population.plot as pl
+    FIG_DIRECTORY = None  # Figures not saved (since rcParams not updated).
+    TMAX_TO_PLOT = 11  # In days. math.inf to plot all simulated times.
+    ANC_GROUP_COUNT = 10
+    PAR_UPDATE_BIS = None
+# .............................................................................
+
+# Posttreat options.
+IS_DATA_EXTRACTED_TO_CSV = True
+
 
 # Modification of default model parameters given by `par.PAR_DEFAULT_POP`.
 # Exemple 1. No updates, default parameters:
@@ -129,22 +105,54 @@ SIMU_COUNT = 5  # 25, 20. Cas test: 3
 #
 # ect.. for every key of `PAR_DEFAULT_POP`, making sure that the updated
 # parameter conforms to the original format given by `PAR_DEFAULT_POP`.
+
+# > Default Case.
+# .............................................................................
 PAR_UPDATE = None
+# .............................................................................
 
 
-# True to plot (only possible from local simulation).
-IS_PLOT = True
-if IS_PLOT:
-    import telomeres.population.plot as pl
+# > Default with best-fit r_sat (Uncomment to select these parameters).
+# .............................................................................
+# R_SAT_NEW = 720  # New r_sat value.
 
-    IS_SAVED = False
-    if IS_SAVED:
-        FIG_DIRECTORY = "manuscript"
-    else:
-        FIG_DIRECTORY = None
+# PAR_SAT_NEW = deepcopy(par.PAR_SAT)
+# PAR_SAT_NEW['prop'] = R_SAT_NEW
+# PAR_UPDATE = {'sat': PAR_SAT_NEW}
+# .............................................................................
 
-    TMAX_TO_PLOT = 8  # In days. math.inf to plot all simulated times.
-    ANC_GROUP_COUNT = 10
+
+# > Case Pol32 (Uncomment for Pol32 parameters).
+# .............................................................................
+# STRAIN = 'POL32'  # Needed only to plot.
+# L_TRANS_NEW = 40  # Translation of 40.
+# PAR_NEW = deepcopy(par.PAR)
+# PAR_NEW[2][0] = L_TRANS_NEW
+
+# PROP_SAT_NEW = 402  # New r_sat value = 2.01e8 / 5e5, 2.01 mean on telo+.
+# PAR_SAT_NEW = deepcopy(par.PAR_SAT)
+# PAR_SAT_NEW['prop'] = PROP_SAT_NEW
+
+# PAR_UPDATE = {'fit': PAR_NEW,
+#               'sat': PAR_SAT_NEW}
+# .............................................................................
+
+# > Case Rad51 (Uncomment for Rad51 parameters).
+# .............................................................................
+# STRAIN = 'RAD51'  # Needed only to plot.
+# PROP_SAT_NEW = 560  # New r_sat value.
+# PAR_SAT_NEW = deepcopy(par.PAR_SAT)
+# PAR_SAT_NEW['prop'] = PROP_SAT_NEW
+
+# P_EXIT_NEW = deepcopy(par.P_EXIT)
+# P_EXIT_NEW['accident'] = 5.4 / 100  # New p_accident, the value of RAD51.
+
+# PAR_UPDATE = {'sat': PAR_SAT_NEW,
+#               'p_exit': P_EXIT_NEW
+#               }
+
+# PAR_UPDATE_BIS = {'sat': PAR_SAT_NEW}  # Needed only to plot.
+# .............................................................................
 
 
 # Index of the simulation to run (from 1 to SIMU_COUNT)
@@ -163,7 +171,7 @@ else:
     idx = 1  # Initialisation with the first job index.
 
 
-# Printing of chosen parameters
+# Printing of default parameters
 # -----------------------------
 print('P_ACCIDENT: ', par.P_ACCIDENT)
 print('MAX_SEN_CYCLE_COUNT: ' + str(par.MAX_SEN_CYCLE_COUNT))
@@ -183,9 +191,6 @@ if not is_run_in_parallel_from_slurm:
 
 run_idx = 0
 for cell_count in C_EXP:
-
-    dir_path = wp.write_simu_pop_subdirectory(cell_count)
-    print(dir_path)
 
     for para_count in PARA_COUNT[run_idx]:
         print('Number of parallelizations: ', para_count)
@@ -214,11 +219,14 @@ for cell_count in C_EXP:
             for i in range(1, SIMU_COUNT + 1):
                 np.random.seed(i)
                 print(f'Simulation n° {i}/{SIMU_COUNT}')
+                t_start = time.time()
 
                 sim.simu_parallel(para_count, cell_count, output_index=i,
                                   par_update=PAR_UPDATE)
                 pps.postreat_from_evo_c(para_count, cell_count, i,
                                         par_update=PAR_UPDATE)
+                t_end = time.time()
+                print(t_end - t_start)
 
             # Average on all simulations.
             out_p = pps.postreat_performances(
@@ -229,19 +237,25 @@ for cell_count in C_EXP:
 
             # Plot average at `c_exp` and `para_count` fixed.
             if IS_PLOT:
-                pl.plot_hist_lmin_at_sen(cell_count, para_count, SIMU_COUNT,
-                                         FIG_DIRECTORY, day_count=7, width=4)
+                pl.plot_hist_lmin_at_sen(
+                    cell_count, para_count, SIMU_COUNT, FIG_DIRECTORY,
+                    day_count=7, width=4, par_update=PAR_UPDATE)
                 pl.plot_evo_c_n_p_pcfixed_from_stat(
                     cell_count, para_count, SIMU_COUNT, FIG_DIRECTORY,
-                    TMAX_TO_PLOT)
+                    TMAX_TO_PLOT, par_update=PAR_UPDATE, strain=STRAIN,
+                    par_update_bis=PAR_UPDATE_BIS)
                 pl.plot_evo_l_pcfixed_from_stat(
                     cell_count, para_count, SIMU_COUNT, FIG_DIRECTORY,
-                    TMAX_TO_PLOT)
+                    TMAX_TO_PLOT, par_update=PAR_UPDATE)
                 pl.plot_evo_p_anc_pcfixed_from_stat(
                     cell_count, para_count, SIMU_COUNT, ANC_GROUP_COUNT,
-                    FIG_DIRECTORY, TMAX_TO_PLOT)
+                    FIG_DIRECTORY, TMAX_TO_PLOT, par_update=PAR_UPDATE)
                 pl.plot_evo_gen_pcfixed_from_stat(
                     cell_count, para_count, SIMU_COUNT, FIG_DIRECTORY,
-                    TMAX_TO_PLOT)
+                    TMAX_TO_PLOT, par_update=PAR_UPDATE)
                 print()
     run_idx += 1
+
+    if not is_run_in_parallel_from_slurm and IS_DATA_EXTRACTED_TO_CSV:
+        pps.statistics_simus_csv(para_count, cell_count, SIMU_COUNT,
+                                 par_update=PAR_UPDATE)

@@ -56,6 +56,8 @@ PAR_CYCLES_POSTREAT = [THRESHOLD, CYCLE_MIN, GEN_COUNT_MIN]
 DIR_DATA_RAW = os.path.join('..', 'data', 'raw')
 DIR_DATA = DIR_DATA_RAW.replace('raw', 'processed')
 
+# DIR_DATA_IGNORED = os.path.join('..', 'data_ignored')
+
 
 def make_distributions_cycles(data, threshold, cdt_min, sfolder=None):
     """From the dataset of cycle duration times along lineages extract and
@@ -147,6 +149,12 @@ def make_distributions_cycles(data, threshold, cdt_min, sfolder=None):
             path = os.path.join(sfolder, f'{file_names[key]}.csv')
             pd.DataFrame(cdts).to_csv(path, header=None, index=None)
         np.save(os.path.join(sfolder, 'EMPIRICAL_DISTRIBUTIONS.npy'), cdts_)
+
+        # Save in csv for the `source data` file (not used by python).
+        cdts_final = {k:v for k,v in cdts_.items() if k in
+                      ['norA', 'norB', 'nta', 'sen']}
+        df = pd.DataFrame.from_dict(cdts_final, orient='index').T
+        df.to_csv(os.path.join(sfolder, 'Source Data Fig1d.csv'), index=False)
     return cdts_
 
 
@@ -166,6 +174,10 @@ def make_microfluidic_dataset(file_name, parameters=PAR_CYCLES_POSTREAT,
     data = postreat_experimental_lineages(data, threshold, gcount_min)
     path = os.path.join(folder, 'LINEAGES_POSTREATED.npy')
     np.save(path, np.asarray(data, dtype="object"), allow_pickle=True)
+    # Save in csv to create the `source data` file easily (not used by python).
+    df = pd.DataFrame(data[0]['cycle'][::-1],
+                      index=np.arange(len(data[0]['cycle'])))
+    df.to_csv(os.path.join(folder, 'Source Data Fig1c.csv'), index=False)
     return make_distributions_cycles(data, threshold, cdt_min, sfolder=folder)
 
 
@@ -234,29 +246,58 @@ def make_distribution_telomeres_init_fitted(is_saved=True,
 
 def postreat_population_concentration():
     path_raw = os.path.join(DIR_DATA_RAW, 'senesence TetO2 tlc1.xlsx')
-    dox_p = np.array(pd.read_excel(path_raw, sheet_name='raw-DOX+_anais',
-                                   header=None))
-    dox_m = np.array(pd.read_excel(path_raw, sheet_name='raw-DOX-_anais',
-                                   header=None))
+    data = {}  # Data.
+    data['DOX+'] = np.array(pd.read_excel(path_raw, header=None,
+                                          sheet_name='raw-DOX+_anais'))
+    data['DOX-'] = np.array(pd.read_excel(path_raw, header=None,
+                                          sheet_name='raw-DOX-_anais'))
+    path_rad51 = os.path.join(DIR_DATA_RAW, '241025_Vero.xlsx')
+    if os.path.exists(path_rad51):
+        data_tmp = {}
+        data_tmp = np.array(pd.read_excel(path_rad51, usecols="C:L"))
+        data['RAD51'] = np.transpose(data_tmp)
+        data['RAD51_oct'] = np.transpose(data_tmp[:4])
+        data['RAD51_sep'] = np.transpose(data_tmp[4:])
 
-    # First transformation (Optical density to Population doublings (?)).
-    t_dox_p = {'PD': 1e5 * 2 ** dox_p}
-    t_dox_m = {'PD': 1e5 * 2 ** dox_m}
-    # Second transformation (Optical density to concentration).
-    t_dox_p['c'] = 3e7 * dox_p
-    t_dox_m['c'] = 3e7 * dox_m
-    # No transformation (Optical density, OD 600 (?)).
-    t_dox_p['OD'] = dox_p
-    t_dox_m['OD'] = dox_m
+    data_t = {}  # Data rescaled (log scale, ...).
+    for key, d in data.items():
+        # First transformation (Optical density to Population doublings (?)).
+        data_t[key] = {'PD': 1e5 * 2 ** d}
+        # Second transformation (Optical density to concentration).
+        data_t[key]['c'] = 3e7 * d
+        # No transformation (Optical density, OD 600 (?)).
+        data_t[key]['OD'] = d
 
-    # Statistics on al experiments.
-    stat_p, stat_m = {}, {}
-    for key in t_dox_m:
-        stat_p[key] = {'avg': np.mean(t_dox_p[key], axis=1),
-                       'std': np.std(t_dox_p[key], axis=1)}
-        stat_m[key] = {'avg': np.mean(t_dox_m[key], axis=1),
-                       'std': np.std(t_dox_m[key], axis=1)}
-    return stat_p, stat_m
+    path_pol32 = os.path.join(DIR_DATA_RAW, 'viability assays 1.xlsx')
+    if os.path.exists(path_pol32):
+        data_tmp = {}
+        data_tmp = pd.read_excel(path_pol32).to_dict('split')
+        data_tmp_sort = {}  # All the replicates and strains.
+        for i in data_tmp['index']:
+            data_tmp_sort[data_tmp['data'][i][0]] = data_tmp['data'][i][1:]
+        keys_replicate = {  # All the replicates of the strains of interest.
+            'tlc1': ['MATa tlc1-1c', 'MATa tlc1-2c', 'MATa tlc1-3b',
+                     'MATa tlc1-4c'],
+            'tlc1_pol32': ['MATa tlc1 pol32-3d', 'MATa tlc1 pol32-4b',
+                           'MATa tlc1 pol32-5a', 'MATa tlc1 pol32-6c']}
+        for k, keys in keys_replicate.items():
+            data[k] = np.transpose([data_tmp_sort[key] for key in keys])
+        for key in keys_replicate:
+            # First transformation (Pop doublings to Optical density 600 (?)).
+            data_t[key] = {'OD': np.log10(data[key])}  # np.log2(data[key] / 1e5)}
+            # data_t[key] = {'OD': np.log10(data[key])}
+            # Second transformation (Concentration to OD 600).
+            data_t[key]['PD'] = data[key] / 3e7  # To check !!!!
+            # No transformation (concentration cell/mL).
+            data_t[key]['c'] = data[key]
+
+    # Statistics on all experiments.
+    stats = {}
+    for key_strain, d in data_t.items():
+        stats[key_strain] = {k: {'avg': np.mean(d[k], axis=1),
+                                 'std': np.std(d[k], axis=1),
+                                 'all': d[k]} for k in d}
+    return stats
 
 
 def extract_population_lmode_from_raw():
@@ -267,17 +308,49 @@ def extract_population_lmode_from_raw():
 
 
 def make_population_dataset(is_saved=True):
-    # Cell concetration.
-    stat_p, stat_m = postreat_population_concentration()
+    # Cell concentration.
+    stats = postreat_population_concentration()
     # Mode of telomere distribution.
     evo_lmode = extract_population_lmode_from_raw()
     # Save.
     if is_saved:
-        folder = os.path.join(DIR_DATA, 'population_evolution')
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        np.save(os.path.join(folder, 'cell_concentration_DOX+.npy'), stat_p)
-        np.save(os.path.join(folder, 'cell_concentration_DOX-.npy'), stat_m)
-        path = os.path.join(folder, 'telomere_lengths_DOX+.csv')
+        for key, stat in stats.items():
+            # if 'DOX' in key:
+            folder = os.path.join(DIR_DATA, 'population_evolution')
+            folder_telo = folder
+            # else:
+            #     folder = os.path.join(DIR_DATA_IGNORED, 'processed')
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            np.save(os.path.join(folder, f'cell_concentration_{key}.npy'),
+                    stat)
+            # Save in csv for the `source data` file (not used by python).
+            if key == 'DOX-':
+                data_article = stat['OD']
+                df = pd.DataFrame.from_dict(data_article, orient='index').T
+                df.to_csv(os.path.join(
+                    folder, 'Source Data SFig3a.csv'), index=False)
+            if key == 'DOX+':
+                data_article = stat['OD']
+                df = pd.DataFrame.from_dict(data_article, orient='index').T
+                df.to_csv(os.path.join(
+                    folder, 'Source Data Fig3b-exp.csv'), index=False)
+            if key == 'tlc1_pol32':
+                data_article = stat['c']
+                df = pd.DataFrame.from_dict(data_article, orient='index').T
+                df.to_csv(os.path.join(
+                    folder, 'Source Data SFig3c-.csv'), index=False)
+            if key == 'tlc1':
+                data_article = stat['c']
+                df = pd.DataFrame.from_dict(data_article, orient='index').T
+                df.to_csv(os.path.join(
+                    folder, 'Source Data SFig3c+.csv'), index=False)
+            if key == 'RAD51':
+                data_article = stat['OD']
+                df = pd.DataFrame.from_dict(data_article, orient='index').T
+                df.to_csv(os.path.join(
+                    folder, 'Source Data SFig6d.csv'), index=False)
+
+        path = os.path.join(folder_telo, 'telomere_lengths_DOX+.csv')
         pd.DataFrame(evo_lmode).to_csv(path, header=None, index=None)
-    return stat_p, stat_m, evo_lmode
+    return stats, evo_lmode

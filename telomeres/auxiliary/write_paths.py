@@ -18,9 +18,6 @@ import telomeres.model.parameters as par
 from telomeres.dataset.extract_processed_dataset import \
     write_parameters_linit
 
-# imp.reload(fp)
-# imp.reload(par)
-
 absolute_path = os.path.abspath(__file__)  # Path to extract_processed_dataset.
 current_dir = os.path.dirname(absolute_path)  # Path to auxiliary directory.
 parent_dir = os.path.dirname(current_dir)  # Path to telomeres directory.
@@ -28,10 +25,11 @@ projet_dir = os.path.dirname(parent_dir)
 
 FOLDER_SIM = join(projet_dir, "simulations")
 FOLDER_FIG = join(projet_dir, "figures")
+FOLDER_DATA = join(projet_dir, "data")
+
 FOLDER_L = "lineage"
 FOLDER_P = "population"
 FOLDER_FC = "finalCut"
-
 FOLDER_DAT = 'dataset'
 
 # PAR_DEFAULT_LIN = {'is_htype_accounted': par.HTYPE_CHOICE,
@@ -564,6 +562,14 @@ def write_sim_pop_postreat_average(folder_name, simu_count, is_stat=True):
     if is_stat:
         return join(folder_name, f'postreat_s{simu_count}_evo_statistics.npy')
     return join(folder_name, f'postreat_s{simu_count}_evo_as_one_simu.npy')
+
+
+def write_sim_c_csv(folder_name, simu_count):
+    return join(folder_name, f'output_s{simu_count}_cOD.csv')
+
+
+def write_sim_lmode_csv(folder_name, simu_count):
+    return join(folder_name, f'output_s{simu_count}_lmode.csv')
 
 
 def write_sim_pop_postreat_evo_from_path(file_name):

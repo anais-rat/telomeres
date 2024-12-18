@@ -55,10 +55,10 @@ import telomeres.model.parameters as par
 # np.random.seed(1)  # NB: comment to generate new random.
 
 # True to save figures.
-IS_SAVED = True
+IS_SAVED = False
 
 # Plotting style: 'manuscript' or 'article'.
-FORMAT = 'manuscript'
+FORMAT = 'article'
 
 # Number of processor used for parallel computing.
 PROC_COUNT = 1  # Add one for cluster.
@@ -124,7 +124,7 @@ GSEN_EXP_MUTANT = DATA_EXP_MUTANT_SEN[1]['sen']
 # --------
 
 if FORMAT == "manuscript":
-    FIG_SIZE = (4.7, 8)
+    FIG_SIZE = (5.8, 9.5)  # (4.7, 8)
 else:
     FIG_SIZE = (5.8, 9.5)
 
@@ -139,7 +139,7 @@ GMAX = np.shape(CYCLES_EXP)[1]  # Maximum lineage length in the dataset.
 
 
 # > Distributions of cycle duration time (cdt) per category.
-# pd.plot_cycles_from_dataset(FIG_DIR, IS_SAVED)
+pd.plot_cycles_from_dataset(FIG_DIR, IS_SAVED)
 
 
 # > Cycle duration times in generation and lineage.
@@ -150,7 +150,7 @@ if FORMAT == 'manuscript':  # With legend for types.
                             fig_size=FIG_SIZE)
     pl.plot_lineages_cycles(CYCLES_EXP, IS_EXP, FIG_DIR,
                             is_dead=DATA_EXP[1]['death'], gmax=GMAX,
-                            fig_size=(5.8, 9.5))
+                            fig_size=FIG_SIZE)
 
 else:  # Without legend.
 
@@ -184,10 +184,12 @@ if FORMAT == 'manuscript':
 # > Type H unseen.
 PAR = deepcopy(PAR_DEFAULT)
 PAR['is_htype_seen'] = False
+
 data = sim.simulate_lineages_evolution(len(CYCLES_EXP), ['senescent'], PAR,
                                        is_evo_returned=True)
 data = sim.sort_lineages(data, 'gdeath')
 pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR,
+                        # , is_data_saved="Fig2c")
                         gmax=GMAX, fig_size=FIG_SIZE)
 
 if FORMAT == 'manuscript':  # With legend for types.
@@ -196,13 +198,13 @@ if FORMAT == 'manuscript':  # With legend for types.
                             fig_size=FIG_SIZE)
 elif FORMAT == 'article':  # 2 additional simulations.
     for seed in [2, 3]:
-        np.random.seed(seed)
+        np.random.seed(seed)  # Not working. To repair for reproducible simu...
         data = sim.simulate_lineages_evolution(len(CYCLES_EXP), ['senescent'],
                                                PAR, is_evo_returned=True)
         data = sim.sort_lineages(data, 'gdeath')
         pl.plot_lineages_cycles(data[0]['cycle'], IS_EXP, FIG_DIR,  gmax=GMAX,
+                                # is_data_saved=["SFig2a", "SFig2b"][seed-2])
                                 add_to_name=str(seed), fig_size=FIG_SIZE)
-    np.random.seed(1)
 
 
 # > Average of 2D matrices
@@ -279,7 +281,7 @@ if FORMAT == 'manuscript':
 else:
     LABELS = [r'$nta$', r'$sen_A$', r'$sen$', r'$sen_B$']
     pl.plot_gcurves_exp(DATA_EXP, CHARACTERISTICS_S, FIG_DIR, labels=LABELS,
-                        is_gathered=False)
+                        is_gathered=False, is_data_saved=True)
 
 # Print proportion of type B among senescent.
 if FORMAT == 'manuscript':

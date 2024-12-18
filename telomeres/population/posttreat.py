@@ -9,6 +9,7 @@ Created on Wed Jul  6 16:30:04 2022
 from os.path import join
 import numpy as np
 import os
+from pandas import DataFrame
 import seaborn as sns
 import warnings
 
@@ -16,8 +17,9 @@ import telomeres.auxiliary.figures_properties as fp
 import telomeres.auxiliary.functions as fct
 import telomeres.auxiliary.keys as ks
 import telomeres.auxiliary.write_paths as wp
+from telomeres.dataset.extract_processed_dataset import \
+    extract_population_lmode
 import telomeres.model.parameters as par
-import telomeres.population.simulation as sim
 
 
 # Parameters for plottings
@@ -453,3 +455,62 @@ def postreat_cgen(is_stat, folder, simu_count):
          'perdown': evo_g_pdown, 'perup': evo_g_pup, 'std': evo_g_std}
     np.save(path, d)
     return d
+
+
+DAY_COUNT_EXP = len(extract_population_lmode()[0])
+
+def statistics_simus_csv(para_count, cell_count, simu_count, par_update=None):
+    """ Extract to cvs format the evolution data of the `simu_count` first
+    simulations, saved in `output_i.npy` and `output_i_p_from_c.npy` files,
+    contained in the folder corresponding to the simulation parameters passed
+    in argument. Only daily points are kept, from day 1 onwards.
+
+    """
+    folder = wp.write_simu_pop_subdirectory(cell_count, para_count,
+                                            par_update=par_update)
+    simus = np.arange(simu_count)
+    # Load paths to all simulations in a list.
+    s = [join(folder, f'output_{i:02d}.npy') for i in simus + 1]
+    s_postreat = [join(folder, f'output_{i:02d}_p_from_c.npy') for i in simus +
+                  1]
+    # Genearal data.
+    # > Paths to data.
+    stat_data_path = wp.write_sim_pop_postreat_average(folder, simu_count)
+    # > Times array (only up to `t_max`).
+    times = np.load(stat_data_path, allow_pickle='TRUE').any().get('times')
+    time_count = len(times)
+    # t_max = min(t_max, times[-1])
+    # times = times[times <= t_max]
+    # > Days arrays.
+    days = np.arange(1, int(times[-1]) + 1)  # DAY_COUNT_EXP)  # (1, t_max + 1)
+    print(days)
+    idxs_bf_dil = np.array([np.where(times == day)[0][0] - 1 for day in days]
+                           ).astype('int')
+    # > For all key to postreat.
+    for key in ['evo_c']:
+        print(f'\n Save {key} in csv at: {folder}')
+        # We reshape to common shape for all simulations.
+        evo_s = [np.load(s_postreat[i], allow_pickle='TRUE').any().get(
+                 key) for i in simus]
+        evo_s = [fct.reshape_with_nan(evo_s[i], time_count, 0)[idxs_bf_dil] for
+                 i in simus]
+        name = s[0].replace('01.npy', f's{simu_count}_cOD.csv')
+        DataFrame(evo_s).to_csv(name, header=None, index=None)
+
+    # > Time evolution of telomere lengths.
+    # > Times array up to `t_max`.
+    times = np.load(stat_data_path, allow_pickle='TRUE').any().get('times')
+    # > Days arrays.
+    days_exp = np.arange(DAY_COUNT_EXP)
+    idxs_bf_dil = np.array([np.where(times == day)[0][0] for day in
+                            days_exp[days_exp <= times[-1]]])
+    day_max = min(len(days_exp), len(idxs_bf_dil))
+    idxs_bf_dil = idxs_bf_dil[:day_max]
+    for key in ['evo_lmode']:
+        print(f'\n Save {key} in csv at: {folder}')
+        evo_s = [fct.reshape_with_nan(np.load(
+            s[i], allow_pickle='TRUE').any().get(key), time_count,
+            0)[idxs_bf_dil] for i in simus]
+        name = s[0].replace('01.npy', f's{simu_count}_lmode.csv')
+        DataFrame(evo_s).to_csv(name, header=None, index=None)
+    return

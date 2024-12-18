@@ -5,10 +5,10 @@ __pycache__/
 # NEW
 *~
 data_finalCut/
+data_ignored/
 figures/
 ignore/
 simulations/
-test/
 demo/.ipynb_checkpoints
 
 # C extensions

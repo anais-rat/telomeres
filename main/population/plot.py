@@ -45,7 +45,8 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
 # ----------
 
     IS_SAVED = True
-    FORMAT = 'manuscript'
+    FORMAT = 'article'
+    # FORMAT = 'manuscript'
 
     # Global plotting parameters and figure directory.
     # .........................................................................
@@ -138,7 +139,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
 # ----------
 
     ANC_PROP = 0.5
-    TMAX_TO_PLOT = 7
+    TMAX = 7
 
     CELL_COUNTS = np.array([2, 5, 10, 20, 50, 100, 200, 300, 500, 1000])
     XTICKS = [2, 5, 10, 20, 50, 100, 200, 500, 1000]
@@ -166,7 +167,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                      xticks=XTICKS, fig_size=fig_size,
                      bbox_to_anchor=bbox_to_anchor2)
     pp.plot_evo_pfixed(CELL_COUNTS, SIMU_COUNTS, ANC_PROP, FIG_DIR,
-                       TMAX_TO_PLOT, bbox_to_anchor=bbox_to_anchor)
+                       TMAX, bbox_to_anchor=bbox_to_anchor)
 
 
 # -------------------------------------
@@ -174,6 +175,15 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
 # -------------------------------------
 
     PARA_COUNT = 1
+    if FORMAT == 'manuscript':
+        IS_ALL_POINTS = False
+    else:
+        IS_ALL_POINTS = True
+
+
+# Usual strain 'TetO2-TLC1' (Soudet et al. 2014)
+# ----------------------------------------------
+
     ANC_GROUP_COUNT = 10
     if FORMAT == 'manuscript':
         bbox_to_anchor = None
@@ -184,7 +194,9 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
         fig_size = (6, 11)
         fig_size_gen = (5.8, 3.8)
 
-    # > N_init = 1000, k = 15.
+    # > N_init = 1000, k = 15
+    # .......................
+
     CELL_COUNT = 1000
     SIMU_COUNT = 15
     TMAX_S = [8, 9]  # Maximum time plotted (day).
@@ -192,42 +204,101 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
         pp.plot_evo_c_n_p_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
                                             FIG_DIR, tmax)
         pp.plot_evo_l_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
-                                        FIG_DIR, tmax)
+                                        FIG_DIR, tmax, is_all_points=True)
 
     TMAX = 8
     pp.plot_evo_p_anc_pcfixed_from_stat(CELL_COUNT, PARA_COUNT,
                                         SIMU_COUNT, ANC_GROUP_COUNT,
-                                        FIG_DIR, TMAX_TO_PLOT, is_old_sim=True)
+                                        FIG_DIR, TMAX, is_old_sim=True)
     pp.plot_evo_gen_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
-                                      FIG_DIR, TMAX_TO_PLOT,
+                                      FIG_DIR, TMAX,
                                       fig_size=fig_size_gen,
                                       bbox_to_anchor=bbox_to_anchor)
 
-    # > N_init = 300, k = 30.
+    # > N_init = 300, k = 30
+    # ......................
+
     CELL_COUNT = 300
     SIMU_COUNT = 30
     TMAX = 7
+
     # >> Default r_sat (= 1000).
-    pp.plot_evo_p_anc_pcfixed_from_stat(CELL_COUNT, PARA_COUNT,
-                                        SIMU_COUNT, ANC_GROUP_COUNT,
-                                        FIG_DIR, TMAX_TO_PLOT)
+    pp.plot_evo_p_anc_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
+                                        ANC_GROUP_COUNT, FIG_DIR, TMAX)
     pp.plot_hist_lmin_at_sen(CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR,
                              day_count=TMAX, width=4,
                              bbox_to_anchor=bbox_to_anchor, fig_size=fig_size)
 
     # >> r_sat = 720.
-    if FORMAT == 'manuscript':
-        TMAX = 9
-        R_SAT_NEW = 720
+    TMAX = 9
+    R_SAT_NEW = 720
 
-        PAR_SAT_NEW = deepcopy(par.PAR_SAT)
-        PAR_SAT_NEW['prop'] = R_SAT_NEW
-        PAR_UPDATE = {'sat': PAR_SAT_NEW}
+    PAR_SAT_NEW = deepcopy(par.PAR_SAT)
+    PAR_SAT_NEW['prop'] = R_SAT_NEW
+    PAR_UPDATE = {'sat': PAR_SAT_NEW}
+    if FORMAT == 'manuscript':
         pp.plot_evo_c_n_p_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
                                             FIG_DIR, TMAX,
                                             par_update=PAR_UPDATE)
         pp.plot_evo_l_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
                                         FIG_DIR, TMAX, par_update=PAR_UPDATE)
+    else:
+        pp.plot_evo_c_n_p_pcfixed_from_stat(
+            CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX,
+            par_update=PAR_UPDATE, is_only_exp=True, is_all_points=True)
+
+
+# Pol32 strain (Lydeard et al., 2007)
+# -----------------------------------
+
+    STRAIN = 'POL32'
+
+    TMAX_TO_PLOT = 12
+
+    L_TRANS_NEW = 40  # Translation of 40bp to match the experiment.
+    PAR_NEW = deepcopy(par.PAR)
+    PAR_NEW[2][0] = L_TRANS_NEW
+
+    PROP_SAT_NEW = 402  # New r_sat value to match the experiment.
+    PAR_SAT_NEW = deepcopy(par.PAR_SAT)
+    PAR_SAT_NEW['prop'] = PROP_SAT_NEW
+
+    PAR_UPDATE = {'fit': PAR_NEW, 'sat': PAR_SAT_NEW}
+
+    IS_ALL_POINTS = True
+    pp.plot_evo_c_n_p_pcfixed_from_stat(
+        CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX_TO_PLOT,
+        par_update=PAR_UPDATE, strain=STRAIN, is_only_exp=True,
+        is_all_points=IS_ALL_POINTS, ysim_scale='log', yexp_scale='log')
+
+
+# Rad51 strain (Rat et al. 2024, data from V. Martinez, T. Teixeira)
+# ------------------------------------------------------------------
+
+    STRAIN = 'RAD51'
+
+    TMAX_TO_PLOT = 9
+
+    PROP_SAT_NEW = 560  # New r_sat value to match the experiment.
+    PAR_SAT_NEW = deepcopy(par.PAR_SAT)
+    PAR_SAT_NEW['prop'] = PROP_SAT_NEW
+
+    P_EXIT_NEW = deepcopy(par.P_EXIT)
+    P_EXIT_NEW['accident'] = 5.4 / 100  # New p_accident, the value of RAD51.
+
+    PAR_UPDATE = {'sat': PAR_SAT_NEW, 'p_exit': P_EXIT_NEW}
+
+    PAR_UPDATE_BIS = {'sat': PAR_SAT_NEW}  # Data of the rad51_
+
+    pp.plot_evo_c_n_p_pcfixed_from_stat(
+        CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX_TO_PLOT,
+        par_update=PAR_UPDATE, strain=STRAIN, par_update_bis=PAR_UPDATE_BIS,
+        is_only_exp=True, is_all_points=IS_ALL_POINTS)
+
+    pp.plot_evo_c_n_p_pcfixed_from_stat(
+        CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX_TO_PLOT,
+        par_update=PAR_UPDATE, strain=STRAIN, is_only_exp=True,
+        is_all_points=IS_ALL_POINTS)
 
 
 # --------------------

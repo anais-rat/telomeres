@@ -107,7 +107,6 @@ PAR_SEN_B = [2.45423414e-06, 0.122028128, 0.0]  # Our fit.
 # ------------------------------
 
 
-
 # Experimental conditions
 # -----------------------
 
@@ -178,7 +177,7 @@ else:
 # > Computed.
 TIMES_PER_DAY_COUNT = 200  # At least `24 * 6 / CYCLE_MIN`.
 # > Saved.
-TIMES_SAVED_PER_DAY_COUNT = 150
+TIMES_SAVED_PER_DAY_COUNT = 50 #50  # 150 !!!!
 
 # Time step [day] between dilution time and the time just before.
 STEP = 0.001  # Lower than `1 / TIMES_PER_DAY_COUNT`.

@@ -100,6 +100,10 @@ PAR_RC_HEATMAP = {'axes.facecolor': ".94",
 
 FONT_SIZE = sns.plotting_context()['axes.labelsize']
 
+FOLDER_LIN_DATA = os.path.join(wp.FOLDER_DATA, 'processed',
+                               'cycles_TetO2-TLC1')
+
+
 def type_of_sort_to_label_string(type_of_sort):
     """Return the readable string that indicates the type of sort given in
     argument.
@@ -346,7 +350,7 @@ def compute_n_plot_gcurve_error(exp_data_raw, lineage_count_on_all_simu,
 def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, #font_size=FONT_SIZE,
                          curve_to_plot=None, lineage_types=None, is_dead=None,
                          evo_avg=None, gmax=None, add_to_name=None,
-                         bbox_to_anchor=None, fig_size=None):
+                         bbox_to_anchor=None, fig_size=None, is_data_saved=''):
     """Plot cycle duration times (in the order given) indicating the type of
     each lineages or if dead before the end of the experiment if given in
     argument. If not None also plot `curve_to_plot` (can be e.g. `gtrig_sen`).
@@ -371,6 +375,12 @@ def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, #font_size=FONT_SIZE,
         plt.figure(figsize=fig_size)  # default: (6.4, 4.8)
         df = pd.DataFrame(data=cycles.astype(float), columns=generations,
                           index=lineages)
+        if is_data_saved != '':
+            # Save to create `source data` file easily (not used by python).
+            # df = pd.DataFrame(data[0]['cycle'][::-1],
+            #                   index=np.arange(len(data[0]['cycle'])))
+            df.to_csv(os.path.join(FOLDER_LIN_DATA, 'Source Data Fig2b.csv'),
+                      index=False)
         if isinstance(evo_avg, type(None)):
             ylabel = LABELS['ax_lin']
             blabel = LABELS['cycle']
@@ -438,7 +448,7 @@ def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, #font_size=FONT_SIZE,
             else:
                 plt.legend(bbox_to_anchor=bbox_to_anchor, loc="upper left",
                            framealpha=0.9).set_zorder(10001)
-    
+
         # Re-arrange legends to last axis
         axis = plt.gca()
         legend = axis.get_legend()
@@ -447,16 +457,15 @@ def plot_lineages_cycles(cycles, is_exp, fig_subdirectory, #font_size=FONT_SIZE,
             axis.add_artist(legend)
 
         # Axis.
-        plt.xlabel(LABELS['ax_gen'], labelpad=6) #, size=font_size)
-        plt.ylabel(ylabel, labelpad=8) # , size=font_size)
+        plt.xlabel(LABELS['ax_gen'], labelpad=6)  # , size=font_size)
+        plt.ylabel(ylabel, labelpad=8)  # , size=font_size)
         plt.ylim(0, lineage_count)
         sns.despine()
         if not isinstance(fig_subdirectory, type(None)):
-            path = wp.write_cycles_path(lineage_count, is_exp,
-                                        is_htype_seen=is_htype_seen,
-                                        lineage_types=lineage_types,
-                                        is_dead=is_dead, evo_avg=evo_avg,
-                                        subdirectory=fig_subdirectory)
+            path = wp.write_cycles_path(
+                lineage_count, is_exp, is_htype_seen=is_htype_seen,
+                lineage_types=lineage_types, is_dead=is_dead, evo_avg=evo_avg,
+                subdirectory=fig_subdirectory)
             if not isinstance(add_to_name, type(None)):
                 path = path.replace('.pdf', f'_{add_to_name}.pdf')
             print("\n Saved at: ", path)
@@ -508,7 +517,8 @@ def plot_lineage_avg_proportions(props, is_exp, fig_subdirectory,
 
 def plot_gcurves_exp(exp_data, characteristics_s, fig_subdirectory,
                      labels=None, is_gathered=False, add_to_name=None,
-                     fig_size=(6.4, 4.8), title=None, tick_spacing=10):
+                     fig_size=(6.4, 4.8), title=None, tick_spacing=10,
+                     is_data_saved=False):
     char_count = len(characteristics_s)
     labels = labels or [''] * char_count
 
@@ -529,6 +539,12 @@ def plot_gcurves_exp(exp_data, characteristics_s, fig_subdirectory,
         else:
             gtrigs_s.append(gtrigs[type_of_sort[1:]])
         lineage_counts.append(len(gtrigs_s[-1]))
+    if is_data_saved:  # Save (for `source data` file; not used by python).
+        gtrigs_final = {labels[k]: gtrigs_s[k] for k in
+                        range(len(characteristics_s))}
+        df = pd.DataFrame.from_dict(gtrigs_final, orient='index').T
+        df.to_csv(os.path.join(FOLDER_LIN_DATA, 'Source Data Fig2b.csv'),
+                  index=False)
 
     colors = sns.color_palette('rocket', char_count)[::-1]
     if is_gathered:

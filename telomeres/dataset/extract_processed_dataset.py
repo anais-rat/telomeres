@@ -81,3 +81,18 @@ def extract_population_concentration_doxM():
     path = os.path.join(DIR, 'population_evolution',
                         'cell_concentration_DOX-.npy')
     return np.load(path, allow_pickle='TRUE').item()
+
+
+def extract_population_concentration_pol32():
+    keys = ['tlc1', 'tlc1_pol32']
+    return {key:
+            np.load(os.path.join(DIR.replace('data', 'data_ignored'),
+                                 f'cell_concentration_{key}.npy'),
+                    allow_pickle='TRUE').item() for key in keys}
+
+def extract_population_concentration_rad51():
+    keys = ['RAD51', 'RAD51_sep', 'RAD51_oct']
+    return {key:
+            np.load(os.path.join(DIR.replace('data', 'data_ignored'),
+                                 f'cell_concentration_{key}.npy'),
+                    allow_pickle='TRUE').item() for key in keys}

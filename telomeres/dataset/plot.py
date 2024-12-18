@@ -338,9 +338,8 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
     sns.kdeplot(data=[cycles[key] for key in keys][::-1], log_scale=False,
                 fill=True, common_norm=False, palette=MY_PALETTE, alpha=.5,
                 linewidth=0, bw_adjust=2, legend=False)
-
-    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
-                         useMathText=is_tex_used)
+    # plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
+    #                      useMathText=is_tex_used)
     plt.legend(labels=[LABELS[key] for key in keys], bbox_to_anchor=(1.1, 1))
     plt.xlabel(LABELS['cycle'], labelpad=6)
     plt.ylabel(LABELS['ax_dens'], labelpad=8, wrap=True)
@@ -374,8 +373,8 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
     sns.kdeplot(data=[cycles[key] for key in keys][::-1], log_scale=False,
                 fill=True, common_norm=False, palette=MY_PALETTE, alpha=.5,
                 linewidth=0, bw_adjust=2.5, legend=False)
-    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
-                         useMathText=is_tex_used)
+    # plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
+    #                      useMathText=is_tex_used)
     plt.xlim(0, 1000)
     plt.legend(labels=[LABELS[key] for key in keys])
     plt.xlabel(LABELS['cycle'], labelpad=6)
@@ -392,8 +391,8 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
     sns.kdeplot(data=[cycles[key] for key in keys][::-1], log_scale=False,
                 fill=True, common_norm=False, palette=MY_PALETTE, alpha=.5,
                 linewidth=0, bw_adjust=2.5, legend=False)
-    plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
-                         useMathText=is_tex_used)
+    # plt.ticklabel_format(axis="y", style='sci', scilimits=(0, 0),
+    #                      useMathText=is_tex_used)
     plt.xlim(0, 1000)
     plt.legend(labels=[LABELS[key + '_short'] for key in keys])
     plt.xlabel(LABELS['cycle'], labelpad=6)
