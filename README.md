@@ -1,8 +1,12 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14525443.svg)](https://doi.org/10.5281/zenodo.14525443)
+
 # Telomeres
 
 ## Overview
 
-Code for "Individual cell fate versus population dynamics revealed by a mathematical model linking telomeres to senescence". 
+Code associated to "Mathematical model linking telomeres to senescence
+in *Saccharomyces cerevisiae* reveals cell lineage versus population
+dynamics".
 
 - Preprint version: [biorxiv.org](https://doi.org/10.1101/2023.11.22.568287)
 - See also Chapter 3 of the PhD thesis: [HAL theses](https://theses.hal.science/tel-04250492)
