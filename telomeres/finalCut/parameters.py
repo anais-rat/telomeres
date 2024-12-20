@@ -36,7 +36,8 @@ def extract_cycles_dataset_finalCut(folder=FOLDER):
     return cdts
 
 
-# AVG_CUT_DELAY = 1 / 0.577 # 7287 # 0.577 # 1.613 # Average nb of gen between end of galactose and cutting.
+# AVG_CUT_DELAY = 1 / 0.577 # 7287 # 0.577 # 1.613 # Average nb of gen between
+#  end of galactose and cutting.
 # PROBA_CUT_ESCAPE = .1 # Proba of/proportion of lineages escaping cutting.
 IDX_DOX = 0
 IDX_GAL = 36  # 6h after Dox addition.
