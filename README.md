@@ -4,7 +4,7 @@
 
 ## Overview
 
-Code associated to "Mathematical model linking telomeres to senescence
+Code associated with "Mathematical model linking telomeres to senescence
 in *Saccharomyces cerevisiae* reveals cell lineage versus population
 dynamics".
 
@@ -44,7 +44,7 @@ the simulations and plot their results.
 
 The code has been tested on the following systems:
 
-- **Linux**: Ubuntu 24.04 LTS
+- **Linux**: Ubuntu 22.04.5 LTS, 24.04 LTS
 - **Mac**: MacOS Big Sur 11.6.2 
 - **Windows**:
 
@@ -74,7 +74,7 @@ sudo apt install texlive-full
 
 ## Dataset
 
-Available in the `data` folder.
+Available in the `data` folder and gathered the *Source Data.xlsx* file provided with the article.
 
 ## Code 
 
