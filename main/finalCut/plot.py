@@ -10,8 +10,9 @@ Script to plot the figures associated to the finalCut experiment.
 
 """
 
-if __name__ == "__main__":  # Required on mac to use multiprocessing called in
-                            # telomeres.lineages.simulation for PROC_COUNT > 1.
+if __name__ == "__main__":
+    # Required on mac to use multiprocessing called in
+    # telomeres.lineages.simulation for PROC_COUNT > 1.
 
     from copy import deepcopy
     # import math  # Needed if DELAY = math.inf
@@ -47,7 +48,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     # FORMAT = 'article'
 
     # Number of processor used for parallel computing.
-    PROC_COUNT = 11  # Add one for cluster.
+    PROC_COUNT = 5  # Add one for cluster.
 
     # Number of simulations used to plot average quantities.
     SIMU_COUNT = 200
@@ -58,7 +59,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
            [0, 40, 58.0])
 
     IDX_DOX = 0
-    IDX_GAL = 6 * 6  # 6h (= 6x6 [10min]) after Dox addition.
+    IDX_GAL = 6 * 6  # 6h (= 6x6 [10 min]) after Dox addition.
     IDX_RAF = 12 * 6  # 9 * 6  # 12h after Dox addition.
     IDXS_FRAME = [IDX_DOX, IDX_GAL, IDX_RAF]
 
@@ -67,9 +68,9 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     DELAY = 9
 
     PAR_FINAL_CUT = {'idxs_frame': IDXS_FRAME,
-                     'delay': 9}  # [h]
+                     'delay': DELAY}
 
-    LENGTHS_CUT = [None, 0, 20, 30, 40, 50, 70]
+    LENGTHS_CUT = [None, 0, 20, 30, 40, 50, 70]  # [bp]
 
     KEYS = ['noFc_n2', 'Fc0_n2', 'Fc20_n2', 'Fc30_n2', 'Fc40_n2', 'Fc50_n2',
             'Fc70_n2']
@@ -143,12 +144,11 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
         cycles = data[0]['cycle']
         gmax = np.shape(cycles)[1]  # Maximum lineage length in the dataset.
 
-        pl.plot_lineages_cycles(cycles, IS_EXP, FIG_DIR, font_size=FONT_SIZE,
-                                lineage_types=data[2], gmax=gmax,
-                                fig_size=FIG_SIZE)
+        pl.plot_lineages_cycles(cycles, IS_EXP, FIG_DIR, fig_size=FIG_SIZE,
+                                lineage_types=data[2], gmax=gmax)
         pl.plot_lineages_cycles(
             cycles, IS_EXP, FIG_DIR,
-            font_size=sns.plotting_context()['axes.labelsize'],
+            #font_size=sns.plotting_context()['axes.labelsize'],
             is_dead=data[1]['death'], gmax=gmax, fig_size=(5.8, 9.5))
 
 
