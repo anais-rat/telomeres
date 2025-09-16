@@ -35,6 +35,10 @@ from telomeres.lineage.plot import compute_n_plot_gcurve_error
 from telomeres.lineage.simulation import type_of_sort_from_characteristics
 from telomeres.dataset.extract_processed_dataset import extract_postreat_lineages
 
+# For random reproducibility
+SEED = 1
+rng = np.random.default_rng(SEED)
+
 
 # Number of processor used for simulation.
 PROC_COUNT = os.cpu_count()
@@ -375,7 +379,7 @@ def optimize_w_cmaes_multiple(
         cmaes_kwargs["CMA_stds"] = np.array(par_bounds[1]) - np.array(par_bounds[0])
         if isinstance(point, type(None)) or i > 0:
             # For non-indidicated 1st run / following runs initial point drawn.
-            point = np.random.uniform(low=par_bounds[0], high=par_bounds[1])
+            point = rng.uniform(low=par_bounds[0], high=par_bounds[1])
         optimizer = cma.CMAEvolutionStrategy(point, sigma, cmaes_kwargs)
         optimizer.disp()
         # logger = cma.CMADataLogger().register(optimizer,

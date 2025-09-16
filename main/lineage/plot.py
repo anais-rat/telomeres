@@ -50,7 +50,8 @@ import telomeres.model.parameters as par
 # ---------------------
 
 # Random seed (for reproducible figures).
-# np.random.seed(1)  # NB: comment to generate new random.
+SEED = 1
+rng = np.random.default_rng(SEED)
 
 # True to save figures.
 IS_SAVED = False
@@ -193,7 +194,7 @@ if FORMAT == "manuscript":
     # WARNING: we need a unique simulation. It is run below (not already run
     #          and saved contrarily to other figures).
     data = sim.simulate_lineages_evolution(
-        len(CYCLES_EXP), ["senescent"], PAR_DEFAULT, is_evo_returned=True
+        len(CYCLES_EXP), ["senescent"], PAR_DEFAULT, is_evo_returned=True, rng=rng
     )
     data = sim.sort_lineages(data, "gdeath")
     pl.plot_lineages_cycles(
@@ -210,7 +211,7 @@ PAR = deepcopy(PAR_DEFAULT)
 PAR["is_htype_seen"] = False
 
 data = sim.simulate_lineages_evolution(
-    len(CYCLES_EXP), ["senescent"], PAR, is_evo_returned=True
+    len(CYCLES_EXP), ["senescent"], PAR, is_evo_returned=True, rng=rng
 )
 data = sim.sort_lineages(data, "gdeath")
 pl.plot_lineages_cycles(
@@ -233,9 +234,8 @@ if FORMAT == "manuscript":  # With legend for types.
     )
 elif FORMAT == "article":  # 2 additional simulations.
     for seed in [2, 3]:
-        np.random.seed(seed)  # Not working. To repair for reproducible simu...
         data = sim.simulate_lineages_evolution(
-            len(CYCLES_EXP), ["senescent"], PAR, is_evo_returned=True
+            len(CYCLES_EXP), ["senescent"], PAR, is_evo_returned=True, rng=rng
         )
         data = sim.sort_lineages(data, "gdeath")
         pl.plot_lineages_cycles(

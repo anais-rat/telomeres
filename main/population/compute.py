@@ -51,6 +51,10 @@ import telomeres.population.posttreat as pps
 # Parameters
 # ----------
 
+# Random seed for reproducibility
+SEED = 1
+rng = np.random.default_rng(SEED)
+
 # Experimental concentration initially / at dilution [cell].
 C_EXP = np.array([300])  # 250, 300. Cas test: 15
 
@@ -206,22 +210,28 @@ for cell_count in C_EXP:
 
             print("Simulation n°", idx)
             time.sleep(10)  # To avoid non created subdirectory.
-            np.random.seed(idx)  # To ensure reproducibility.
 
             sim.simu_parallel(
-                para_count, cell_count, output_index=idx, par_update=PAR_UPDATE
+                para_count,
+                cell_count,
+                output_index=idx,
+                par_update=PAR_UPDATE,
+                rng=rng,
             )
             pps.postreat_from_evo_c(para_count, cell_count, idx, par_update=PAR_UPDATE)
 
         # Otherwise computation in serie.
         else:
             for i in range(1, SIMU_COUNT + 1):
-                np.random.seed(i)
                 print(f"Simulation n° {i}/{SIMU_COUNT}")
                 t_start = time.time()
 
                 sim.simu_parallel(
-                    para_count, cell_count, output_index=i, par_update=PAR_UPDATE
+                    para_count,
+                    cell_count,
+                    output_index=i,
+                    par_update=PAR_UPDATE,
+                    rng=rng,
                 )
                 pps.postreat_from_evo_c(
                     para_count, cell_count, i, par_update=PAR_UPDATE

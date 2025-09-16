@@ -52,6 +52,10 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     # Adjustable, depending on the machine or cluster from which is run the
     # script.
 
+    # Random seed for reproducibility
+    SEED = 1
+    rng = np.random.default_rng(SEED)
+
     PROC_COUNT = 11  # Number of processor used for parallel computing.
     # NB: if run form .batch script `cpu-per-task` should be `PROC_COUNT + 1`.
     #     if run locally, better not exceed your machine capacities.
@@ -126,6 +130,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 proc_count=PROC_COUNT,
                 is_lcycle_count_saved=True,
                 is_evo_saved=True,
+                rng=rng,
             )
 
         elif run_idx < i1 - 1:  # Htype unseen, no evolution array.
@@ -139,6 +144,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False},
                 is_lcycle_count_saved=True,
+                rng=rng,
             )
 
         elif run_idx < i1:
@@ -153,6 +159,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 par_update={"is_htype_seen": False},
                 is_lcycle_count_saved=False,
                 is_evo_saved=True,
+                rng=rng,
             )
 
         # Varying parameters.
@@ -170,6 +177,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 characteristics,
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False, "p_exit": p_exit},
+                rng=rng,
             )
 
         # ii) Varying ltrans.
@@ -197,6 +205,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                     "fit": parameters,
                     "p_exit": p_exit,
                 },
+                rng=rng,
             )
 
         # iii) Varying l0.
@@ -223,6 +232,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                     "fit": parameters,
                     "p_exit": p_exit,
                 },
+                rng=rng,
             )
 
         # iv) Varying l1.
@@ -241,6 +251,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 characteristics,
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False, "fit": parameters},
+                rng=rng,
             )
 
         # v) Varying lmode.
@@ -261,6 +272,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 characteristics,
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False, "fit": parameters},
+                rng=rng,
             )
 
         elif run_idx < i1 + i2 + i3 + i4 + i5 + i6 + i7:
@@ -276,6 +288,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 characteristics,
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False, "p_exit": p_exit},
+                rng=rng,
             )
 
         else:  # Time vs generation evo with best-fit parameters.

@@ -75,6 +75,10 @@ PAR_CYCLES_POSTREAT = [THRESHOLD, CYCLE_MIN, GEN_COUNT_MIN]
 DIR_DATA_RAW = os.path.join("..", "data", "raw")
 DIR_DATA = DIR_DATA_RAW.replace("raw", "processed")
 
+# For random reproducibility
+SEED = 1
+rng = np.random.default_rng(SEED)
+
 # DIR_DATA_IGNORED = os.path.join('..', 'data_ignored')
 
 
@@ -171,7 +175,7 @@ def make_distributions_cycles(data, threshold, cdt_min, sfolder=None):
     cdts_["norB"] = cdts_["norB"][cdts_["norB"] >= 10 * cdt_min]
     # We concatenate (and shuffle) senA and sen B to get sen cycles.
     cdts_["sen"] = np.append(cdts_["senA"], cdts_["senB"])
-    np.random.shuffle(cdts_["sen"])
+    rng.shuffle(cdts_["sen"])
 
     # Saving.
     if not isinstance(sfolder, type(None)):

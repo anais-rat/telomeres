@@ -27,7 +27,6 @@ Created on Wed Jul  6 11:15:36 2022
 from copy import deepcopy
 import multiprocessing as mp
 import numpy as np
-import numpy.random as rd
 from math import inf as infinity
 from scipy import stats
 import os
@@ -54,7 +53,7 @@ from telomeres.model.parameters import PAR_DEFAULT_POP, OVERHANG, PAR_DEFAULT_SI
 # .............................................................................
 
 
-def population_init(c_init_s, par_l_init):
+def population_init(c_init_s, par_l_init, rng):
     """Generate initial subpopulations contentrated according to `c_init_s`.
 
     Parameters
@@ -90,11 +89,11 @@ def population_init(c_init_s, par_l_init):
         # Initial number of cells.
         c_init = c_init_s[i]
         # Lengths generated.
-        dic_s[i]["lengths"] = mfct.draw_cells_lengths(c_init, par_l_init)
+        dic_s[i]["lengths"] = mfct.draw_cells_lengths(c_init, par_l_init, rng)
         # Cycle duration times (cdt).
-        cycles = mfct.draw_cycles_atype(c_init)
+        cycles = mfct.draw_cycles_atype(c_init, rng)
         # Remaining time before death.
-        dic_s[i]["clocks"] = mfct.desynchronize(cycles)
+        dic_s[i]["clocks"] = mfct.desynchronize(cycles, rng)
         # Other data account for non-sencescent type A generation 0 cells.
         dic_s[i]["ancestors"] = ccum_s[i] + np.arange(c_init)
         zeros = np.zeros(c_init)
@@ -105,7 +104,13 @@ def population_init(c_init_s, par_l_init):
 
 
 def population_evolution(
-    times, time_saved_idxs, ancestor_count, cells_data, parameters, cell_count_max=None
+    times,
+    time_saved_idxs,
+    ancestor_count,
+    cells_data,
+    parameters,
+    cell_count_max=None,
+    rng=None,
 ):
     """Simulate the evolution of a given population over a given set of times
     (supposed to be 1 day). Includes saturation.
@@ -211,6 +216,7 @@ def population_evolution(
         If the initial population is empty.
 
     """
+    rng = np.random.default_rng(rng)
     # Updatatable parameters.
     p_sat = parameters["sat"]
     p_exit = parameters["p_exit"]
@@ -378,13 +384,13 @@ def population_evolution(
             # We determine if the cell dies or divides.
             is_dead_accidentally = False
             # > Accidental death (authorized only from generation 1).
-            if mfct.is_accidentally_dead(p_exit["accident"]):
+            if mfct.is_accidentally_dead(p_exit["accident"], rng):
                 if gen > 0:
                     is_dead_accidentally = True
             is_dead = is_dead_accidentally
             # > Natural death (for senescent cells not died accidentally).
             if (not is_dead) and d["sen_counts"][cell] > 0:
-                is_dead = mfct.is_dead(d["sen_counts"][cell], p_exit)
+                is_dead = mfct.is_dead(d["sen_counts"][cell], p_exit, rng)
 
             # If the cell has died.
             if is_dead:
@@ -457,7 +463,7 @@ def population_evolution(
                 # Update of daughters' telomere lengths.
                 # NB: random repartition of mother cell's breads into
                 #     daughters' taking into account coupling.
-                r = rd.binomial(1, 0.5, 16)
+                r = rng.binomial(1, 0.5, 16)
                 d["lengths"][cell] = d["lengths"][cell] - OVERHANG * np.array(
                     [r, 1 - r]
                 )
@@ -503,13 +509,13 @@ def population_evolution(
                         #  and/or length). Iteration on daughters.
                         for dau in dau_idxs:
                             # If senescence is triggered.
-                            if mfct.is_sen_trig(lmins[dau], p_senA):
+                            if mfct.is_sen_trig(lmins[dau], p_senA, rng):
                                 # The daugher enters senescence.
                                 d["sen_counts"][dau] = 1
                                 d["evo_c_sen_ancs"][i, anc] += 1
                                 lmins_gsen["atype"].append(lmins[dau])
                             # Otherwise, if a first arrest is triggered.
-                            elif mfct.is_nta_trig(lmins[dau], p_nta):
+                            elif mfct.is_nta_trig(lmins[dau], p_nta, rng):
                                 # It enters a 1st arrest and becomes type B.
                                 d["nta_counts"][dau] = 1
                                 d["evo_c_B_ancs"][i, anc] += 1
@@ -521,14 +527,14 @@ def population_evolution(
                             d["evo_c_B_ancs"][i, anc] += 1
                             for dau in dau_idxs:  # For each daughter test...
                                 # ... If senescence is triggered.
-                                if mfct.is_sen_trig(lmins[dau], p_senB):
+                                if mfct.is_sen_trig(lmins[dau], p_senB, rng):
                                     # The daugher enters sen and stays B.
                                     d["sen_counts"][dau] = 1
                                     d["evo_c_sen_ancs"][i, anc] += 1
                                     d["evo_c_B_sen_ancs"][i, anc] += 1
                                     lmins_gsen["btype"].append(lmins[dau])
                                 # ... Elif a new seq of arrest is triggered.
-                                elif mfct.is_nta_trig(lmins[dau], p_nta):
+                                elif mfct.is_nta_trig(lmins[dau], p_nta, rng):
                                     # I stays type-B but enters a new arrest.
                                     ar = int(1 - d["nta_counts"][dau])
                                     d["nta_counts"][dau] = ar
@@ -540,7 +546,7 @@ def population_evolution(
                             # For each daughter we test if sen is triggered.
                             for dau in dau_idxs:
                                 # If triggered, the daugther becomes sen H.
-                                if mfct.is_sen_trig(lmins[dau], p_senB):
+                                if mfct.is_sen_trig(lmins[dau], p_senB, rng):
                                     d["sen_counts"][dau] = 1
                                     d["evo_c_sen_ancs"][i, anc] += 1
                                     d["evo_c_H_ancs"][i, anc] += 1
@@ -551,19 +557,21 @@ def population_evolution(
                                 else:  # Otherwise it stays type B.
                                     d["evo_c_B_ancs"][i, anc] += 1
                                     # If it adapts/repairs, it exits arrest.
-                                    if mfct.is_repaired(p_exit["repair"]):
+                                    if mfct.is_repaired(p_exit["repair"], rng):
                                         d["nta_counts"][dau] *= -1
                         else:  # Daugthers cannot turn sen bf having exited arr
                             # They stay type B.
                             d["evo_c_B_ancs"][i, anc] += 1
                             for dau in dau_idxs:
-                                if mfct.is_repaired(p_exit["repair"]):
+                                if mfct.is_repaired(p_exit["repair"], rng):
                                     d["nta_counts"][dau] *= -1
 
                 # Update daughters' clock depending on their updated state.
                 for dau in dau_idxs:
                     d["clocks"][dau] = (
-                        mfct.draw_cycle(d["nta_counts"][dau], d["sen_counts"][dau] > 0)
+                        mfct.draw_cycle(
+                            d["nta_counts"][dau], d["sen_counts"][dau] > 0, rng
+                        )
                         - delay
                     )
 
@@ -722,7 +730,7 @@ def population_evolution(
 #     population_init(np.array([20]), par.PAR_L_INIT)[0], PAR_DEFAULT_POP)
 
 
-def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous):
+def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, rng):
     """Based on the evolutions of `subpop_count` subpopulations, assumed grown
     through `population_evolution` and concatenated in `output_s`, the function
     > Gathers time evolution arrays of subpopulations and return the evolution
@@ -900,7 +908,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous):
         c_init_s = c_subpop * np.ones(para_count)
         c_init_s[-1] += c_dilution % para_count
         # Dilution donw to `c_dilution` choosing cells to keep index uniformly.
-        kept_cell_idxs = rd.choice(c_final, c_dilution, replace=False)
+        kept_cell_idxs = rng.choice(c_final, c_dilution, replace=False)
     # > Otherwise, no dilution but subpop format possibly not classical.
     else:
         # We redefine the repartion in subsimulations for these cells.
@@ -940,7 +948,12 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous):
 
 
 def simu_parallel(
-    para_count, c_init, par_update=None, par_sim_update=None, output_index=None
+    para_count,
+    c_init,
+    par_update=None,
+    par_sim_update=None,
+    output_index=None,
+    rng=None,
 ):
     """Simulate the evolution of a senescing population, daily diluted.
 
@@ -1046,6 +1059,7 @@ def simu_parallel(
     The population entered as argument must be non-empty.
 
     """
+    rng = np.random.default_rng(rng)
     sub_dir_path = wp.write_simu_pop_subdirectory(
         c_init, para_count, par_update=par_update
     )
@@ -1095,7 +1109,7 @@ def simu_parallel(
     evo_keys = ks.evo_keys.copy()
 
     # Creation of the initial popupulation in subpopulation format.
-    data_s = population_init(c_init_s, p["fit"][2])
+    data_s = population_init(c_init_s, p["fit"][2], rng)
 
     # Storage of a part of initial population data.
     d["day_init_data"] = {}
@@ -1134,6 +1148,7 @@ def simu_parallel(
                     data_s[0],
                     p,
                     cell_count_max=cell_count_max,
+                    rng=rng,
                 )
             ]
         # > Otherwise, initialization of the parallelization.
@@ -1158,7 +1173,7 @@ def simu_parallel(
         # Computation of population's evolution and history data on `t_temp`
         # and dilution in subpop format of the population of time `t_temp[-1]`.
         temp, c_init_s, data_s = gather_evo_and_dilute(
-            output_s, c_init, para_count, gen_count
+            output_s, c_init, para_count, gen_count, rng
         )
         # Update of concentration just after dilution
         c_current = afct.nansum(c_init_s)

@@ -26,12 +26,8 @@ from copy import deepcopy
 import glob
 import multiprocessing as mp
 import numpy as np
-import numpy.random as rd
 import os
 import warnings
-# NB: for parallelization issues need to use rd.RandomState() rather than rd.
-# rd.RandomState() replaced by rd. but seeds initilize for reproducinility.
-# idem with population_simulation
 
 import telomeres.auxiliary.figures_properties as fp
 import telomeres.auxiliary.functions as afct
@@ -57,7 +53,7 @@ IS_LOAD_PRINTED = False
 IS_TO_SIM_PRINTED = False
 
 
-def simulate_lineage_evolution(parameters):
+def simulate_lineage_evolution(parameters, rng):
     """Simulate the evolution of one lineage from after addition of the DOX to
     death (the cell before DOX addition is type A non-senescent with telomere
     lengths drawn from telomerase-positive distribution at equilibrium).
@@ -153,7 +149,7 @@ def simulate_lineage_evolution(parameters):
     is_senescent = False
     nta_count = 0
     generation = -1
-    evo_lengths = mfct.draw_cells_lengths(1, par_l_init)
+    evo_lengths = mfct.draw_cells_lengths(1, par_l_init, rng)
     evo_lavg = [np.mean(evo_lengths)]
     evo_lmin = [np.min(evo_lengths)]
     gtrigs = {"nta": np.array([]), "sen": np.NaN}
@@ -163,17 +159,19 @@ def simulate_lineage_evolution(parameters):
     if not isinstance(parameters["finalCut"], type(None)):
         # Cell cycles [min] under rafinose conditions.
         evo_cycle = np.array(
-            [fc_fct.draw_cycle_finalCut(nta_count, is_senescent, is_galactose)]
+            [
+                fc_fct.draw_cycle_finalCut(nta_count, is_senescent, is_galactose, rng)
+            ]
         )
         # Time at the end of the 1st cycle.
-        t_current = evo_cycle[0] * rd.uniform()  # Time since Dox addition.
+        t_current = evo_cycle[0] * rng.uniform()  # Time since Dox addition.
         # Times [min] of change in experimental conditions.
         idx_dox, idxf_gal, idxf_raf = parameters["finalCut"]["idxs_frame"]
         delay = parameters["finalCut"]["delay"] * 60
         t_gal = (idxf_gal - idx_dox) * 10  # (1 frame every 10 min).
         t_raf = (idxf_raf - idx_dox) * 10
     else:  # Cell cycle [min] under usual conditions.
-        evo_cycle = mfct.draw_cycles_atype(1)
+        evo_cycle = mfct.draw_cycles_atype(1, rng)
     is_telo_cut = False  # No cut initially.
 
     # While the lineage is not extinct.
@@ -182,7 +180,7 @@ def simulate_lineage_evolution(parameters):
         # If the current cell dies accidentally, we store it with its state
         #    (senescent or not) and generation of death, and the lineage dies.
         # Plus we update the lineage data depending on `is_unseen_acc`.
-        if generation >= 0 and mfct.is_accidentally_dead(p_exit["accident"]):
+        if generation >= 0 and mfct.is_accidentally_dead(p_exit["accident"], rng):
             is_accidental_death = True
             gtrigs["death"] = generation
             lineage_is_alive = False
@@ -199,7 +197,7 @@ def simulate_lineage_evolution(parameters):
                     lcycle_per_seq_count["nta"] = lcycle_per_seq_count["nta"][:-1]
 
         # If it is senescent we test if it dies.
-        elif is_senescent and mfct.is_dead(lcycle_per_seq_count["sen"], p_exit):
+        elif is_senescent and mfct.is_dead(lcycle_per_seq_count["sen"], p_exit, rng):
             lineage_is_alive = False  # If so the lineage extincts.
             gtrigs["death"] = generation  # We strore the gen of death.
 
@@ -211,7 +209,7 @@ def simulate_lineage_evolution(parameters):
             evo_cycle = np.append(evo_cycle, evo_cycle[-1])
 
             # Computation of telomere lengths following the shortening model.
-            loss = rd.RandomState().binomial(1, 0.5, 16)
+            loss = rng.binomial(1, 0.5, 16)
             evo_lengths[-1] -= OVERHANG * np.array([loss, 1 - loss])
             # Update of other length-related evolution arrays.
             evo_lavg = np.append(evo_lavg, np.mean(evo_lengths[-1]))
@@ -224,12 +222,12 @@ def simulate_lineage_evolution(parameters):
                 # If the mother is (non-senescent) type A.
                 if nta_count == 0:
                     # If senescence is triggered, the cell enters senescence.
-                    if mfct.is_sen_trig(evo_lmin[-1], par_sen[0]):
+                    if mfct.is_sen_trig(evo_lmin[-1], par_sen[0], rng):
                         is_senescent = True
                         gtrigs["sen"] = generation
                         lcycle_per_seq_count["sen"] = 1
                     # Otherwise, if a 1st arrest triggered, it becomes type B.
-                    elif mfct.is_nta_trig(evo_lmin[-1], par_nta):
+                    elif mfct.is_nta_trig(evo_lmin[-1], par_nta, rng):
                         nta_count = 1
                         gtrigs["nta"] = np.array([generation])
                         # 1st sequence of nta.
@@ -239,12 +237,12 @@ def simulate_lineage_evolution(parameters):
                 # Otherwise mother was (non-senescent) type B.
                 elif nta_count < 0:  # > If not arrested type B.
                     # If senescence is triggered, the cell enters sen.
-                    if mfct.is_sen_trig(evo_lmin[-1], par_sen[1]):
+                    if mfct.is_sen_trig(evo_lmin[-1], par_sen[1], rng):
                         is_senescent = True
                         gtrigs["sen"] = generation
                         lcycle_per_seq_count["sen"] = 1
                     # Elif new arrest triggered, enters a new arrest.
-                    elif mfct.is_nta_trig(evo_lmin[-1], par_nta):
+                    elif mfct.is_nta_trig(evo_lmin[-1], par_nta, rng):
                         nta_count = 1 - nta_count
                         gtrigs["nta"] = np.append(gtrigs["nta"], generation)
                         # New sequence of nta.
@@ -254,7 +252,7 @@ def simulate_lineage_evolution(parameters):
                 else:  # > Otherwise mother was (non-senescent) arrested B.
                     # If H type taken into account, cell can turn sen (H).
                     if parameters["is_htype_accounted"] and mfct.is_sen_trig(
-                        evo_lmin[-1], par_sen[1]
+                        evo_lmin[-1], par_sen[1], rng
                     ):
                         is_senescent = True
                         if parameters["is_htype_seen"]:
@@ -272,7 +270,7 @@ def simulate_lineage_evolution(parameters):
                         # And the last seq of nta is forgotten.
                         lcycle_per_seq_count["nta"] = lcycle_per_seq_count["nta"][:-1]
                     # Else, if it adapts/repairs it exits arrest.
-                    elif mfct.is_repaired(p_exit["repair"]):
+                    elif mfct.is_repaired(p_exit["repair"], rng):
                         nta_count *= -1
                     # Otherwise it stays arrested.
                     else:
@@ -285,10 +283,10 @@ def simulate_lineage_evolution(parameters):
 
             # Update of the cell cycle duration time and array of cyle times.
             if isinstance(parameters["finalCut"], type(None)):
-                evo_cycle[-1] = mfct.draw_cycle(nta_count, is_senescent)
+                evo_cycle[-1] = mfct.draw_cycle(nta_count, is_senescent, rng)
             else:  # Experimental conditions of the fincalCut experiment.
                 evo_cycle[-1] = fc_fct.draw_cycle_finalCut(
-                    nta_count, is_senescent, is_galactose
+                    nta_count, is_senescent, is_galactose, rng
                 )
             # If finalcut experiment, possible change of condition and cut.
             if not isinstance(parameters["finalCut"], type(None)):
@@ -305,7 +303,7 @@ def simulate_lineage_evolution(parameters):
                         # If the cell (gen =- 1, that experiences Gal) is
                         # arrested the lin is excluded from data: new lin simu.
                         if nta_count > 0 or is_senescent:
-                            return simulate_lineage_evolution(parameters)
+                            return simulate_lineage_evolution(parameters, rng)
                         is_galactose = True
                         # cdt_w_gal = t_current - t_gal
                         cdt_after_gal = t_current - t_gal
@@ -330,12 +328,14 @@ def simulate_lineage_evolution(parameters):
                         t_gal <= t_current, t_current <= t_raf + delay
                     ):
                         if fc_fct.is_cut_exponential(
-                            cdt_after_gal=cdt_after_gal, dt_since_gal=t_current - t_gal
+                            cdt_after_gal=cdt_after_gal,
+                            dt_since_gal=t_current - t_gal,
+                            rng=rng,
                         ):
                             is_telo_cut = True
                             # Index of the chromosome cut...
                             t2 = rd.randint(CHROMOSOME_COUNT)
-                            t1 = rd.randint(2)  # ... and extremity cut.
+                            t1 = rng.randint(2)  # ... and extremity cut.
                             evo_lengths[-1][t1, t2] = parameters["finalCut"]["lcut"]
 
     # Computation of the type of the lineage (ie of the last cell).
@@ -363,7 +363,7 @@ def simulate_lineages_evolution(
     parameters,
     is_lcycle_count_returned=False,
     is_evo_returned=False,
-    seed=None,
+    rng=None,
 ):
     """Simulate the independent evolution of `lineage_count` lineages having
     characteristics `characteristics`.
@@ -422,6 +422,7 @@ def simulate_lineages_evolution(
     """
     # Initialization.
     print("New subsimulation.")
+    rng = np.random.default_rng(rng)
     lineage_types = np.array([])
     is_unseen_htypes = np.array([])
     is_accidental_deaths = np.array([])
@@ -444,7 +445,7 @@ def simulate_lineages_evolution(
             is_unseen_htype,
             is_accidental_death,
             lcycle_per_seq_count,
-        ) = simulate_lineage_evolution(parameters)
+        ) = simulate_lineage_evolution(parameters, rng)
 
         # And keep it only if it has the expected characteristic.
         if not is_as_expected_lineage(
@@ -534,6 +535,7 @@ def simulate_lineages_evolutions(
     proc_count=1,
     is_lcycle_count_saved=False,
     is_evo_saved=False,
+    rng=None,
 ):
     """Simulate (possibly in parallel) `simu_count` times
     `simulate_lineages_evolutions` (with parameters entered as argument).
@@ -552,6 +554,7 @@ def simulate_lineages_evolutions(
         List of `simulation_count` outputs of `simulate_lineages_evolutions`.
 
     """
+    rng = np.random.default_rng(rng)
     # Updatatable parameters.
     p = deepcopy(PAR_DEFAULT_LIN)
     if isinstance(par_update, dict):
@@ -585,7 +588,9 @@ def simulate_lineages_evolutions(
     }
     if proc_count == 1:
         output_s = [
-            simulate_lineages_evolution(lineage_count, characteristics, p, **kwargs)
+            simulate_lineages_evolution(
+                lineage_count, characteristics, p, **kwargs, rng=rng
+            )
             for s in simus
         ]
     # > Otherwise, initialization of the parallelization.
@@ -600,7 +605,7 @@ def simulate_lineages_evolutions(
             pool.apply_async(
                 simulate_lineages_evolution,
                 args=(lineage_count, characteristics, p),
-                kwds=kwargs,
+                kwds=kwargs | {"rng": rng.integers(2**32) + i},
             )
             for i in simus
         ]
@@ -1220,6 +1225,7 @@ def simulate_n_average_lineages(
     parameters_comput=None,
     proc_count=1,
     is_saved=None,
+    rng=None,
 ):
     """Simulates `simulation_count` times the evolution, through
     `simulate_lineages_evolution`, of `lineage_count` lineages with given
@@ -1351,7 +1357,10 @@ def simulate_n_average_lineages(
                     if not is_time_tested:
                         args = [parameters_comput[0], characteristics, p]
                         if run_with_limited_time(
-                            simulate_lineages_evolution, parameters_comput[1], args
+                            simulate_lineages_evolution,
+                            parameters_comput[1],
+                            args,
+                            kwargs={"rng": rng},
                         ):
                             print("Too long")
                             is_too_long = True
@@ -1371,6 +1380,7 @@ def simulate_n_average_lineages(
                                 proc_count=proc_count,
                                 is_lcycle_count_saved=psim["is_lcycle_count_saved"],
                                 is_evo_saved=is_evo_saved,
+                                rng=rng,
                             )
                         else:
                             data_s_0 = [
@@ -1382,6 +1392,7 @@ def simulate_n_average_lineages(
                                         "is_lcycle_count_saved"
                                     ],
                                     is_evo_returned=is_evo_temp,
+                                    rng=rng,
                                 )
                                 for s in simus
                             ]
@@ -1435,6 +1446,7 @@ def compute_gtrigs(
     par_update=None,
     proc_count=1,
     is_propB=False,
+    rng=None,
 ):
     p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
@@ -1458,6 +1470,7 @@ def compute_gtrigs(
         characteristics,
         par_update=p_update,
         proc_count=proc_count,
+        rng=rng,
     )[type_of_sort]
     if is_propB:
         sim_bprop = gtrigs_sim[2][1]["btype"]["mean"]
@@ -1487,6 +1500,7 @@ def compute_lineage_types(
     gcurve,
     par_update=None,
     proc_count=1,
+    rng=None,
 ):
     p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
@@ -1508,6 +1522,7 @@ def compute_lineage_types(
         characteristics,
         par_update=p_update,
         proc_count=proc_count,
+        rng=rng,
     )[type_of_sort]
     lin_types_sim = data[2]
 
@@ -1534,6 +1549,7 @@ def compute_lmin_histogram_data(
     lineage_count_on_all_simu=None,
     par_update=None,
     proc_count=1,
+    rng=None,
 ):
     """Warning: the number of experimental lineages having the given
     characteristics must be identical to all the types of sort given.
@@ -1564,13 +1580,19 @@ def compute_lmin_histogram_data(
             par_update=p_update,
             par_sim_update=psim_update,
             proc_count=proc_count,
+            rng=rng,
         )[type_of_sort][5]
         data.append([axis, hist])
     return lineage_counts, data
 
 
 def compute_lcycle_histogram_data(
-    exp_data, simulation_count, characteristics, par_update=None, proc_count=1
+    exp_data,
+    simulation_count,
+    characteristics,
+    par_update=None,
+    proc_count=1,
+    rng=None,
 ):
     p_update = deepcopy(par_update) or {}
     if "is_htype_accounted" in list(p_update.keys()):
@@ -1594,6 +1616,7 @@ def compute_lcycle_histogram_data(
         par_update=p_update,
         par_sim_update=psim_update,
         proc_count=proc_count,
+        rng=rng,
     )[type_of_sort]
     # Extraction of data on the number of long cycless.
     lcycle_counts_exp = exp_data_selected[5]
@@ -1611,6 +1634,7 @@ def compute_lcycle_histogram_data(
             par_update=p_update,
             par_sim_update=psim_update,
             proc_count=proc_count,
+            rng=rng,
         )[type_of_sort]
         lcycle_counts_sim_h = data_sim_h[4]
     return (lineage_count, lcycle_counts_exp, lcycle_counts_sim, lcycle_counts_sim_h)
@@ -1627,6 +1651,7 @@ def compute_evo_avg_data(
     types_of_sort=["lmin"],
     par_update=None,
     proc_count=1,
+    rng=None,
 ):
     p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
@@ -1644,6 +1669,7 @@ def compute_evo_avg_data(
         par_update=p_update,
         par_sim_update=psim_update,
         proc_count=proc_count,
+        rng=rng,
     )
     return {key: data[:2] for key, data in data_s.items()}
 
@@ -1659,6 +1685,7 @@ def compute_postreat_data(
     postreat_dt,
     par_update=None,
     proc_count=1,
+    rng=None,
 ):
     p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
@@ -1677,6 +1704,7 @@ def compute_postreat_data(
         par_update=p_update,
         par_sim_update=psim_update,
         proc_count=proc_count,
+        rng=rng,
     )[type_of_sort]
     return data_s[3]
 
@@ -1688,6 +1716,7 @@ def compute_postreat_data_vs_exp(
     par_update=None,
     proc_count=1,
     strain="TetO2-TLC1",
+    rng=None,
 ):
     """Simulate lineages and return average time evolutions.
 
@@ -1726,5 +1755,6 @@ def compute_postreat_data_vs_exp(
         par_update=p_update,
         par_sim_update=psim_update,
         proc_count=proc_count,
+        rng=rng,
     )[type_of_sort]
     return data_s[3]

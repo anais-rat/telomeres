@@ -57,6 +57,9 @@ import telomeres.auxiliary.write_paths as wp
 import telomeres.lineage.simulation as sim
 import telomeres.model.parameters as par
 
+# Random seed for reproducibility
+SEED = 1
+rng = np.random.default_rng(1)
 
 # ------------------------------------
 # Definition of name-related variables
@@ -236,7 +239,7 @@ if __name__ == "__main__":
         for characteristics in CHARAC_S:
             tstart = time.time()
             sim.simulate_lineages_evolution(
-                LINEAGE_COUNT_PER_TCOMPUT, characteristics, par.PAR_DEFAULT_LIN
+                LINEAGE_COUNT_PER_TCOMPUT, characteristics, par.PAR_DEFAULT_LIN, rng=rng
             )
             tend = time.time()
             tcomputs_temp = np.append(tcomputs_temp, [tend - tstart], axis=0)
