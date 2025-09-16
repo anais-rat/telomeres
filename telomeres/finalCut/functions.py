@@ -54,12 +54,6 @@ def draw_cycle_finalCut(arrest_count, is_senescent, is_galactose, rng):
     conditions (if `is_galactose` is True or False respectively).
 
     """
-    # If the cell is arrested.
-    if is_senescent or arrest_count > 0:
-        if is_galactose:
-            return rng.choice(CDTS_FINALCUT["gal"]["arr"]) * 10
-        return rng.choice(CDTS_FINALCUT["raf"]["arr"]) * 10
-    # Otherwise it experiences a normal cycle.
-    if is_galactose:
-        return rng.choice(CDTS_FINALCUT["gal"]["nor"]) * 10
-    return rng.choice(CDTS_FINALCUT["raf"]["nor"]) * 10
+    sugar = "gal" if is_galactose else "raf"
+    state = "arr" if is_senescent or arrest_count > 0 else "nor"
+    return rng.choice(CDTS_FINALCUT[sugar][state]) * 10

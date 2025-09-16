@@ -171,15 +171,13 @@ def simulate_lineage_evolution(parameters, rng):
     is_telo_cut = False  # No cut initially.
 
     # While the lineage is not extinct.
-    lineage_is_alive = True
-    while lineage_is_alive:
+    while True:
         # If the current cell dies accidentally, we store it with its state
         #    (senescent or not) and generation of death, and the lineage dies.
         # Plus we update the lineage data depending on `is_unseen_acc`.
         if generation >= 0 and mfct.is_accidentally_dead(p_exit["accident"], rng):
             is_accidental_death = True
             gtrigs["death"] = generation
-            lineage_is_alive = False
             # If H-type accounted but not recognized and the lineage is not H.
             if is_unseen_htype is False:
                 # If the lineage was arrested non-senescent at its death.
@@ -191,13 +189,12 @@ def simulate_lineage_evolution(parameters, rng):
                     nta_count = -nta_count + 1
                     lcycle_per_seq_count["sen"] = lcycle_per_seq_count["nta"][-1]
                     lcycle_per_seq_count["nta"] = lcycle_per_seq_count["nta"][:-1]
-            continue
+            break
 
         # If it is senescent we test if it dies.
         if is_senescent and mfct.is_dead(lcycle_per_seq_count["sen"], p_exit, rng):
-            lineage_is_alive = False  # If so the lineage extincts.
             gtrigs["death"] = generation  # We strore the gen of death.
-            continue
+            break
 
         # Otherwise it divides, we add one generation and create the next cell.
         generation += 1
@@ -213,8 +210,12 @@ def simulate_lineage_evolution(parameters, rng):
 
         # Update of other new-born cell's data depending its mother's data
         # (current or previous data) and its telomere lengths.
-        # > If non-senescent mother.
-        if not is_senescent:
+        if is_senescent:
+            # If the cell is senescent, keeps same data than its mother.
+            # New sen cycle, we update the count.
+            lcycle_per_seq_count["sen"] += 1
+        else:
+            # > If non-senescent mother.
             # If the mother is (non-senescent) type A.
             if nta_count == 0:
                 # If senescence is triggered, the cell enters senescence.
@@ -268,10 +269,6 @@ def simulate_lineage_evolution(parameters, rng):
                 else:
                     # Update of the length of current seq of lcycles.
                     lcycle_per_seq_count["nta"][-1] += 1
-        # Otherwise the cell is senescent, keeps same data than its mother.
-        else:
-            # New sen cycle, we update the count.
-            lcycle_per_seq_count["sen"] += 1
 
         # Update of the cell cycle duration time and array of cyle times.
         if parameters["finalCut"] is None:
@@ -280,8 +277,7 @@ def simulate_lineage_evolution(parameters, rng):
             evo_cycle[-1] = fc_fct.draw_cycle_finalCut(
                 nta_count, is_senescent, is_galactose, rng
             )
-        # If finalcut experiment, possible change of condition and cut.
-        if parameters["finalCut"] is not None:
+            # If finalcut experiment, possible change of condition and cut.
             t_current += evo_cycle[-1]  # Time just bf div of current cell.
             cdt_after_gal = evo_cycle[-1]
             # cdt_w_gal = evo_cycle[-1]  # When Gal is active: the time
@@ -335,6 +331,8 @@ def simulate_lineage_evolution(parameters, rng):
 
     evo_lavg = np.mean(evo_lengths, axis=(1, 2))
     evo_lmin = np.min(evo_lengths, axis=(1, 2))
+    gtrigs["nta"] = np.array(gtrigs["nta"])
+    lcycle_per_seq_count["nta"] = np.array(lcycle_per_seq_count["nta"])
 
     # Return data removing data of the 1st cell (born before DOX addition).
     return (
@@ -464,20 +462,21 @@ def simulate_lineages_evolution(
         if is_evo_returned:
             if len(lineage_types) == 1:
                 gen_count = gen_count_temp
-                for key, evo in evos.items():
-                    evo_s[key] = [evo]
+                evo_s = {key: [evo] for key, evo in evos.items()}
             else:
                 # > We reshaphe either `evos` either `evo_s` if necessary.
                 if gen_count > gen_count_temp:
                     for key, evo in evos.items():
-                        evos[key] = afct.reshape_with_nan(evo, gen_count)
+                        evos[key] = list(afct.reshape_with_nan(evo, gen_count))
                         # > And add the current lineage to previous ones.
                         evo_s[key].append(evos[key])
                 # If `evo_s` reshape, update of current max number of gen.
                 elif gen_count < gen_count_temp:
                     gen_count = gen_count_temp
                     for key, evo in evos.items():
-                        evo_s[key] = afct.reshape_with_nan(evo_s[key], gen_count, 1)
+                        evo_s[key] = list(
+                            afct.reshape_with_nan(evo_s[key], gen_count, 1)
+                        )
                         evo_s[key].append(evo)
                 # Otherwise we add directly, no need to reshape first.
                 else:
@@ -494,17 +493,21 @@ def simulate_lineages_evolution(
     if is_lcycle_count_returned:
         seq_count = max([len(lc) for lc in lcycle_per_seq_count_s["nta"]])
         lcycle_per_seq_counts = {
-            "nta": [
-                afct.reshape_with_nan(count, seq_count)
-                for count in lcycle_per_seq_count_s["nta"]
-            ],
-            "sen": lcycle_per_seq_count_s["sen"],
+            "nta": np.array(
+                [
+                    afct.reshape_with_nan(count, seq_count)
+                    for count in lcycle_per_seq_count_s["nta"]
+                ]
+            ),
+            "sen": np.array(lcycle_per_seq_count_s["sen"]),
         }
     # If no type H to keep track of `is_unseen_htypes` simply set to nan.
     if parameters["is_htype_seen"] or (not parameters["is_htype_accounted"]):
         is_unseen_htypes = None
     return (
-        evo_s,
+        evo_s
+        if evo_s is None
+        else {key: np.array(value) for key, value in evo_s.items()},
         {key: np.array(value) for key, value in gtrigs_s.items()},
         np.array(lineage_types),
         np.array(is_unseen_htypes),
