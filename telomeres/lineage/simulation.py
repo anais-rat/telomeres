@@ -111,20 +111,20 @@ def simulate_lineage_evolution(parameters, rng):
         Dictionnary of generations at which an event is triggered, with entires
         nta : ndarray
             1D array (nta_count,) of generations at which a sequence of
-            non-terminal arrests (nta) is triggered, NaN if no such sequence.
-        senescence : int or NaN
+            non-terminal arrests (nta) is triggered, nan if no such sequence.
+        senescence : int or nan
             Generation at which senescence is triggered, nan if accidently
             dead before the onset of senescence.
         death : int
             Generation at which death is triggered.
     lineage_type : str
-        Type of the lineage (0 for A type, 1 for B or np.NaN for H).
+        Type of the lineage (0 for A type, 1 for B or np.nan for H).
     is_unseen_htype : bool or NoneType
         Indicate if the lineage is a type H classified A or B.
         If no type H (i.e. `parameters['is_htype_accounted']` is False) or
         `is_htype_seen` is True, always None, otherwise True if the lineage was
         H but classified as A or B, and False if the lineage was a "true"A or B
-        type (NB: NaN in the case of experimental lineages for unknown).
+        type (NB: nan in the case of experimental lineages for unknown).
     is_accidental_death : bool
         True if the lineage has died accidentally, False otherwise.
     lcycle_per_seq_count : dict
@@ -149,20 +149,16 @@ def simulate_lineage_evolution(parameters, rng):
     is_senescent = False
     nta_count = 0
     generation = -1
-    evo_lengths = mfct.draw_cells_lengths(1, par_l_init, rng)
-    evo_lavg = [np.mean(evo_lengths)]
-    evo_lmin = [np.min(evo_lengths)]
-    gtrigs = {"nta": np.array([]), "sen": np.NaN}
-    lcycle_per_seq_count = {"nta": np.array([]), "sen": np.nan}
+    evo_lengths = list(mfct.draw_cells_lengths(1, par_l_init, rng))
+    gtrigs = {"nta": [], "sen": np.nan}
+    lcycle_per_seq_count = {"nta": [], "sen": np.nan}
     # > Final cut exp conditions.
     # gen_cut = math.inf  # Generation at wich a cut happens.
     if parameters["finalCut"] is not None:
         # Cell cycles [min] under rafinose conditions.
-        evo_cycle = np.array(
-            [
-                fc_fct.draw_cycle_finalCut(nta_count, is_senescent, is_galactose, rng)
-            ]
-        )
+        evo_cycle = [
+            fc_fct.draw_cycle_finalCut(nta_count, is_senescent, is_galactose, rng)
+        ]
         # Time at the end of the 1st cycle.
         t_current = evo_cycle[0] * rng.uniform()  # Time since Dox addition.
         # Times [min] of change in experimental conditions.
@@ -171,7 +167,7 @@ def simulate_lineage_evolution(parameters, rng):
         t_gal = (idxf_gal - idx_dox) * 10  # (1 frame every 10 min).
         t_raf = (idxf_raf - idx_dox) * 10
     else:  # Cell cycle [min] under usual conditions.
-        evo_cycle = mfct.draw_cycles_atype(1, rng)
+        evo_cycle = list(mfct.draw_cycles_atype(1, rng))
     is_telo_cut = False  # No cut initially.
 
     # While the lineage is not extinct.
@@ -206,15 +202,14 @@ def simulate_lineage_evolution(parameters, rng):
         # Otherwise it divides, we add one generation and create the next cell.
         generation += 1
         # Extend evolution arrays at the new generation w default values.
-        evo_lengths = np.append(evo_lengths, [evo_lengths[-1]], axis=0)
-        evo_cycle = np.append(evo_cycle, evo_cycle[-1])
+        evo_lengths.append(evo_lengths[-1])
+        evo_cycle.append(evo_cycle[-1])
 
         # Computation of telomere lengths following the shortening model.
         loss = rng.binomial(1, 0.5, 16)
         evo_lengths[-1] -= OVERHANG * np.array([loss, 1 - loss])
         # Update of other length-related evolution arrays.
-        evo_lavg = np.append(evo_lavg, np.mean(evo_lengths[-1]))
-        evo_lmin = np.append(evo_lmin, np.min(evo_lengths[-1]))
+        lmin = np.min(evo_lengths[-1])
 
         # Update of other new-born cell's data depending its mother's data
         # (current or previous data) and its telomere lengths.
@@ -223,37 +218,33 @@ def simulate_lineage_evolution(parameters, rng):
             # If the mother is (non-senescent) type A.
             if nta_count == 0:
                 # If senescence is triggered, the cell enters senescence.
-                if mfct.is_sen_trig(evo_lmin[-1], par_sen[0], rng):
+                if mfct.is_sen_trig(lmin, par_sen[0], rng):
                     is_senescent = True
                     gtrigs["sen"] = generation
                     lcycle_per_seq_count["sen"] = 1
                 # Otherwise, if a 1st arrest triggered, it becomes type B.
-                elif mfct.is_nta_trig(evo_lmin[-1], par_nta, rng):
+                elif mfct.is_nta_trig(lmin, par_nta, rng):
                     nta_count = 1
-                    gtrigs["nta"] = np.array([generation])
+                    gtrigs["nta"] = [generation]
                     # 1st sequence of nta.
-                    lcycle_per_seq_count["nta"] = np.append(
-                        lcycle_per_seq_count["nta"], 1
-                    )
+                    lcycle_per_seq_count["nta"].append(1)
             # Otherwise mother was (non-senescent) type B.
             elif nta_count < 0:  # > If not arrested type B.
                 # If senescence is triggered, the cell enters sen.
-                if mfct.is_sen_trig(evo_lmin[-1], par_sen[1], rng):
+                if mfct.is_sen_trig(lmin, par_sen[1], rng):
                     is_senescent = True
                     gtrigs["sen"] = generation
                     lcycle_per_seq_count["sen"] = 1
                 # Elif new arrest triggered, enters a new arrest.
-                elif mfct.is_nta_trig(evo_lmin[-1], par_nta, rng):
+                elif mfct.is_nta_trig(lmin, par_nta, rng):
                     nta_count = 1 - nta_count
-                    gtrigs["nta"] = np.append(gtrigs["nta"], generation)
+                    gtrigs["nta"].append(generation)
                     # New sequence of nta.
-                    lcycle_per_seq_count["nta"] = np.append(
-                        lcycle_per_seq_count["nta"], 1
-                    )
+                    lcycle_per_seq_count["nta"].append(1)
             else:  # > Otherwise mother was (non-senescent) arrested B.
                 # If H type taken into account, cell can turn sen (H).
                 if parameters["is_htype_accounted"] and mfct.is_sen_trig(
-                    evo_lmin[-1], par_sen[1], rng
+                    lmin, par_sen[1], rng
                 ):
                     is_senescent = True
                     if parameters["is_htype_seen"]:
@@ -299,23 +290,21 @@ def simulate_lineage_evolution(parameters, rng):
                 if is_galactose:  # If during the current cycle.
                     is_galactose = False
                     # cdt_w_gal -= t_current - t_raf
-            elif t_current >= t_gal:  # Otherwise if Galactose is active.
-                if not is_galactose:  # If cell is 1st to experience it
-                    # If the cell (gen =- 1, that experiences Gal) is
-                    # arrested the lin is excluded from data: new lin simu.
-                    if nta_count > 0 or is_senescent:
-                        return simulate_lineage_evolution(parameters, rng)
-                    is_galactose = True
-                    # cdt_w_gal = t_current - t_gal
-                    cdt_after_gal = t_current - t_gal
-                    # We reset the generation and forget ancestors.
-                    evo_cycle = evo_cycle[-1:]
-                    evo_lengths = evo_lengths[-1:]
-                    evo_lavg = evo_lavg[-1:]
-                    evo_lmin = evo_lmin[-1:]
-                    for key, gtrig in gtrigs.items():
-                        gtrigs[key] = gtrig - np.abs(generation)
-                    generation = -1  # = generation - dgen_rescale
+            elif t_current >= t_gal and not is_galactose:
+                # Otherwise if Galactose is active and cell is 1st to experience it
+                # If the cell (gen =- 1, that experiences Gal) is
+                # arrested the lin is excluded from data: new lin simu.
+                if nta_count > 0 or is_senescent:
+                    return simulate_lineage_evolution(parameters, rng)
+                is_galactose = True
+                # cdt_w_gal = t_current - t_gal
+                cdt_after_gal = t_current - t_gal
+                # We reset the generation and forget ancestors.
+                evo_cycle = evo_cycle[-1:]
+                evo_lengths = evo_lengths[-1:]
+                for key, gtrig in gtrigs.items():
+                    gtrigs[key] = gtrig - np.abs(generation)
+                generation = -1  # = generation - dgen_rescale
             # Possible cut if the length after cut is not None (ie there
             # is a Cas9 cut), ...
             # NB: We assume that the cut happens at the end of the cycle,
@@ -325,18 +314,15 @@ def simulate_lineage_evolution(parameters, rng):
                 # if (not is_telo_cut) and is_galactose:
                 #     if fc_fct.is_cut_exponential(
                 #             cdt_w_gal, dt_w_gal=t_current - t_gal):
-                if (not is_telo_cut) and np.logical_and(
-                    t_gal <= t_current, t_current <= t_raf + delay
-                ):
+                if not is_telo_cut and t_gal <= t_current <= t_raf + delay:
                     if fc_fct.is_cut_exponential(
                         cdt_after_gal=cdt_after_gal,
                         dt_since_gal=t_current - t_gal,
                         rng=rng,
                     ):
                         is_telo_cut = True
-                        # Index of the chromosome cut...
-                        t2 = rd.randint(CHROMOSOME_COUNT)
-                        t1 = rng.randint(2)  # ... and extremity cut.
+                        # extremity cut, and index of the chromosome cut
+                        t1, t2 = rng.randint((2, CHROMOSOME_COUNT))
                         evo_lengths[-1][t1, t2] = parameters["finalCut"]["lcut"]
 
     # Computation of the type of the lineage (ie of the last cell).
@@ -345,7 +331,10 @@ def simulate_lineage_evolution(parameters, rng):
     elif nta_count < 0:
         lineage_type = 1
     else:
-        lineage_type = np.NaN
+        lineage_type = np.nan
+
+    evo_lavg = np.mean(evo_lengths, axis=(1, 2))
+    evo_lmin = np.min(evo_lengths, axis=(1, 2))
 
     # Return data removing data of the 1st cell (born before DOX addition).
     return (
