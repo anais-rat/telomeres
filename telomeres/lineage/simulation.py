@@ -413,16 +413,16 @@ def simulate_lineages_evolution(
     # Initialization.
     print("New subsimulation.")
     rng = np.random.default_rng(rng)
-    lineage_types = np.array([])
-    is_unseen_htypes = np.array([])
-    is_accidental_deaths = np.array([])
+    lineage_types = []
+    is_unseen_htypes = []
+    is_accidental_deaths = []
     if is_lcycle_count_returned:
         lcycle_per_seq_count_s = {"nta": [], "sen": []}
-    nta_counts = np.array([])
+    nta_counts = []
     evo_s = None
     if is_evo_returned:
         evo_s = {}
-    gtrigs_s = {"nta": [], "sen": np.array([]), "death": np.array([])}
+    gtrigs_s = {"nta": [], "sen": [], "death": []}
 
     # While all lineages have not been simulated.
     count = 0
@@ -446,17 +446,17 @@ def simulate_lineages_evolution(
             count += 1
 
             # > Update of `is_accidental_deaths` `lineage_types` `nta_counts`.
-            lineage_types = np.append(lineage_types, lineage_type)
-            is_unseen_htypes = np.append(is_unseen_htypes, is_unseen_htype)
-            is_accidental_deaths = np.append(is_accidental_deaths, is_accidental_death)
-            nta_counts = np.append(nta_counts, len(gtrigs["nta"]))
+            lineage_types.append(lineage_type)
+            is_unseen_htypes.append(is_unseen_htype)
+            is_accidental_deaths.append(is_accidental_death)
+            nta_counts.append(len(gtrigs["nta"]))
             # and the number of generations in the lineage (gen of death + 1).
             gen_count_temp = gtrigs["death"] + 1
 
             # > Update of `gtrigs_s`.
             gtrigs_s["nta"].append(gtrigs["nta"])
-            gtrigs_s["sen"] = np.append(gtrigs_s["sen"], gtrigs["sen"])
-            gtrigs_s["death"] = np.append(gtrigs_s["death"], gtrigs["death"])
+            gtrigs_s["sen"].append(gtrigs["sen"])
+            gtrigs_s["death"].append(gtrigs["death"])
 
             # Update of `lcycle_per_seq_counts` if asked to be computed.
             if is_lcycle_count_returned:
@@ -489,30 +489,28 @@ def simulate_lineages_evolution(
     # `gtrigs_s['nta']` and `lcycle_per_seq_count_s` converted from list to
     #  array extending with NaN.
     nta_count = int(max(nta_counts))
-    gtrigs_s["nta"] = np.array(
-        [afct.reshape_with_nan(gtrigs, nta_count) for gtrigs in gtrigs_s["nta"]]
-    )
+    gtrigs_s["nta"] = [
+        afct.reshape_with_nan(gtrigs, nta_count) for gtrigs in gtrigs_s["nta"]
+    ]
     lcycle_per_seq_counts = {"nta": None, "sen": None}
     if is_lcycle_count_returned:
         seq_count = max([len(lc) for lc in lcycle_per_seq_count_s["nta"]])
         lcycle_per_seq_counts = {
-            "nta": np.array(
-                [
-                    afct.reshape_with_nan(count, seq_count)
-                    for count in lcycle_per_seq_count_s["nta"]
-                ]
-            ),
-            "sen": np.array(lcycle_per_seq_count_s["sen"]),
+            "nta": [
+                afct.reshape_with_nan(count, seq_count)
+                for count in lcycle_per_seq_count_s["nta"]
+            ],
+            "sen": lcycle_per_seq_count_s["sen"],
         }
     # If no type H to keep track of `is_unseen_htypes` simply set to nan.
     if parameters["is_htype_seen"] or (not parameters["is_htype_accounted"]):
         is_unseen_htypes = None
     return (
         evo_s,
-        gtrigs_s,
-        lineage_types,
-        is_unseen_htypes,
-        is_accidental_deaths,
+        {key: np.array(value) for key, value in gtrigs_s.items()},
+        np.array(lineage_types),
+        np.array(is_unseen_htypes),
+        np.array(is_accidental_deaths),
         lcycle_per_seq_counts,
     )
 
