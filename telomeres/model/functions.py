@@ -31,7 +31,6 @@ import numpy.random as rd
 # rd.RandomState() replaced by rd. but seeds initilize for reproducinility.
 # idem with population_simulation
 
-from telomeres.auxiliary.functions import inverse_cdf
 from telomeres.dataset.extract_processed_dataset import (
     extract_distribution_cycles,
     extract_distribution_telomeres_init,
@@ -68,45 +67,7 @@ DISTRIBUTION_PAR = extract_distribution_telomeres_init(par_l_init=PAR_L_INIT)
 # > Initial distribution of telomere length
 
 
-def draw_cell_lengths(chromosome_count, par_l_init):
-    """Draw `2 x chromosome_count` initial telomere lengths.
-
-    Lengths drawn independently from the distribution
-    `data/processed/telomeres_initial_distribution/original.csv`, possibly
-    modified through `par_l_init`.
-
-    Parameters
-    ----------
-    chromosome_count : int
-        Number of chromosomes to create.
-    par_l_init : list
-        Parameters (l_trans, l_0, l_1) defined in (Rat et al.).
-        See also `transform_l_init` docstring.
-
-    Returns
-    -------
-    lengths : ndarray
-        2D array (2, chromosome_count) of the lengths of the two telomeric
-        extremities of `chromosome_count` chromosomes.
-
-    """
-    telomere_count = 2 * chromosome_count
-    lengths = np.zeros(telomere_count)
-    # Distribution transformed according to `par_l_init`.
-    if np.all(np.array(par_l_init) == np.array(PAR_L_INIT)):  # If default
-        # `par_l_init` parameters, use the already computed distribution.
-        support, proba = DISTRIBUTION_PAR
-    else:  # Otherwise, compute the transformed distribution.
-        support, proba = transform_l_init(par_l_init=par_l_init)
-    # Draw from the transformed distribution.
-    u_rands = rd.uniform(0, 1, telomere_count)
-    for i in range(telomere_count):
-        lengths[i] = np.round(inverse_cdf(u_rands[i], support, proba))
-    # Return the lengths obtained with translated initial distribution.
-    return np.reshape(lengths, (2, chromosome_count))
-
-
-def draw_cells_lengths(cell_count, par_l_init):
+def draw_cells_lengths(cell_count: int, par_l_init: list):
     """Draw the initial telomere lengths of `cell_count` cells.
 
     Telomere lengths drawn independently from the distribution
@@ -129,9 +90,12 @@ def draw_cells_lengths(cell_count, par_l_init):
         `cell_count` cells.
 
     """
-    return np.array(
-        [draw_cell_lengths(CHROMOSOME_COUNT, par_l_init) for i in range(cell_count)]
-    )
+    if np.array_equal(par_l_init, PAR_L_INIT):  # If default
+        # `par_l_init` parameters, use the already computed distribution.
+        support, proba = DISTRIBUTION_PAR
+    else:  # Otherwise, compute the transformed distribution.
+        support, proba = transform_l_init(par_l_init=par_l_init)
+    return rd.choice(support, p=proba, size=(cell_count, 2, CHROMOSOME_COUNT))
 
 
 # Laws of arrest in the cell cycle

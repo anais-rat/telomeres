@@ -544,27 +544,3 @@ def cdf_to_distribution(cdfs, distrib_x=None):
             np.logical_and(distrib_x[i] <= cdfs, cdfs < distrib_x[i + 1])
         )
     return distrib_x, distrib_y / x_count
-
-
-def inverse_cdf(u, x_values, probas):
-    """Return cdf^{-1}_X(u): the inverse of the cumulative distribution
-    function, of a discrete random variable X, whose law is described by
-    `x_values` and `probas`, evaluated at u.
-
-    Parameters
-    ----------
-    u : float
-        Float in [0, 1], argument of F^{-1}.
-    x_values : nd array
-        ORDERED 1D array (1, ) of the values taken by the (discrete) random
-        variable of interest.
-    probas : ndarray
-        Probabilities associated to the values of X `x_values`, s.t.
-        `proba[i] == P(X = x_values[i])`.
-    """
-    inv_idx = 0
-    cdf = probas[0]
-    while cdf < u and inv_idx < len(probas) - 1:
-        inv_idx = inv_idx + 1
-        cdf = cdf + probas[inv_idx]
-    return x_values[inv_idx]
