@@ -120,20 +120,6 @@ def nansum(arr, axis=None, keepdims=False):
     return arr_sum
 
 
-def prod(arr):
-    """Return the product of the components of the 1D array `arr` (equivalent
-    of `np.sum` function) with convention `prod(arr)` is 1 if `arr` is empty.
-
-    """
-    if len(arr) == 0:
-        product = 1
-    else:
-        product = arr[0]
-        for i in range(1, len(arr)):
-            product = product * arr[i]
-    return product
-
-
 # Modification of arrays
 # ----------------------
 
@@ -507,40 +493,3 @@ def rescale_histogram_bin(x_axis, hist, width_rescale):
     for i in range(x_count_new):
         hist_new[i] = np.sum(hist[i * width_rescale : (i + 1) * width_rescale])
     return x_axis_new, hist_new
-
-
-# Using Cumulative distribution function (cdt)
-# --------------------------------------------
-
-
-def cdf_to_distribution(cdfs, distrib_x=None):
-    """Convert a cumulative distribution function (CDF) to a probability
-    distribution.
-
-    Parameters
-    ----------
-    cdfs : ndarray
-        1D array (x_count,) representing the cumulative distribution function.
-    distrib_x : ndarray, optional
-        1D array (x_count,) representing the x-axis values of the distribution.
-        If None (default value), unique values from the CDF are used.
-
-    Returns
-    -------
-    distrib_x : ndarray
-        1D array (x_count,) representing the x-axis values of the probability
-        distribution.
-    distrib_y : ndarray
-        1D array (x_count,) representing the y-axis values (probabilities) of
-        the probability distribution.
-
-    """
-    if isinstance(distrib_x, type(None)):
-        distrib_x = np.unique(cdfs)
-    x_count = len(distrib_x)
-    distrib_y = np.zeros(x_count)
-    for i in range(x_count - 1):
-        distrib_y[i] = sum(
-            np.logical_and(distrib_x[i] <= cdfs, cdfs < distrib_x[i + 1])
-        )
-    return distrib_x, distrib_y / x_count
