@@ -9,7 +9,7 @@ Parameters for:
     1) The model.
     2) The way to process data.
 These are default parameters, that have been thoughtfully chosen and are not
-intended to be modified. 
+intended to be modified.
 If 2) modified, `makeFile/processed_dataset.py` must be run again.
 
 We might use the following notations:
@@ -62,12 +62,11 @@ PAR_L_INIT = [LTRANS, L0, L1]
 # .............................................................................
 
 
-
 # Laws for death and non-terminal-arrest exit
 # -------------------------------------------
 
 # Probability to die accidentally (`p_accident`).
-P_ACCIDENT = 1 * .0043  # Constant = 4.3 * 1e-3 (Coutelier et al. 2018).
+P_ACCIDENT = 1 * 0.0043  # Constant = 4.3 * 1e-3 (Coutelier et al. 2018).
 
 # Probability `p_death` to die "naturally" (from senescence).
 P_DEATH = 0.58  # Constant = 0.58 for D = 220 (Martin et al. 2021).
@@ -123,7 +122,7 @@ PAR_FINAL_CUT_P = None  # Temporary
 # One rule per day s.t. `SAT_CHOICE[i]` is the rule on day `i`.
 # NB: if `SAT_CHOICE[-1] == 'prop' the option holds from day `len(SAT_CHOICE)`
 #     to the end. Otherwise it must be the same length that `DAY_COUNT`.
-SAT_CHOICE = ['prop']
+SAT_CHOICE = ["prop"]
 
 # Exemple. For rule 'time' (times of saturation) on days 1 and 2 and rule
 #   'prop' (concentration of saturation) from day 3 onwards, use:
@@ -143,9 +142,7 @@ PROP_SAT = 1e3  # 720 # 1e3
 TIMES_SAT = {}
 
 # Concatenation ...............................................................
-PAR_SAT = {'choice': SAT_CHOICE,
-           'prop': PROP_SAT,
-           'times': TIMES_SAT}
+PAR_SAT = {"choice": SAT_CHOICE, "prop": PROP_SAT, "times": TIMES_SAT}
 # .............................................................................
 
 
@@ -177,15 +174,17 @@ else:
 # > Computed.
 TIMES_PER_DAY_COUNT = 200  # At least `24 * 6 / CYCLE_MIN`.
 # > Saved.
-TIMES_SAVED_PER_DAY_COUNT = 50 #50  # 150 !!!!
+TIMES_SAVED_PER_DAY_COUNT = 50  # 50  # 150 !!!!
 
 # Time step [day] between dilution time and the time just before.
 STEP = 0.001  # Lower than `1 / TIMES_PER_DAY_COUNT`.
 
-PAR_DEFAULT_SIM_POP = {'day_count': DAY_COUNT,
-                       't_day_count': TIMES_PER_DAY_COUNT,
-                       'tsaved_day_count': TIMES_SAVED_PER_DAY_COUNT,
-                       'step': STEP}
+PAR_DEFAULT_SIM_POP = {
+    "day_count": DAY_COUNT,
+    "t_day_count": TIMES_PER_DAY_COUNT,
+    "tsaved_day_count": TIMES_SAVED_PER_DAY_COUNT,
+    "step": STEP,
+}
 
 
 # Postreat and plot
@@ -199,11 +198,12 @@ X_AXIS_HIST_LMIN = np.linspace(0, 250, 251)
 POSTREAT_DT = 1
 
 # Simulation parameters.
-PAR_DEFAULT_SIM_LIN = {'postreat_dt': None,
-                       'hist_lmins_axis': None,
-                       'is_lcycle_count_saved': False,
-                       'is_evo_saved': False
-                       }
+PAR_DEFAULT_SIM_LIN = {
+    "postreat_dt": None,
+    "hist_lmins_axis": None,
+    "is_lcycle_count_saved": False,
+    "is_evo_saved": False,
+}
 
 # =============================================================================
 # "Fixed" parameters
@@ -220,21 +220,27 @@ PAR = [PAR_NTA, [PAR_SEN_A, PAR_SEN_B], PAR_L_INIT]
 PAR_SEN = PAR[1]
 P_ONSET = PAR[:2]
 
-P_EXIT = {'accident': P_ACCIDENT,
-          'death': P_DEATH,
-          'repair': P_REPAIR,
-          'sen_limit': MAX_SEN_CYCLE_COUNT}
+P_EXIT = {
+    "accident": P_ACCIDENT,
+    "death": P_DEATH,
+    "repair": P_REPAIR,
+    "sen_limit": MAX_SEN_CYCLE_COUNT,
+}
 # .............................................................................
 
 # Model parameters.
 
-PAR_DEFAULT_LIN = {'is_htype_accounted': HTYPE_CHOICE,
-                   'is_htype_seen': True,
-                   'fit': PAR,  # Fitted parameters: p_onset, par_l_init.
-                   'p_exit': P_EXIT,
-                   'finalCut': PAR_FINAL_CUT}
+PAR_DEFAULT_LIN = {
+    "is_htype_accounted": HTYPE_CHOICE,
+    "is_htype_seen": True,
+    "fit": PAR,  # Fitted parameters: p_onset, par_l_init.
+    "p_exit": P_EXIT,
+    "finalCut": PAR_FINAL_CUT,
+}
 
-PAR_DEFAULT_POP = {'is_htype_accounted': HTYPE_CHOICE,
-                   'fit': PAR,  # Fitted parameters: p_onset, par_l_init.
-                   'p_exit': P_EXIT,
-                   'sat': PAR_SAT}
+PAR_DEFAULT_POP = {
+    "is_htype_accounted": HTYPE_CHOICE,
+    "fit": PAR,  # Fitted parameters: p_onset, par_l_init.
+    "p_exit": P_EXIT,
+    "sat": PAR_SAT,
+}

@@ -28,6 +28,7 @@ from telomeres.finalCut.parameters import CDTS_FINALCUT
 
 # > Telome cutting in final cut experiments.
 
+
 def is_cut_exponential(cdt_after_gal, dt_since_gal):
     """Test if a cell has one of its telomeres cut during.
 
@@ -57,9 +58,9 @@ def draw_cycle_finalCut(arrest_count, is_senescent, is_galactose):
     # If the cell is arrested.
     if is_senescent or arrest_count > 0:
         if is_galactose:
-            return rd.choice(CDTS_FINALCUT['gal']['arr']) * 10
-        return rd.choice(CDTS_FINALCUT['raf']['arr']) * 10
+            return rd.choice(CDTS_FINALCUT["gal"]["arr"]) * 10
+        return rd.choice(CDTS_FINALCUT["raf"]["arr"]) * 10
     # Otherwise it experiences a normal cycle.
     if is_galactose:
-        return rd.choice(CDTS_FINALCUT['gal']['nor']) * 10
-    return rd.choice(CDTS_FINALCUT['raf']['nor']) * 10
+        return rd.choice(CDTS_FINALCUT["gal"]["nor"]) * 10
+    return rd.choice(CDTS_FINALCUT["raf"]["nor"]) * 10

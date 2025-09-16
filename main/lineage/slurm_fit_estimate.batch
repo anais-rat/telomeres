@@ -3,7 +3,7 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=anais.rat@gmail.com
 #SBATCH --time=6-00:00:00
-#SBATCH --output=%x.out.%j 
+#SBATCH --output=%x.out.%j
 #SBATCH --error=%x.err.%j
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
