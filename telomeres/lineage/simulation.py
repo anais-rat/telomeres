@@ -425,8 +425,7 @@ def simulate_lineages_evolution(
     gtrigs_s = {"nta": [], "sen": [], "death": []}
 
     # While all lineages have not been simulated.
-    count = 0
-    while count < lineage_count:
+    while len(lineage_types) < lineage_count:
         # We simulate another lineage.
         (
             evos,
@@ -441,51 +440,50 @@ def simulate_lineages_evolution(
         if not is_as_expected_lineage(
             gtrigs, lineage_type, is_accidental_death, characteristics
         ):
-            pass
-        else:
-            count += 1
+            continue
 
-            # > Update of `is_accidental_deaths` `lineage_types` `nta_counts`.
-            lineage_types.append(lineage_type)
-            is_unseen_htypes.append(is_unseen_htype)
-            is_accidental_deaths.append(is_accidental_death)
-            nta_counts.append(len(gtrigs["nta"]))
-            # and the number of generations in the lineage (gen of death + 1).
-            gen_count_temp = gtrigs["death"] + 1
+        # > Update of `is_accidental_deaths` `lineage_types` `nta_counts`.
+        lineage_types.append(lineage_type)
+        is_unseen_htypes.append(is_unseen_htype)
+        is_accidental_deaths.append(is_accidental_death)
+        nta_counts.append(len(gtrigs["nta"]))
+        # and the number of generations in the lineage (gen of death + 1).
+        gen_count_temp = gtrigs["death"] + 1
 
-            # > Update of `gtrigs_s`.
-            gtrigs_s["nta"].append(gtrigs["nta"])
-            gtrigs_s["sen"].append(gtrigs["sen"])
-            gtrigs_s["death"].append(gtrigs["death"])
+        # > Update of `gtrigs_s`.
+        gtrigs_s["nta"].append(gtrigs["nta"])
+        gtrigs_s["sen"].append(gtrigs["sen"])
+        gtrigs_s["death"].append(gtrigs["death"])
 
-            # Update of `lcycle_per_seq_counts` if asked to be computed.
-            if is_lcycle_count_returned:
-                for key in ["nta", "sen"]:
-                    lcycle_per_seq_count_s[key].append(lcycle_per_seq_count[key])
+        # Update of `lcycle_per_seq_counts` if asked to be computed.
+        if is_lcycle_count_returned:
+            for key in ["nta", "sen"]:
+                lcycle_per_seq_count_s[key].append(lcycle_per_seq_count[key])
 
-            # > Update of `evo_s`, iterating on all keys, if asked.
-            if is_evo_returned:
-                if count == 1:
+        # > Update of `evo_s`, iterating on all keys, if asked.
+        if is_evo_returned:
+            if len(lineage_types) == 1:
+                gen_count = gen_count_temp
+                for key, evo in evos.items():
+                    evo_s[key] = [evo]
+            else:
+                # > We reshaphe either `evos` either `evo_s` if necessary.
+                if gen_count > gen_count_temp:
+                    for key, evo in evos.items():
+                        evos[key] = afct.reshape_with_nan(evo, gen_count)
+                        # > And add the current lineage to previous ones.
+                        evo_s[key].append(evos[key])
+                # If `evo_s` reshape, update of current max number of gen.
+                elif gen_count < gen_count_temp:
                     gen_count = gen_count_temp
                     for key, evo in evos.items():
-                        evo_s[key] = [evo]
+                        evo_s[key] = afct.reshape_with_nan(evo_s[key], gen_count, 1)
+                        evo_s[key].append(evo)
+                # Otherwise we add directly, no need to reshape first.
                 else:
-                    # > We reshaphe either `evos` either `evo_s` if necessary.
-                    if gen_count > gen_count_temp:
-                        for key, evo in evos.items():
-                            evos[key] = afct.reshape_with_nan(evo, gen_count)
-                            # > And add the current lineage to previous ones.
-                            evo_s[key] = np.append(evo_s[key], [evos[key]], 0)
-                    # If `evo_s` reshape, update of current max number of gen.
-                    elif gen_count < gen_count_temp:
-                        gen_count = gen_count_temp
-                        for key, evo in evos.items():
-                            evo_s[key] = afct.reshape_with_nan(evo_s[key], gen_count, 1)
-                            evo_s[key] = np.append(evo_s[key], [evo], 0)
-                    # Otherwise we add directly, no need to reshape first.
-                    else:
-                        for key, evo in evos.items():
-                            evo_s[key] = np.append(evo_s[key], [evo], 0)
+                    for key, evo in evos.items():
+                        evo_s[key].append(evo)
+
     # `gtrigs_s['nta']` and `lcycle_per_seq_count_s` converted from list to
     #  array extending with NaN.
     nta_count = int(max(nta_counts))
