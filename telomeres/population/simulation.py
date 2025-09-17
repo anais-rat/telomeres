@@ -95,10 +95,9 @@ def population_init(c_init_s, par_l_init, rng):
         dic_s[i]["clocks"] = mfct.desynchronize(cycles, rng)
         # Other data account for non-sencescent type A generation 0 cells.
         dic_s[i]["ancestors"] = ccum_s[i] + np.arange(c_init)
-        zeros = np.zeros(c_init)
-        dic_s[i]["nta_counts"] = zeros
-        dic_s[i]["generations"] = zeros.astype(int)
-        dic_s[i]["sen_counts"] = zeros.astype(int)
+        dic_s[i]["nta_counts"] = np.zeros(c_init, dtype=np.int32)
+        dic_s[i]["generations"] = np.zeros(c_init, dtype=np.int32)
+        dic_s[i]["sen_counts"] = np.zeros(c_init, dtype=np.int32)
     return dic_s
 
 
@@ -904,7 +903,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
     if c_final >= c_dilution:
         # Classical subpopulation format.
         subpop_count = para_count
-        c_init_s = c_subpop * np.ones(para_count)
+        c_init_s = np.full(fill_value=c_subpop, shape=para_count, dtype=np.int32)
         c_init_s[-1] += c_dilution % para_count
         # Dilution donw to `c_dilution` choosing cells to keep index uniformly.
         kept_cell_idxs = rng.choice(c_final, c_dilution, replace=False)
@@ -915,7 +914,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
         #     at concentration `c_subpop`.
         subpop_count = min(c_final // c_subpop, para_count)
         c_left = c_final % c_subpop
-        c_init_s = c_subpop * np.ones(subpop_count)
+        c_init_s = np.full(fill_value=c_subpop, shape=subpop_count, dtype=np.int32)
         if c_left != 0:
             if subpop_count == para_count:
                 c_init_s[-1] += c_left
@@ -1093,7 +1092,7 @@ def simu_parallel(
     #  > One of `c_init_subpop+c_left` cells, c_left >= 0 as small as possible.
     simu_count = para_count
     c_init_subpop = c_init // simu_count
-    c_init_s = c_init_subpop * np.ones(simu_count)
+    c_init_s = np.full(fill_value=c_init_subpop, shape=simu_count, dtype=np.int32)
     c_init_s[-1] += c_init % simu_count
     c_init_s = c_init_s.astype(int)
 

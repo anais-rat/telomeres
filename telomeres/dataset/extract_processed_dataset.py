@@ -59,7 +59,8 @@ def extract_distribution_telomeres_init(par_l_init=[0, 0, 0]):
         path = os.path.join(
             DIR, "telomeres_initial_distribution", f"modified_{msg}.csv"
         )
-    return np.transpose(np.genfromtxt(path, delimiter=",", skip_header=1))
+    support, proba = np.transpose(np.genfromtxt(path, delimiter=",", skip_header=1))
+    return support.astype(np.int32), proba
 
 
 # def extract_distribution_telomeres_init_full(par_l_init=[0, 0, 0]):
@@ -76,6 +77,7 @@ def extract_distribution_telomeres_init(par_l_init=[0, 0, 0]):
 def extract_distribution_cycles():
     path = os.path.join(DIR, "cycles_TetO2-TLC1", "EMPIRICAL_DISTRIBUTIONS.npy")
     cdts = np.load(path, allow_pickle="TRUE").item()
+    cdts["norA"] = cdts["norA"].astype(np.int32)
     return cdts
 
 
