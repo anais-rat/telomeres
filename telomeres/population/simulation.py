@@ -461,26 +461,24 @@ def population_evolution(
                 # Update of daughters' telomere lengths.
                 # NB: random repartition of mother cell's breads into
                 #     daughters' taking into account coupling.
-                r = rng.binomial(1, 0.5, 16)
-                d["lengths"][cell] = d["lengths"][cell] - OVERHANG * np.array(
-                    [r, 1 - r]
-                )
-                d["lengths"][cell2] = d["lengths"][cell2] - OVERHANG * np.array(
-                    [1 - r, r]
-                )
+                r = OVERHANG * rng.binomial(1, 0.5, 16)
+                rr = OVERHANG - r
+                d["lengths"][cell][0] -= r
+                d["lengths"][cell][1] -= rr
+                d["lengths"][cell2][0] -= rr
+                d["lengths"][cell2][1] -= r
 
                 # Update of `evo_l*` and `lengths_*` data (exact values)
                 #  at time `i`, except `evo_lmin_*[i]` later computed.
                 d["evo_lavg_sum"][i] -= lavgs[cell]
                 d["evo_lmin_sum"][i] -= lmins[cell]
-                for dau in dau_idxs:
-                    lavgs[dau] = np.mean(d["lengths"][dau])
-                    lmins[dau] = np.min(d["lengths"][dau])
-                d["evo_lavg_sum"][i] += np.sum(lavgs[dau_idxs])
-                d["evo_lmin_sum"][i] += np.sum(lmins[dau_idxs])
-                lmin_daughters = np.min(lmins[dau_idxs])
-                if lmin_daughters < d["evo_lmin_min"][i]:
-                    d["evo_lmin_min"][i] = lmin_daughters
+                lavgs[dau_idxs] = d["lengths"][dau_idxs].mean(axis=(1, 2))
+                lmins[dau_idxs] = d["lengths"][dau_idxs].min(axis=(1, 2))
+                d["evo_lavg_sum"][i] += lavgs[cell] + lavgs[cell2]
+                d["evo_lmin_sum"][i] += lmins[cell] + lmins[cell2]
+                d["evo_lmin_min"][i] = min(
+                    d["evo_lmin_min"][i], lmins[cell], lmins[cell2]
+                )
 
                 # Update of `evo_c` arrays and `nta_counts` & `sen_counts`
                 # daughters' data depending on their mother's state (ie current
