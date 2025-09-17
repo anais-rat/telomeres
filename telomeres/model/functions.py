@@ -202,7 +202,7 @@ def draw_cycle(arrest_count, is_senescent, rng):
     if is_senescent:  # The cell is senescent.
         return rng.choice(CDTS["sen"])
     if arrest_count == 0:  # Non-senescent type A.
-        return draw_cycles_atype(1, rng)[0]
+        return draw_cycles_atype(None, rng)
     if arrest_count == 1:  # Non-senescent type B in a 1st sequence of arrests.
         return rng.choice(CDTS["nta"])
     if arrest_count < 0:  # Non-senescent type B in a normal cycle.
