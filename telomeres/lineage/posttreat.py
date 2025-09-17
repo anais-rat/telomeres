@@ -293,7 +293,7 @@ def sort_lineages(data, type_of_sort):
         idxs_sorted = nanargsort1D(gtrigs_s["sen"])
         # Computation of bool array its it h component indicates if the lineage
         # index `idxs_sorted[i]` is in `dead_lineages`.
-        is_idx_by_gsen_in_dead = np.in1d(idxs_sorted, dead_lineages)
+        is_idx_by_gsen_in_dead = np.isin(idxs_sorted, dead_lineages)
         # Indexes of senescent and dead cells by increasing gen of sen onset.
         idxs_sorted = idxs_sorted[is_idx_by_gsen_in_dead]
     elif type_of_sort == "len":

@@ -116,7 +116,7 @@ def nansum(arr, axis=None, keepdims=False):
         if isinstance(arr_sum, np.ndarray):  # If arr_sum is an array.
             arr_sum[arr_isnan] = np.nan  # Array returned.
         else:  # Otherwise arr_sum = 0, is int or float, not array!
-            return np.NaN
+            return np.nan
     return arr_sum
 
 

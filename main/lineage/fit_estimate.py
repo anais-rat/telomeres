@@ -291,7 +291,7 @@ def cost_function(point, is_plotted=False):
         )[gcurve]
         btype_prop = max(btype_prop, cost[1])
         if btype_prop > BPROP_ERROR_MAX_1SIMU or np.isnan(cost[1]):
-            return np.NaN
+            return np.nan
         sum_costs += cost[0] * WEIGHTS[i]
     is_to_recompute = False
     if sum_costs < COST_MIN_FOR_PRECISION_MIN:
@@ -317,7 +317,7 @@ def cost_function(point, is_plotted=False):
             )[gcurve]
             btype_prop = max(btype_prop, cost[1])
             if btype_prop > BPROP_ERROR_MAX or np.isnan(cost[1]):
-                return np.NaN
+                return np.nan
             sum_costs += cost[0] * WEIGHTS[i]
     if IS_BPROP_ACCOUNTED:
         sum_costs += btype_prop * WEIGHT_BPROP_ERROR

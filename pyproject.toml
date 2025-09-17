@@ -31,3 +31,6 @@ platforms = ["linux-64"]
 telomeres = { path = ".", editable = true }
 
 [tool.pixi.tasks]
+
+[tool.ruff.lint]
+extend-select = ["NPY"]

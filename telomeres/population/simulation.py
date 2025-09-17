@@ -304,7 +304,7 @@ def population_evolution(
         d[key] = afct.reshape_with_nan(d[key], c_max, 0)
 
     # Initialization of population history data.
-    sat_time = np.NaN
+    sat_time = np.nan
     dead_idxs, history_dead = [], []
 
     # Iteration on times.
@@ -356,7 +356,7 @@ def population_evolution(
                         "evo_lmin_gsen": evo_lmin_gsen,
                         "sat_time": sat_time,
                         "history_dead": np.array(history_dead),
-                        "extinction_time": np.NaN,
+                        "extinction_time": np.nan,
                     }
                 )
                 for key in ks.data_keys:  # Keep only data of living cells.
@@ -702,7 +702,7 @@ def population_evolution(
             "evo_lmin_gsen": evo_lmin_gsen,
             "sat_time": sat_time,
             "history_dead": np.array(history_dead),
-            "extinction_time": np.NaN,
+            "extinction_time": np.nan,
         }
     )
     for key in ks.data_keys:  # We return only data of living cells.
