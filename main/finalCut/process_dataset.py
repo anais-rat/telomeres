@@ -76,7 +76,7 @@ NCYCLES, LCYCLES = mk.make_cycles_dataset(
 )
 
 
-# Postreatment: generations of arrests (based on THRESHOLDS) and cycles
+# Post-treatment: generations of arrests (based on THRESHOLDS) and cycles
 # ---------------------------------------------------------------------
 
 DATA_EXP = {}

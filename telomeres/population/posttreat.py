@@ -54,7 +54,7 @@ sns.set_context("paper", font_scale=1.4)
 sns.set_style("darkgrid", {"axes.facecolor": ".94"})
 sns.set_palette(fp.MY_COLORS_3_ROCKET)
 
-# To test :sns.set_style("ticks") # Backgroud. NB: whitegrid for hgrid.
+# To test :sns.set_style("ticks") # Background. NB: whitegrid for hgrid.
 # sns.set_context("notebook", font_scale = 1)
 
 
@@ -110,8 +110,8 @@ def make_time_arrays(par_sim, is_printed=True):
     return times, time_saved_idxs, dil_idxs, dil_saved_idxs
 
 
-# Posttreat functions
-# -------------------
+# Post-treat functions
+# --------------------
 
 
 def make_hist_lmin_gsen_from_evo(evo_lmin_gsen, x_axis=par.X_AXIS_HIST_LMIN):
@@ -141,7 +141,7 @@ def postreat_from_evo_c_from_output(output, file_postreated_name):
     """
     p = {}
 
-    # We create vectors needeed to create `evo_p` arrays.
+    # We create vectors needed to create `evo_p` arrays.
     evo_c_anc = output["evo_c_ancs"]
     evo_c_sen_anc = output["evo_c_sen_ancs"]
     evo_lmin_gsen = output["evo_lmin_gsen"]
@@ -214,7 +214,7 @@ def postreat_from_evo_c_from_path(file_name, is_loaded=True):
 def postreat_from_evo_c(
     para_count, cell_count, output_index, par_update=None, is_loaded=True
 ):
-    """Return postreated data corresponding to the simulation identified by
+    """Return post-treated data corresponding to the simulation identified by
     the arguments.
 
     More specifically converts evolution array from concentration of cells to
@@ -247,7 +247,7 @@ def postreat_performances_from_path(folder_name, simu_count):
     simus = np.arange(simu_count)
     # Load paths to all simulations in a list.
     s = [join(folder_name, f"output_{i:02d}.npy") for i in simus + 1]
-    # Initialization of a dictionary w Performance related postreat data.
+    # Initialization of a dictionary w Performance related post-treat data.
     p = {}
     # > Computation times.
     p["computation_time"] = statistics(
@@ -266,7 +266,7 @@ def postreat_performances_from_path(folder_name, simu_count):
 def postreat_performances(
     para_count, cell_count, simu_count, par_update=None, is_loaded=True
 ):
-    """Return postreated performance-related data over `simu_count`
+    """Return post-treated performance-related data over `simu_count`
     simulations of same parameters, those passed to the function.
 
     Load the processed data from saved file if already saved, unless
@@ -287,7 +287,7 @@ def postreat_performances(
 
 
 def statistics_simus_from_path(folder, simu_count):
-    """Postreat saved data, computing and saving mean, std, min, max... on all
+    """Post-treat saved data, computing and saving mean, std, min, max... on all
     of the `simu_count` first simulations present in the folder at path
     `folder`.
 
@@ -297,10 +297,10 @@ def statistics_simus_from_path(folder, simu_count):
     s = [join(folder, f"output_{i:02d}.npy") for i in simus + 1]
     s_postreat = [join(folder, f"output_{i:02d}_p_from_c.npy") for i in simus + 1]
 
-    # Initialization of a dictionary with postreat data.
-    es = {}  # Statistics on simulateds time evolution data.
+    # Initialization of a dictionary with post-treat data.
+    es = {}  # Statistics on simulated time evolution data.
 
-    # > Extinction times and longuest time array.
+    # > Extinction times and longest time array.
     textinct_s = [
         np.load(s[i], allow_pickle=True).item().get("extinction_time") for i in simus
     ]
@@ -381,7 +381,7 @@ def statistics_simus_from_path(folder, simu_count):
     cell_count = len(
         np.load(s[0], allow_pickle=True).item().get("day_init_data")["lengths"][0]
     )
-    # > For all key to postreat.
+    # > For all key to post-treat.
     print("\nData processing...")
     for key in ks.evo_c_keys_to_postreat:
         print(key)
@@ -391,42 +391,42 @@ def statistics_simus_from_path(folder, simu_count):
                 np.load(s_postreat[i], allow_pickle=True).item().get(key) for i in simus
             ]
             evo_s = [fct.reshape_with_nan(evo_s[i], time_count, 0) for i in simus]
-        elif key in ks.evo_c_anc_keys:  # Ancestors orderred by increasing lmin
+        elif key in ks.evo_c_anc_keys:  # Ancestors ordered by increasing lmin
             evo_s = [
-                fct.reshape2D_along0_w_NaN_along1_w_0_or_NaN(
+                fct.reshape2D_along0_w_nan_along1_w_0_or_nan(
                     np.load(s[i], allow_pickle=True).item().get(key),
                     time_count,
                     cell_count,
                 )
                 for i in simus
             ]
-            # Create evo array wrt to anc orderred by lavg.
+            # Create evo array wrt to anc ordered by lavg.
             tmp_s = [evo_s[i][:, anc_s["by_lavg"][i]] for i in simus]
             es[key + "_lavg"] = statistics(tmp_s)
             # key = key + '_lmin'
             evo_s = [evo_s[i][:, anc_s["by_lmin"][i]] for i in simus]
         elif key in ks.evo_p_anc_keys:
             evo_s = [
-                fct.reshape2D_along0_w_NaN_along1_w_0_or_NaN(
+                fct.reshape2D_along0_w_nan_along1_w_0_or_nan(
                     np.load(s_postreat[i], allow_pickle=True).item().get(key),
                     time_count,
                     cell_count,
                 )
                 for i in simus
             ]
-            # Create evo array wrt to anc orderred by lavg.
+            # Create evo array wrt to anc ordered by lavg.
             tmp_s = [evo_s[i][:, anc_s["by_lavg"][i]] for i in simus]
             es[key + "_lavg"] = statistics(tmp_s)
             evo_s = [evo_s[i][:, anc_s["by_lmin"][i]] for i in simus]
         elif key in ks.evo_c_gen_keys:
             evo_s = [np.load(s[i], allow_pickle=True).item().get(key) for i in simus]
             evo_s = [
-                fct.reshape2D_along0_w_NaN_along1_w_0_or_NaN(
+                fct.reshape2D_along0_w_nan_along1_w_0_or_nan(
                     evo_s[i], time_count, gen_count
                 )
                 for i in simus
             ]
-        # Computation of statistics (es) on all subsimu.
+        # Computation of statistics (es) on all subsimus.
         es[key] = statistics(evo_s)
 
     # > Time evolution of telomere lengths.
@@ -477,14 +477,14 @@ def statistics_simus_from_path_if_not_saved(folder_name, simu_count, is_loaded=T
         if is_loaded:
             # print("Loaded from: ", file_postreated_name)
             return np.load(evo_stat_path, allow_pickle=True).item()
-        print("\n Averageing on all simulations...")
+        print("\n Averaging on all simulations...")
     return statistics_simus_from_path(folder_name, simu_count)
 
 
 def statistics_simus(
     para_count, cell_count, simu_count, par_update=None, is_loaded=True
 ):
-    """Postreat saved data, computing and saving mean, std, min, max... on all
+    """Post-treat saved data, computing and saving mean, std, min, max... on all
     of the `simu_count` first simulations corresponding to the parameters
     entered in argument.
 
@@ -510,7 +510,7 @@ def postreat_cgen(is_stat, folder, simu_count):
     path = spath.replace("statistics.npy", f"gens_p{precision}.npy")
     if os.path.exists(path):
         # print("Load: ", path)
-        return np.load(path, allow_pickle="TRUE").item()
+        return np.load(path, allow_pickle=True).item()
 
     evo = np.load(spath, allow_pickle=True).item().get("evo_c_gens")["mean"]
     time_count, gen_count = np.shape(evo)
@@ -562,7 +562,7 @@ def statistics_simus_csv(para_count, cell_count, simu_count, par_update=None):
     # Load paths to all simulations in a list.
     s = [join(folder, f"output_{i:02d}.npy") for i in simus + 1]
     s_postreat = [join(folder, f"output_{i:02d}_p_from_c.npy") for i in simus + 1]
-    # Genearal data.
+    # General data.
     # > Paths to data.
     stat_data_path = wp.write_sim_pop_postreat_average(folder, simu_count)
     # > Times array (only up to `t_max`).
@@ -576,7 +576,7 @@ def statistics_simus_csv(para_count, cell_count, simu_count, par_update=None):
     idxs_bf_dil = np.array([np.where(times == day)[0][0] - 1 for day in days]).astype(
         "int"
     )
-    # > For all key to postreat.
+    # > For all key to post-treat.
     for key in ["evo_c"]:
         print(f"\n Save {key} in csv at: {folder}")
         # We reshape to common shape for all simulations.

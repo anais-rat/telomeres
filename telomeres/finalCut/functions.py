@@ -25,14 +25,14 @@ Created on Fri Jun 14 15:29:43 2024
 import telomeres.finalCut.fit_cut_efficiency as fce
 from telomeres.finalCut.parameters import CDTS_FINALCUT
 
-# > Telome cutting in final cut experiments.
+# > Telomere cutting in final cut experiments.
 
 
 def is_cut_exponential(cdt_after_gal, dt_since_gal, rng):
     """Test if a cell has one of its telomeres cut during.
 
     cdt_after_gal : float
-        Time that the cell spent after Galactose addition (this is extaclty its
+        Time that the cell spent after Galactose addition (this is exactly its
         cycle duration time if born after Galactose addition).
     dt_since_gal : float
         Time spent between galactose addition and the end of the cell cycle.
@@ -43,7 +43,7 @@ def is_cut_exponential(cdt_after_gal, dt_since_gal, rng):
     b = dt_since_gal * min_to_h
     # We compute P(T<b | T>a) where, for time 0 being the time where galactose
     # was added, T is the r.v. of the time of cut [h], a is the time of birth
-    # (if the cell was born after Gal addition) or 0 (otherwize).
+    # (if the cell was born after Gal addition) or 0 (otherwise).
     proba = (fce.fit_cdf(b) - fce.fit_cdf(a)) / (1 - fce.fit_cdf(a))
     return rng.binomial(1, proba)
 

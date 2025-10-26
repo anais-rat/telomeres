@@ -47,7 +47,7 @@ def transform_l_init(distribution=None, par_l_init=None):
     The transformation consists in (see (Rat PhD thesis) and (Rat et al.)):
       > Translation by `ltrans` [bp].
       > Dilatations at both sides of the mode of the distribution s.t. the
-        mimimum / maximum of the support of the distribution is translated by
+        minimum / maximum of the support of the distribution is translated by
         `l0` / `l1`: for `f`the distribution and `f_new` its transformation,
             min supp(f_new) = min supp(f) + l0
             max supp(f_new) = max supp(f) + l1
@@ -63,9 +63,9 @@ def transform_l_init(distribution=None, par_l_init=None):
         If None (default) no transformation applied.
 
     """
-    if isinstance(distribution, type(None)):
+    if distribution is None:
         distribution = DISTRIBUTION_RAW
-    if isinstance(par_l_init, type(None)):
+    if par_l_init is None:
         return np.copy(distribution)
     else:
         ltrans, l0, l1 = par_l_init
@@ -104,9 +104,9 @@ def transform_l_init(distribution=None, par_l_init=None):
 
 def transform_l_init_old(distribution=None, par_l_init=None):
     """Function `transform_l_init` before corrections."""
-    if isinstance(distribution, type(None)):
+    if distribution is None:
         distribution = DISTRIBUTION_RAW
-    if isinstance(par_l_init, type(None)):
+    if par_l_init is None:
         return np.copy(distribution)
     else:
         ltrans, l0, l1 = par_l_init

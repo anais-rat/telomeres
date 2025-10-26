@@ -40,7 +40,7 @@ DIR = os.path.join(PROJECT_DIR, "data", "processed")
 
 
 def write_parameters_linit(par_linit):
-    if isinstance(par_linit, type(None)):
+    if par_linit is None:
         return "linit_variable"
     ltrans, l0, l1 = np.round(par_linit).astype(int)
     return f"linit{ltrans}-{l0}-{l1}"
@@ -48,7 +48,7 @@ def write_parameters_linit(par_linit):
 
 def extract_postreat_lineages(strain="TetO2-TLC1"):
     path = os.path.join(DIR, f"cycles_{strain}", "LINEAGES_POSTREATED.npy")
-    return tuple(np.load(path, allow_pickle="TRUE"))
+    return tuple(np.load(path, allow_pickle=True))
 
 
 def extract_distribution_telomeres_init(par_l_init=[0, 0, 0]):
@@ -76,7 +76,7 @@ def extract_distribution_telomeres_init(par_l_init=[0, 0, 0]):
 
 def extract_distribution_cycles():
     path = os.path.join(DIR, "cycles_TetO2-TLC1", "EMPIRICAL_DISTRIBUTIONS.npy")
-    cdts = np.load(path, allow_pickle="TRUE").item()
+    cdts = np.load(path, allow_pickle=True).item()
     return {key: subdataset.astype(np.int32) for key, subdataset in cdts.items()}
 
 
@@ -87,12 +87,12 @@ def extract_population_lmode():
 
 def extract_population_concentration_doxP():
     path = os.path.join(DIR, "population_evolution", "cell_concentration_DOX+.npy")
-    return np.load(path, allow_pickle="TRUE").item()
+    return np.load(path, allow_pickle=True).item()
 
 
 def extract_population_concentration_doxM():
     path = os.path.join(DIR, "population_evolution", "cell_concentration_DOX-.npy")
-    return np.load(path, allow_pickle="TRUE").item()
+    return np.load(path, allow_pickle=True).item()
 
 
 def extract_population_concentration_pol32():
@@ -102,7 +102,7 @@ def extract_population_concentration_pol32():
             os.path.join(
                 DIR.replace("data", "data_ignored"), f"cell_concentration_{key}.npy"
             ),
-            allow_pickle="TRUE",
+            allow_pickle=True,
         ).item()
         for key in keys
     }
@@ -115,7 +115,7 @@ def extract_population_concentration_rad51():
             os.path.join(
                 DIR.replace("data", "data_ignored"), f"cell_concentration_{key}.npy"
             ),
-            allow_pickle="TRUE",
+            allow_pickle=True,
         ).item()
         for key in keys
     }

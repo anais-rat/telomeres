@@ -169,7 +169,7 @@ if __name__ == "__main__":
     plt.plot(fce.x_exp, 1 - fce.y_exp, "x", label="Experiment", color="black")
     plt.xticks(np.arange(15))
     plt.legend()
-    if not isinstance(FIG_DIR, type(None)):
+    if FIG_DIR is None:
         plt.savefig(os.path.join(FIG_DIR, "fit_prop_cut.pdf"), bbox_inches="tight")
     plt.show()
 

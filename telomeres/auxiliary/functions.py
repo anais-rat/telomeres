@@ -64,9 +64,9 @@ def stat(arr_stat, p_up, p_down, axis=0):
 
 
 def nanstat(arr_stat, p_up, p_down, axis=0):
-    """Same function as `stat`, except that `nanstat` handles NaN values."""
-    with warnings.catch_warnings():  # Prevent printing warnings comming from
-        # applying np.nanmean, etc., to arrays full of NaN values.
+    """Same function as `stat`, except that `nanstat` handles nan values."""
+    with warnings.catch_warnings():  # Prevent printing warnings coming from
+        # applying np.nanmean, etc., to arrays full of nan values.
         warnings.simplefilter("ignore", category=RuntimeWarning)
         stats = {
             "mean": np.nanmean(arr_stat, axis=axis),
@@ -105,14 +105,14 @@ def stat_all(arr_stat, p_up, p_down, axis=0):
 
 
 def nansum(arr, axis=None, keepdims=False):
-    """Similar to `np.nansum`, except that if there are only NaN values along
-    a summation axis, the sum along that axis is NaN instead of 0.
+    """Similar to `np.nansum`, except that if there are only nan values along
+    a summation axis, the sum along that axis is nan instead of 0.
 
     """
     arr_sum = np.nansum(arr, axis=axis, keepdims=keepdims)
     arr_isnan = np.isnan(arr).all(axis=axis)
-    if arr_isnan.any():  # If at least one axis with NaN only.
-        # The sum along NaN? axis is Nan instead of 0.
+    if arr_isnan.any():  # If at least one axis with nan only.
+        # The sum along nan? axis is Nan instead of 0.
         if isinstance(arr_sum, np.ndarray):  # If arr_sum is an array.
             arr_sum[arr_isnan] = np.nan  # Array returned.
         else:  # Otherwise arr_sum = 0, is int or float, not array!
@@ -128,10 +128,10 @@ def nansum(arr, axis=None, keepdims=False):
 
 
 def nanargsort1D(arr):
-    """Similar to `np.argsort` for 1D array, except that NaN are not orderred."""
-    # Compute indexes corresponding to the usual sorting (NaN at the end).
+    """Similar to `np.argsort` for 1D array, except that nan are not ordered."""
+    # Compute indexes corresponding to the usual sorting (nan at the end).
     idxs_sorted = np.argsort(arr)
-    # And return only indexes corresponding to non NaN values.
+    # And return only indexes corresponding to non nan values.
     non_nan_count = sum(~np.isnan(arr))
     return idxs_sorted[:non_nan_count]
 
@@ -141,7 +141,7 @@ def nanargsort1D(arr):
 
 def reshape_with_nan(arr, len_new, axis=-1):
     """Return the array `arr` reshaped along the axis `axis`, turning it from
-    length `len_current` to `len_new` either by removing values or adding NaN.
+    length `len_current` to `len_new` either by removing values or adding nan.
     NB: for the last axis, take `axis=-1` (default).
 
     """
@@ -170,10 +170,10 @@ def reshape_list_with_nan(lst, len_new):
     return lst
 
 
-def reshape2D_along1_with_0_or_NaN(arr, col_len_new):
+def reshape2D_along1_with_0_or_nan(arr, col_len_new):
     """Return the 2D array `arr` (row_len, col_len) reshaped to shape
     (row_len, col_len_new), either by removing or adding columns so that rows
-    of `arr` are extended by NaN if they end with NaN, and by 0 otherwise.
+    of `arr` are extended by nan if they end with nan, and by 0 otherwise.
 
     """
     row_len, col_len = np.shape(arr)
@@ -186,15 +186,15 @@ def reshape2D_along1_with_0_or_NaN(arr, col_len_new):
     return arr
 
 
-def reshape2D_along0_w_NaN_along1_w_0_or_NaN(arr, row_len_new, col_len_new):
+def reshape2D_along0_w_nan_along1_w_0_or_nan(arr, row_len_new, col_len_new):
     """Return the 2D array `arr` (row_len, col_len) reshaped to shape
-    (row_len_new, col_len_new) by either removing or adding rows of NaN and
-    columns of NaN or zeros (such that rows of `arr` are extended by NaN if
-    they end with NaN, and by 0 otherwise).
+    (row_len_new, col_len_new) by either removing or adding rows of nan and
+    columns of nan or zeros (such that rows of `arr` are extended by nan if
+    they end with nan, and by 0 otherwise).
 
     """
     row_len = len(arr)
-    arr = reshape2D_along1_with_0_or_NaN(arr, col_len_new)
+    arr = reshape2D_along1_with_0_or_nan(arr, col_len_new)
     len_to_add = row_len_new - row_len
     if len_to_add > 0:
         return np.append(arr, np.nan * np.ones((len_to_add, col_len_new)), axis=0)
@@ -224,12 +224,12 @@ def convert_idxs_pop_to_subpop(idxs_pop, c_s):
         > idxs_subpop[i][1] ... cell in this subpopulation.
 
     """
-    # Orderring of the indexes (in population format).
+    # Ordering of the indexes (in population format).
     idxs_pop = np.sort(idxs_pop)
-    # Rigth format for c_s (array of int with NaN replaced by 0).
+    # Right format for c_s (array of int with nan replaced by 0).
     c_s = np.nan_to_num(c_s).astype(int)
     # Cumulative subpopulation sizes.
-    # (Warning: starts with 0, ends with repetition for later convinience).
+    # (Warning: starts with 0, ends with repetition for later convenience).
     cc_s = [sum(c_s[:i]) for i in range(len(c_s) + 2)]
 
     # Initialization.
@@ -241,13 +241,13 @@ def convert_idxs_pop_to_subpop(idxs_pop, c_s):
 
     # While all indexes have not been converted to subpopulation format.
     while idx_cell < cell_count:
-        # If the index of the current cell (in population format) doesnt exceed
+        # If the index of the current cell (in population format) does not exceed
         # the number of cells within the first `idx_subpop + 1` subpopulations.
         if idxs_pop[idx_cell] < cc_s[idx_subpop + 1]:
             # Then the current cell belongs the `idx_subpop`th subpopulation.
             # > We compute its corresponding index in the subpopulation.
             idx_subpop_cell = idxs_pop[idx_cell] - cc_s[idx_subpop]
-            # > Save them and foccus on next cell.
+            # > Save them and focus on next cell.
             idxs_subpop[idx_cell] = [idx_subpop, idx_subpop_cell]
             idx_cell += 1
         # Otherwise, it belongs to one of the following subsimulations.
@@ -296,12 +296,12 @@ def make_histogram(data, x_axis=None, normalized=True):
 
 
 def make_histogram_wo_nan(data, x_axis=None, normalized=True):
-    """Generate a histogram from the given data excluding NaN values.
+    """Generate a histogram from the given data excluding nan values.
 
     Parameters
     ----------
     data : ndarray
-        Input array of data values, possibly containing NaN values.
+        Input array of data values, possibly containing nan values.
     x_axis : ndarray, optional
         Values to use for the histogram bins along the x-axis. If None, bins
         are generated from 0 to the maximum value in `data`.
@@ -311,7 +311,7 @@ def make_histogram_wo_nan(data, x_axis=None, normalized=True):
     Returns
     -------
     hist : array_like
-        Histogram of the non-NaN data
+        Histogram of the non-nan data
 
     """
     data_tmp = data[~np.isnan(data)]
@@ -337,7 +337,7 @@ def make_average_histogram(data_s, x_axis=None):
     avg_hist : ndarray
         1D array (len(x_axis), ) where `avg_hist[i]` is the average number (in
         in percentage of the dataset) of data with value `x_axis[i]` per
-        dataset (average on non-NaN values). NB: NaN if no such data.
+        dataset (average on non-nan values). NB: nan if no such data.
     std_hist : ndarray
         1D array (len(x_axis), ) where `std_hist[i]` is the standard deviation
         between datasets of the number of `x_axis[i]` values per dataset.
@@ -349,7 +349,7 @@ def make_average_histogram(data_s, x_axis=None):
     # Computation of x_axis if not given.
     if x_axis is None:  # If no x-axis given.
         x_axis = np.unique(data_s)  # We sort all values without repetition.
-        if isinstance(x_axis[-1], type(np.nan)):
+        if x_axis[-1] is np.nan:
             x_axis = x_axis[:-1]
     bin_count = len(x_axis)
     avg_hist = np.zeros(bin_count)
@@ -357,7 +357,7 @@ def make_average_histogram(data_s, x_axis=None):
     # Computation of y-axes and associated error iterating on `x_axis`.
     for i in range(bin_count):
         where_is_x = (data_s == x_axis[i]).astype("float")
-        # NB: we keep track of NaN values to average on non-NaN values.
+        # NB: we keep track of nan values to average on non-nan values.
         where_is_x[np.isnan(data_s)] = np.nan
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
@@ -386,7 +386,7 @@ def make_stacked_average_histogram(data_s, x_axis=None):
     avg_hist : ndarray
         2D array (stack_count, len(x_axis)) where `avg_hist[i, j]` is the
         average number of data with value `x_axis[j]` in the i-th stack per
-        dataset (average on non-NaN values). NB: NaN if no such data.
+        dataset (average on non-nan values). NB: nan if no such data.
     std_hist : ndarray
         2D array (len(x_axis), stack_count) where `std_hist[i, j]` is the
         standard deviation between datasets of the number of `x_axis[j]` values
@@ -471,13 +471,13 @@ def make_cell_count_histograms(traits, nta_counts, sen_counts, bin_count, htype_
     return [hist, hist_btype, hist_sen_btype, hist_sen]
 
 
-# Postreating histograms.
+# Post-treating histograms.
 
 
 def rescale_histogram_bin(x_axis, hist, width_rescale):
     """Resample the input histogram to change its bin width by combining
     adjacent bins.
-    WARNING: `x_axis` is asumed to be regular, and `width_rescale` a positive
+    WARNING: `x_axis` is assumed to be regular, and `width_rescale` a positive
              integer.
 
     Parameters

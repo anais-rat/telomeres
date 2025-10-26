@@ -18,12 +18,12 @@ FOLDER = op.join(PROJECT_DIR, "data_finalCut", "processed")
 
 
 def extract_cycles_dataset_finalCut(folder=FOLDER):
-    """Extract the data postreated by `finalCut.make_dataset_cycles.py`.
+    """Extract the data post-treated by `finalCut.make_dataset_cycles.py`.
 
     If no such data return None for CDTS_FINALCUT to be defined even in the
-    abscence of FinalCut data (since called from telomeres.lineage.simulation).
+    absence of FinalCut data (since called from telomeres.lineage.simulation).
     However if you are in a finalCut config, `finalCut.make_dataset_cycles.py`
-    absolutly need to be run first.
+    absolutely need to be run first.
 
     """
     cdts = {"raf": {}, "gal": {}}
@@ -48,6 +48,6 @@ IDXS_FRAME = [IDX_DOX, IDX_GAL, IDX_RAF]
 # CDTS Dataset for finalCul experiment [10 min].
 CDTS_FINALCUT = extract_cycles_dataset_finalCut()
 
-PAR_FINAL_CUT = {"idxs_frame": IDXS_FRAME, "edlyay": 9}
+PAR_FINAL_CUT = {"idxs_frame": IDXS_FRAME, "delay": 9}
 
 PAR_FINAL_CUT_POP = None  # Temporary

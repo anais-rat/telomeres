@@ -779,7 +779,7 @@ packages:
 - pypi: ./
   name: telomeres
   version: 0.1.0
-  sha256: 065bbfc06227ee42b66f0dcc3bb47ebab75bbc6ac43450b5027fd481ee4498bc
+  sha256: 7346ce52d998221abf137b9fd4f13c6b182436e73cc0216ca7412a98f5023700
   requires_dist:
   - numpy>=2.3.3,<3
   - scipy>=1.16.2,<2
@@ -791,7 +791,7 @@ packages:
   - latex>=0.7.0,<0.8
   - mpl-axes-aligner>=1.3,<2
   - psutil>=7.0.0,<8
-  - openpyxl
+  - openpyxl>=3.1.5,<4
   requires_python: '>=3.12'
   editable: true
 - pypi: https://files.pythonhosted.org/packages/dd/b2/b931869a9f9ad9fa14deecbcfc28e514b0755f8b904d9fe48864951b1a60/tempdir-0.7.1.tar.gz

@@ -115,7 +115,7 @@ COLORS_SIM_VS_EXP = [
 # Definition and display of the current palette.
 sns.set_palette(MY_PALETTE)
 if __name__ == "__main__":
-    # Here vizualize desired palettes with command sns.palplot(`PALETTE_NAME`).
+    # Here visualize desired palettes with command sns.palplot(`PALETTE_NAME`).
     sns.palplot(sns.color_palette())  # Default palette.
     sns.palplot(MY_COLORS_2_ROCKET)
     sns.palplot(sns.color_palette("rocket", n_colors=2))
@@ -154,7 +154,7 @@ LABELS = {
     "ax_OD": "Optic density ($OD_{600}$)",
     "ax_prop": "Proportion of cells",
     "ax_p_sen": "Proportion of senescent cells",
-    "ax_lsen": "Telomere length triggering senscence (bp)",
+    "ax_lsen": "Telomere length triggering senescence (bp)",
     "ax_per": "Percent",
     "ax_count": r"Count",
     #

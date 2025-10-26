@@ -132,7 +132,7 @@ def extract_cycles_dataset(data, gal_delay=30, dox_frame_idx=None, saved_key=Non
 
     # > Iteration on all lineages.
     for i in range(lineage_count):
-        # Extration of times of division/death (except last one) in ith lin.
+        # Extraction of times of division/death (except last one) in ith lin.
         # div_times = data['track'][0, i].astype(int)[:, :2]
         # birth_times = np.append(np.zeros((len(div_times), 1)),
         #                         div_times[:, :-1], axis=1)
@@ -157,7 +157,7 @@ def extract_cycles_dataset(data, gal_delay=30, dox_frame_idx=None, saved_key=Non
         )
 
         # div_times_gal = div_times[is_gal, :]
-        # Or when ther is no Galactose.
+        # Or when there is no Galactose.
         # div_times_raf = div_times[~is_gal, :]
         is_raf_dox = np.logical_and(~is_gal, is_dox)
         # div_times_raf_dox = div_times[is_raf_dox, :]
@@ -178,7 +178,7 @@ def extract_cycles_dataset(data, gal_delay=30, dox_frame_idx=None, saved_key=Non
         # print('raf_dox', div_times_raf_dox[:,1] - div_times_raf_dox[:,0])
 
     # Saving.
-    if not isinstance(saved_key, type(None)):
+    if saved_key is not None:
         sfolder = os.path.join(DIR, saved_key)
         if not os.path.exists(sfolder):
             os.makedirs(sfolder)
@@ -217,7 +217,7 @@ def gather_cycle_dataset(
 ):
     folders_to_gather = [os.path.join(DIR, key) for key in data_key_to_gather]
     cycles = {key: [] for key in keys}
-    # Extracting and concatening.
+    # Extracting and concatenating.
     for folder in folders_to_gather:
         for key in keys:
             cycles[key].extend(np.loadtxt(join(folder, f"cycles_{key}.csv")))
@@ -227,7 +227,7 @@ def gather_cycle_dataset(
                 print(key)
             compute_cycle_threshold(cycles[key], is_printed, key)
     # Saving.
-    if not isinstance(skey, type(None)):
+    if skey is not None:
         sfolder = os.path.join(DIR, skey)
         if not os.path.exists(sfolder):
             os.makedirs(sfolder)
@@ -240,13 +240,13 @@ def gather_cycle_dataset(
 def make_cycles_dataset(data_key, thresholds=None, is_printed=False, is_saved=True):
     folder = os.path.join(DIR, data_key)
     cycles, ncycles, lcycles = {}, {}, {}
-    if isinstance(thresholds, type(None)):
+    if thresholds is None:
         thresholds = {"gal": None, "raf_dox": None}
 
-    # Extracting and concatening.
+    # Extracting and concatenating.
     for key in ["gal", "raf_dox"]:
         cycles[key] = np.loadtxt(join(folder, f"cycles_{key}.csv"))
-        if isinstance(thresholds[key], type(None)):
+        if thresholds[key] is None:
             thresholds[key] = compute_cycle_threshold(cycles[key], is_printed, key)
         ncycles[key] = cycles[key][cycles[key] <= thresholds[key]]
         lcycles[key] = cycles[key][cycles[key] > thresholds[key]]
@@ -283,7 +283,7 @@ def gather_postreated_output(output_1, output_2):
     output.append(gtrigs)
 
     for i in range(2, 5):
-        if isinstance(output_1[i], type(None)):
+        if output_1[i] is None:
             output.append(None)
         else:
             output.append(np.append(output_1[i], output_2[i], 0))

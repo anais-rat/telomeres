@@ -12,7 +12,7 @@ The data needed to plot these figures can be computed, for every sets of
 parameters (i.e. for given `para_count`, `cell_count` and `par_update`), with
 the script `main.population.compute.py`. For every fixed set of parameters,
 we run `SIMU_COUNT` simulations and average them. Ideally, they should be run
-in parallel on a cluster (using `slrum_compute.batch` with the varible
+in parallel on a cluster (using `slurm_compute.batch` with the variable
 `#SBATCH --array` set to `0-SIMU_COUNT`) otherwise it can be very long.
 
 NB: to have the right `plt.rcParams`: run once up to the end of the Parameters
@@ -21,7 +21,7 @@ section, and run again.
 """
 
 if __name__ == "__main__":  # Required on mac to use multiprocessing called in
-    # telomeres.lineages.simulation for PROC_COUNT > 1.
+    # telomeres.population.simulation for PROC_COUNT > 1.
 
     from copy import deepcopy
     import math
@@ -79,8 +79,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
         lt, l0, l1 = par.PAR_L_INIT
         labels = [
             r"$f_0$",
-            rf"$f_{{init}} (\cdot \, ; {int(lt)}, {int(l0)}, "
-            rf"{int(l1)})$",
+            rf"$f_{{init}} (\cdot \, ; {int(lt)}, {int(l0)}, " rf"{int(l1)})$",
         ]
     else:
         bbox_to_anchor1 = (0.22, 0.94)
@@ -142,7 +141,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     # Sensitivity to N_init
     # ---------------------
 
-    # Initial distibutions of telomere lengths
+    # Initial distributions of telomere lengths
     # ----------------------------------------
 
     CELL_COUNTS = np.array([2, 5, 10, 20, 50, 100, 200, 500, 1000, 1e5])

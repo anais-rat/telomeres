@@ -71,7 +71,7 @@ def plot_data_exp_length_curves(x, y, std, fig_subdirectory):
     plt.xlabel(LABELS["ax_time"])
     plt.xticks(x)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -107,7 +107,7 @@ def plot_data_exp_concentration_curves(
     plt.ylabel(ylabel, labelpad=8, wrap=True)
     plt.xticks(x)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -126,7 +126,7 @@ def weighted_std(values, weights, origin=None):
 
     """
     # np.sqrt(np.cov(lengths, aweights=densities))
-    if isinstance(origin, type(None)):
+    if origin is None:
         origin = np.sum(values * weights)
     variance = np.sum(weights * (values - origin) ** 2)
     return math.sqrt(variance)
@@ -164,18 +164,18 @@ def plot_ltelomere_init_wrt_par(
         lengths, densities = transform_l_init(
             distribution=distribution, par_l_init=par_l_init
         )
-        if isinstance(labels, type(None)):
+        if labels is None:
             plt.plot(lengths, densities, color=colors[i])
         else:
             plt.plot(lengths, densities, label=labels[i], color=colors[i])
-    if isinstance(legend_key, type(None)):
+    if legend_key is None:
         plt.legend()
     else:
         plt.legend(title=LABELS[legend_key])
     plt.xlabel("Telomere length (bp)", labelpad=6)
     plt.ylabel("Density", labelpad=8)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -246,7 +246,7 @@ def plot_n_print_l_init(distribution, fig_subdirectory, fig_name=None, color="gr
     plt.ylabel("Density", labelpad=8)
     sns.despine()
     # Save.
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -265,19 +265,19 @@ def plot_ltelomere_init(
     bbox_to_anchor=None,
     labels=[None, None],
 ):
-    """Postreats data loaded from the file etat_asymp_val_juillet'.
+    """Post-treat data loaded from the file etat_asymp_val_juillet'.
 
     Parameters
     ----------
     density_function_exp : ndarray
         Density function loaded from 'etat_asymp_val_juillet'.
         NB: structured s.t. P(Linit = i) is on the 2nd half of 'L_init_EXP' for
-          all 'i'in the 1st half ('i' not neccessarily an integer).
+          all 'i'in the 1st half ('i' not necessarily an integer).
 
     """
-    if isinstance(distribution, type(None)):
+    if distribution is None:
         distribution = transform_l_init()
-        if isinstance(par_l_init, type(None)):
+        if par_l_init is None:
             return plot_n_print_l_init(distribution, fig_subdirectory)
     distribution_new = transform_l_init(
         distribution=distribution, par_l_init=par_l_init
@@ -293,12 +293,12 @@ def plot_ltelomere_init(
     plt.ylabel("Density")
     plt.plot(*distribution, label=labels[0], color="grey")
     plt.plot(*distribution_new, "--", label=labels[1], color="darkorange")
-    if isinstance(bbox_to_anchor, type(None)):
+    if bbox_to_anchor is None:
         plt.legend(loc="upper right")
     else:
         plt.legend(bbox_to_anchor=bbox_to_anchor)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(FOLDER_FIG, fig_subdirectory, DIR_DAT)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -332,7 +332,7 @@ def plot_hist_s(
             legend=False,
             color="black",
         )
-        if not isinstance(labels, type(None)):
+        if labels is not None:
             if fig_count > 3:
                 x, y = 0.95, 1.1
             else:
@@ -363,7 +363,7 @@ def plot_hist_s(
     ax.grid(False)
     ax.set_xlabel(xlabel, labelpad=9)
     ax.set_ylabel(ylabel, labelpad=16)
-    if not isinstance(saving_path, type(None)):
+    if saving_path is not None:
         plt.savefig(saving_path, bbox_inches="tight")
     plt.show()
 

@@ -57,7 +57,7 @@ from telomeres.model.parameters import PAR_DEFAULT_POP, OVERHANG, PAR_DEFAULT_SI
 
 
 def population_init(c_init_s, par_l_init, rng):
-    """Generate initial subpopulations contentrated according to `c_init_s`.
+    """Generate initial subpopulations concentrated according to `c_init_s`.
 
     Parameters
     ----------
@@ -66,7 +66,7 @@ def population_init(c_init_s, par_l_init, rng):
         in the i-th subpopulation (/subsimulation).
     par_l_init : list
         Parameters (l_trans, l_0, l_1) defined in (Rat et al.) and used to
-        define the initial distribution of telomoere lengths.
+        define the initial distribution of telomere lengths.
         See also `model.posttreat.transform_l_init` docstring.
     rng : `numpy.random.Generator`
         Pseudorandom number generator state.
@@ -87,7 +87,7 @@ def population_init(c_init_s, par_l_init, rng):
     # Computation of subpopulations' cumulative concentration.
     ccum_s = np.cumulative_sum(c_init_s, include_initial=True)
 
-    # Creation of the initial subpopupulations.
+    # Creation of the initial subpopulations.
     dic_s = [{} for subsimu in simus]
     for i in simus:
         # Initial number of cells.
@@ -166,7 +166,7 @@ def population_evolution(
     Returns
     -------
     output : dict
-        Only one output: a big dictionnary whose entries are detailed below.
+        Only one output: a big dictionary whose entries are detailed below.
 
         > Time evolution arrays.
         Information on the population computed at every time of 'times'.
@@ -197,12 +197,12 @@ def population_evolution(
             See `ks.evo_c_gen_keys`.
 
         > Final population data.
-        The entrie of `cells_data` ('ancestors', 'nta_counts', 'clocks',
-        'generations', 'sen_counts') updated with population data at final time
+        The entries of `cells_data` ('ancestors', 'nta_counts', 'clocks',
+        'generations', 'sen_counts') updated with population data at final time.
 
         > Population history.
         'sat_time' : float
-            Time at which saturation occurs, NaN if saturation is not reached.
+            Time at which saturation occurs, nan if saturation is not reached.
         'history_dead' : ndarray
             (dead_cell_count, 4). history_dead[i] is the array (4,) of the
             ancestor, the generation, the time of death in days and the type
@@ -210,16 +210,16 @@ def population_evolution(
         'extinction_time': float
             Population extinction time (min) if extinction, math.inf otherwise.
         'evo_lmin_gsen' : dict
-            Dictionnary with entries `ks.type_keys` (i.e. 'atype', 'btype', and
+            Dictionary with entries `ks.type_keys` (i.e. 'atype', 'btype', and
             possibly 'mtype') each made of the `time_saved_count` lists, one
             for each time, of the lengths of the telomere that has triggered
             senescence per type. E.g. `evo_lmin_gsen['atype'][i]` is
-            the list of telo length that have trigerred senescence in type A
+            the list of telo length that have triggered senescence in type A
             cells and at time `times[time_saved_idxs[i]]`.
 
         > Computation ressources.
         'memory' : int
-            Memory (byte) used during the excecution of `population_evolution`.
+            Memory (byte) used during the execution of `population_evolution`.
 
     Raises
     ------
@@ -228,7 +228,7 @@ def population_evolution(
 
     """
     rng = np.random.default_rng(rng)
-    # Updatatable parameters.
+    # Updatable parameters.
     p_sat = parameters["sat"]
     p_exit = parameters["p_exit"]
     p_nta, p_sen = parameters["fit"][:2]
@@ -260,7 +260,7 @@ def population_evolution(
     lavgs = np.mean(d["lengths"], axis=(1, 2))  # Cells' average telomere.
     lmins = np.min(d["lengths"], axis=(1, 2))  # Cells' shortest telomere.
 
-    # Estimation of the maximun number of cells if not given.
+    # Estimation of the maximum number of cells if not given.
     # NB: we work on big arrays to update rather than arrays of exactly the pop
     #     size, to extend at every division, to avoid np.append (costly).
     c_max = cell_count_max or c_sat
@@ -385,7 +385,7 @@ def population_evolution(
                 return d
 
             # Otherwise, we let the cell divide or die.
-            # Strorage of the (positive) time elapsed since division/death.
+            # Storage of the (positive) time elapsed since division/death.
             delay = -d["clocks"][cell]
             t_temp = times[i] - delay  # Update of time.
 
@@ -461,7 +461,7 @@ def population_evolution(
                     cell2 = c_idx_max  # and `c_idx_max` is exactly the
                     c_idx_max += 1  # population size, that we increment.
                     if c_idx_max > c_max:  # If cells data arrays are exactly
-                        # the size of the population, we extend them with NaNs.
+                        # the size of the population, we extend them with nans.
                         c_max += cell_count_init
                         for key in ks.data_keys:
                             d[key] = afct.reshape_with_nan(d[key], c_max, 0)
@@ -496,7 +496,7 @@ def population_evolution(
                 # Update of `evo_c` arrays and `nta_counts` & `sen_counts`
                 # daughters' data depending on their mother's state (ie current
                 # except for lengths generation) and daughter's lmin (current).
-                # If sen mother, daugthers' data exact except evo_c sen_counts.
+                # If sen mother, daughters' data exact except evo_c sen_counts.
                 if d["sen_counts"][cell] > 0:
                     # Necessarily senescent daughters as well.
                     d["sen_counts"][dau_idxs] += 1
@@ -519,7 +519,7 @@ def population_evolution(
                         for dau in dau_idxs:
                             # If senescence is triggered.
                             if mfct.is_sen_trig(lmins[dau], p_senA, rng):
-                                # The daugher enters senescence.
+                                # The daughter enters senescence.
                                 d["sen_counts"][dau] = 1
                                 d["evo_c_sen_ancs"][i, anc] += 1
                                 lmins_gsen["atype"].append(lmins[dau])
@@ -532,12 +532,12 @@ def population_evolution(
                     else:
                         # If mother not arrested type B.
                         if d["nta_counts"][cell] < 0:
-                            # Daugthers stay type-B.
+                            # Daughters stay type-B.
                             d["evo_c_B_ancs"][i, anc] += 1
                             for dau in dau_idxs:  # For each daughter test...
                                 # ... If senescence is triggered.
                                 if mfct.is_sen_trig(lmins[dau], p_senB, rng):
-                                    # The daugher enters sen and stays B.
+                                    # The daughter enters sen and stays B.
                                     d["sen_counts"][dau] = 1
                                     d["evo_c_sen_ancs"][i, anc] += 1
                                     d["evo_c_B_sen_ancs"][i, anc] += 1
@@ -554,7 +554,7 @@ def population_evolution(
                             d["evo_c_B_ancs"][i, anc] -= 1
                             # For each daughter we test if sen is triggered.
                             for dau in dau_idxs:
-                                # If triggered, the daugther becomes sen H.
+                                # If triggered, the daughter becomes sen H.
                                 if mfct.is_sen_trig(lmins[dau], p_senB, rng):
                                     d["sen_counts"][dau] = 1
                                     d["evo_c_sen_ancs"][i, anc] += 1
@@ -568,7 +568,7 @@ def population_evolution(
                                     # If it adapts/repairs, it exits arrest.
                                     if mfct.is_repaired(p_exit["repair"], rng):
                                         d["nta_counts"][dau] *= -1
-                        else:  # Daugthers cannot turn sen bf having exited arr
+                        else:  # Daughters cannot turn sen bf having exited arr
                             # They stay type B.
                             d["evo_c_B_ancs"][i, anc] += 1
                             for dau in dau_idxs:
@@ -619,7 +619,7 @@ def population_evolution(
                 d["memory"] = psutil.Process(os.getpid()).memory_info().rss
                 return d
             # Otherwise, data of dead cells (w index < c_idx_max) that could be
-            # used in later computations set to NaN to avoid counting them.
+            # used in later computations set to nan to avoid counting them.
             d["lengths"][dead_idxs_tmp] = np.nan * d["lengths"][0]
             d["clocks"][dead_idxs_tmp] = np.nan
             # And update the `evo_*min_length` that may have changed.
@@ -761,11 +761,11 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
     output_s : tuple
         Tuple of `subpop_count` output_s (of type 'dict'), all returned by
         `population_evolution` (run with same arguments).
-        NB: 'tuple' objects are not modificable but 'list' are.
+        NB: 'tuple' objects are not modifiable but 'list' are.
     c_dilution : int
         Concentration at which dilute the whole population.
     para_count : int
-        Maximal number of parallelizations.
+        Maximal number of parallelization.
     gen_count_previous : int
         The biggest generation reached since time 0, will be taken as minimal
         number of rows for the returned distribution of cell w.r.t. generation.
@@ -781,7 +781,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
     -------
     > Overall population evolution.
     out : dict
-        Dicticionnary consisting in all the outputs `output_s[i]` gathered as
+        Dictionary consisting in all the outputs `output_s[i]` gathered as
         one. It consists in
         1. Time evolution arrays of the population, of length say `time_count`:
          > From summing on subpopulations evo arrays ('evo_c_ancs',
@@ -789,7 +789,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
              'evo_c_H_ancs', 'evo_c_gens', 'evo_lavg_sum', 'evo_lmin_sum').
          > Taking the minimum / maximum on all subsimulations ('evo_lmin_min',
              'evo_lmin_max').
-         > Or avering (with good weight) on subpopulations ('evo_lmode').
+         > Or averaging (with good weight) on subpopulations ('evo_lmode').
            NB: `out['evo_lmode']̀  is of shape (time_count,) while
            `output_s[0]['evo_lmode']̀  was of shape (time_count, 2): the second
            component is forgotten.
@@ -797,7 +797,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
          2. Population history.
          'sat_time' : float
              Average (on subpop that have saturated) of saturation times.
-             NaN if no subpop has reached saturation.
+             nan if no subpop has reached saturation.
          'sat_prop' : float
              Proportion of subpopulations that have saturated.
          'history_dead' : ndarray
@@ -806,9 +806,9 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
          'evo_lmin_gsen' : dict
              Concatenation of subpopulations' `evo_lmin_gen` by entry ('atype',
              'btype' possibly 'htype') and time s.t.`evo_lmin_gsen['atype'][i]`
-             is the list of telo lengths that have trigerred senescence in type
+             is the list of telo lengths that have triggered senescence in type
              A cells at the ith saved time.
-         3. Compuational ressources
+         3. Computational ressources
         Out is thus of the same format that an output of `population_evolution`
         (see its docstring for detail), except for the key 'evo_lmode' (see
         above), the key 'sat_prop' that is new; and 'extinction_time' that is
@@ -822,7 +822,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
         1D array (subpop_after_dil_count,) of the concentrations in the
         new subpopulations (created after dilution).
     data_s : list
-        List of dictionnaries: the data of the cells after dilution in subpop.
+        List of dictionaries: the data of the cells after dilution in subpop.
         format: `data_s[i][key]` is the data 'key' of the cells of the ith
         subpop after dilution, with 'key' among `ks.data_keys` ('nta_counts',
         'lengths', 'ancestors', 'generations', 'sen_counts' and 'clocks').
@@ -850,13 +850,13 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
 
     # Computation of population's evolution arrays with those of subpopulations
     out = {}
-    # > Sum on subpopulations (with extention by zeros or nan).
+    # > Sum on subpopulations (with extension by zeros or nan).
     for key in ks.evo_ancs_n_sum_keys:
         out[key] = afct.nansum([output_s[i][key] for i in subpops], 0)
     for key in ks.evo_c_gen_keys:
         out[key] = afct.nansum(
             [
-                afct.reshape2D_along1_with_0_or_NaN(output_s[i][key], gen_count)
+                afct.reshape2D_along1_with_0_or_nan(output_s[i][key], gen_count)
                 for i in subpops
             ],
             0,
@@ -898,7 +898,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         out["sat_time"] = np.nanmean([output_s[i]["sat_time"] for i in subpops], axis=0)
-    # if sat_count == 0:  # If no saturated subsim, the saturation time is NaN.
+    # if sat_count == 0:  # If no saturated subsim, the saturation time is nan.
     #     out['sat_time'] = np.nan
     # else:  # Otherwise it is the mean saturation time (on saturated subsims).
     #     out['sat_time'] = np.nansum([output_s[i]['sat_time'] for i in
@@ -929,11 +929,11 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
         subpop_count = para_count
         c_init_s = np.full(fill_value=c_subpop, shape=para_count, dtype=np.int32)
         c_init_s[-1] += c_dilution % para_count
-        # Dilution donw to `c_dilution` choosing cells to keep index uniformly.
+        # Dilution down to `c_dilution` choosing cells to keep index uniformly.
         kept_cell_idxs = rng.choice(c_final, c_dilution, replace=False)
     # > Otherwise, no dilution but subpop format possibly not classical.
     else:
-        # We redefine the repartion in subsimulations for these cells.
+        # We redefine the repartition in subsimulations for these cells.
         # NB: at most `para_count` subsimulations with a maximum of them
         #     at concentration `c_subpop`.
         subpop_count = min(c_final // c_subpop, para_count)
@@ -949,7 +949,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
     # Conversion of indexes of kept cells from pop to subpop format.
     idxs = afct.convert_idxs_pop_to_subpop(kept_cell_idxs, c_final_s)
 
-    # Weither the (non-empty) population has been diluted or not we compute its
+    # Whether the (non-empty) population has been diluted or not we compute its
     # data into subpopulation format.
     ccum_s = np.cumulative_sum(c_init_s, include_initial=True)
 
@@ -986,7 +986,7 @@ def simu_parallel(
     Parameters
     ----------
     para_count : int
-        Maximal number of parallelizations.
+        Maximal number of parallelization.
     c_init : int
         Initial concentration of the whole population.
     par_update : None or dictionary
@@ -1011,7 +1011,7 @@ def simu_parallel(
         (from https://scientific-python.org/specs/spec-0007/).
 
     output : dict
-        Only one output: a big dictionnary whose entries are detailed below.
+        Only one output: a big dictionary whose entries are detailed below.
 
         1. Time evolution arrays.
         Information on the population at every time saved `times`. np.nan
@@ -1045,14 +1045,14 @@ def simu_parallel(
 
         2. Initial population data.
         'day_init_data' : dict
-            Dictionnary containing the data on the initial population (entries
+            Dictionary containing the data on the initial population (entries
             'ancestors', 'nta_counts', 'clocks', 'generations', 'sen_counts').
 
         3. Population history.
         'sat_time' : ndarray
             Saturation times on each days if `para_count=1`. Otherwise, daily
             average (on subpop that have saturated) of saturation times
-            (in day). NaN if no subpop has reached saturation.
+            (in day). nan if no subpop has reached saturation.
         'sat_prop' : ndarray
             Daily proportion of subpopulations that have saturated.
         'history_dead' : ndarray
@@ -1062,7 +1062,7 @@ def simu_parallel(
         'extinction_time': float
             Population extinction time (day) if extinction, math.inf otherwise.
         'evo_lmin_gsen' : dict
-            Dictionnary with entries `ks.type_keys` (i.e. 'atype', 'btype', and
+            Dictionary with entries `ks.type_keys` (i.e. 'atype', 'btype', and
             possibly 'mtype') each made of `day_count` lists of length
             `tsaved_day_count` st `out['evo_lmin_gsen']['atype'][i][j]` is the
             list of the telomere lengths that have triggered senescence in type
@@ -1070,7 +1070,7 @@ def simu_parallel(
 
         4. Computation ressources.
         'memory' : int
-            Memory (byte) used during the excecution of `population_evolution`.
+            Memory (byte) used during the execution of `population_evolution`.
             (Only for `para_count` equal to 1)
         'computation_time' : float
             Time of computation (in min).
@@ -1092,7 +1092,7 @@ def simu_parallel(
     sub_dir_path = wp.write_simu_pop_subdirectory(
         c_init, para_count, par_update=par_update
     )
-    if isinstance(output_index, type(None)):
+    if output_index is None:
         is_saved = False
         output_index = 1
     else:
@@ -1103,9 +1103,9 @@ def simu_parallel(
     file_path = os.path.join(sub_dir_path, f"output_{output_index:02d}.npy")
     if os.path.exists(file_path):
         print("Loaded from: ", file_path)
-        return np.load(file_path, allow_pickle=True).item()  # 'TRUE'
+        return np.load(file_path, allow_pickle=True).item()
 
-    # Updatatable parameters.
+    # Updatable parameters.
     p = deepcopy(PAR_DEFAULT_POP)
     if isinstance(par_update, dict):
         p.update(par_update)
@@ -1119,7 +1119,7 @@ def simu_parallel(
 
     start = time.time()
     # Computation of subpopulations' concentration in c_init_s (para_count,).
-    # The `c_init` initial cells are reparted as follows:
+    # The `c_init` initial cells are distributed as follows:
     #  > `para_count-1` subpopulations with same concentration `c_init_subpop`.
     #  > One of `c_init_subpop+c_left` cells, c_left >= 0 as small as possible.
     simu_count = para_count
@@ -1128,16 +1128,16 @@ def simu_parallel(
     c_init_s[-1] += c_init % simu_count
     c_init_s = c_init_s.astype(int)
 
-    # Initialization of usefull quantities.
+    # Initialization of useful quantities.
     d = {}  # Dictionary of all data to return.
-    c_current = c_init  # Total cell number at the begining of current day.
+    c_current = c_init  # Total cell number at the beginning of current day.
     gen_count = 1  # Number of current or past generations in the whole pop.
     day = 0
     if para_count == 1:  # If no para, we initialize max of memory used so far.
         memory_max = psutil.Process(os.getpid()).memory_info().rss  # (byte).
     evo_keys = ks.evo_keys.copy()
 
-    # Creation of the initial popupulation in subpopulation format.
+    # Creation of the initial population in subpopulation format.
     data_s = population_init(c_init_s, p["fit"][2], rng)
 
     # Storage of a part of initial population data.
@@ -1212,7 +1212,7 @@ def simu_parallel(
         if para_count == 1:
             memory_max = max(memory_max, temp["memory"])  # (byte)
 
-        # Upate of population's evolution and history data from beginning.
+        # Update of population's evolution and history data from beginning.
         if day == 0:
             gen_count = len(temp["evo_c_gens"][0])
             d.update(temp)
@@ -1225,7 +1225,7 @@ def simu_parallel(
             gen_count_new = len(temp["evo_c_gens"][0])
             if gen_count < gen_count_new:
                 for key in ks.evo_c_gen_keys:
-                    d[key] = afct.reshape2D_along1_with_0_or_NaN(d[key], gen_count_new)
+                    d[key] = afct.reshape2D_along1_with_0_or_nan(d[key], gen_count_new)
                 gen_count = gen_count_new
             # > Update `evo_*` arrays.
             for key in evo_keys:
@@ -1250,7 +1250,7 @@ def simu_parallel(
                     for sim in range(simu_count)
                 ]
             ) / (60 * 24)
-            # Convertion from minute to day.
+            # Conversion from minute to day.
             d["sat_time"] = d["sat_time"] / (60 * 24)
 
             time_idxs = np.concatenate([tsaved_idxs[d] for d in range(day_count)])
@@ -1281,8 +1281,8 @@ def simu_parallel(
             # during computation.
             if para_count == 1:
                 memory = psutil.Process(os.getpid()).memory_info().rss  # byte
-                # !!! Convertion to Mio not Mo! According to 1998 convention:
-                # (byte) / 8 = (octect), (octect) / 2^20 = (Mio)
+                # !!! Conversion to Mio not Mo! According to 1998 convention:
+                # (byte) / 8 = (octet), (octet) / 2^20 = (Mio)
                 # --> (byte) / 8388608 = (Mio)
                 # NB: not corrected here, since data already simulated, but in
                 #     plot figures, where (Mio) are converted to (Mo).

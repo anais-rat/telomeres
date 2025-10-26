@@ -9,13 +9,13 @@ Created on Wed Jul  6 16:52:56 2022
 Script to compute population data necessary to plot the figures.
 
 Ideally, this should be run using parallel computing (e.g. on a cluster through
-slrum using `slrum_compute.batch`) otherwise, the present script will run the
-`SIMU_COUNT` required simulations in serie, which is not recommanded because
+slurm using `slrum_compute.batch`) otherwise, the present script will run the
+`SIMU_COUNT` required simulations in series, which is not recommended because
 very long.
-If you use `slrum_compute.batch`, the varible `#SBATCH --array` must be set to
+If you use `slrum_compute.batch`, the variable `#SBATCH --array` must be set to
 `0-SIMU_COUNT`. Moreover, the script will need to be run twice.
 One with `slrum_compute.batch` to simulate `SIMU_COUNT` populations, and once
-with `slrum_posttreat.batch` to postreat and average them.
+with `slrum_posttreat.batch` to post-treat and average them.
 
 Contrarily to `main.lineage.compute` the present script will not run all the
 simulations needed. The user need to adjust manually the parameters `C_EXP`,
@@ -55,7 +55,7 @@ import telomeres.population.posttreat as pps
 C_EXP = np.array([300])  # 250, 300. Cas test: 15
 
 # Number of parallelization.s per simulation.
-# NB: s.t. PARA_COUNT[i] 1D array of the numbers of paralelizations to simulate
+# NB: s.t. PARA_COUNT[i] 1D array of the numbers of parallelization to simulate
 #     at concentration C_EXP[i].
 # WARNING: parallelization might alter the outputs for small `C_EXP` since the
 #     resulting subpopulations simulated in parallel are not independent, their
@@ -65,8 +65,8 @@ PARA_COUNT = [np.array([1])]
 
 # Number of times the simulation is run.
 # NB: Ignored for parallel computing with `slurm_compute.batch`. In this case
-#     the number of simulations is set through `#SBATCH --array=0-<to_adust>`
-#     with  `<to_ajust>`equal to `SIMU_COUNT - 1`, in `slurm_compute.batch`.
+#     the number of simulations is set through `#SBATCH --array=0-<to_adjust>`
+#     with  `<to_adjust>`equal to `SIMU_COUNT - 1`, in `slurm_compute.batch`.
 SIMU_COUNT = 30  # 25, 20. Cas test: 3
 
 # (Reproducibility of outputs)
@@ -88,7 +88,7 @@ if IS_PLOT:
     PAR_UPDATE_BIS = None
 # .............................................................................
 
-# Posttreat options.
+# Post-treat options.
 IS_DATA_EXTRACTED_TO_CSV = True
 
 
@@ -101,7 +101,7 @@ IS_DATA_EXTRACTED_TO_CSV = True
 #    P_EXIT_NEW['accident'] = p_accident_new
 #    PAR_UPDATES = {'p_exit': P_EXIT_NEW}
 #
-# Exemple 3. To modify weither or not type H are accounted:
+# Exemple 3. To modify whether or not type H are accounted:
 #    PAR_UPDATES = {'is_htype_accounted': False}
 #
 # Exemple 4. To modified both previous:
@@ -171,7 +171,7 @@ is_run_in_parallel_from_slurm = "SLURM_ARRAY_TASK_ID" in os.environ.keys()
 if is_run_in_parallel_from_slurm:
     idx = int(os.environ["SLURM_ARRAY_TASK_ID"]) + 1  # Index of the job run.
 
-# Otherwise, the script simulates the `SIMU_COUNT` simulations in serie.
+# Otherwise, the script simulates the `SIMU_COUNT` simulations in series.
 else:
     idx = 1  # Initialisation with the first job index.
 
@@ -197,13 +197,13 @@ if not is_run_in_parallel_from_slurm:
 run_idx = 0
 for cell_count in C_EXP:
     for para_count in PARA_COUNT[run_idx]:
-        print("Number of parallelizations: ", para_count)
+        print("Number of parallelization: ", para_count)
 
-        # If parallel computation run from sbacth command.
+        # If parallel computation run from sbatch command.
         if is_run_in_parallel_from_slurm:
             # If not already done, creation of a folder for simulations.
             # NB: made only for the first simu to avoid creation of the subdir
-            #   inside the if from another job when parallel compputing is run.
+            #   inside the if from another job when parallel computing is run.
             sub_dir_path = wp.write_simu_pop_subdirectory(
                 cell_count, para_count, par_update=PAR_UPDATE
             )
@@ -222,7 +222,7 @@ for cell_count in C_EXP:
             )
             pps.postreat_from_evo_c(para_count, cell_count, idx, par_update=PAR_UPDATE)
 
-        # Otherwise computation in serie.
+        # Otherwise computation in series.
         else:
             for i in range(1, SIMU_COUNT + 1):
                 print(f"Simulation n° {i}/{SIMU_COUNT}")

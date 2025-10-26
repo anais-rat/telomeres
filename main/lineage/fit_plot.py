@@ -13,7 +13,7 @@ Ideally, the data needed to plot these figures should have been already
 computed with the script `main.lineage.fit_compute.py` on a cluster in order to
 parallelize all the "sets" of simulations (generally `SIMU_COUNT` simulation
 per "set"). If not, the present script will run the required sets of
-simulations in serie. which is not recommanded for big `SIMU_COUNT`values
+simulations in series. which is not recommended for big `SIMU_COUNT`values
 because very long.
 
 """
@@ -136,7 +136,7 @@ if __name__ == "__main__":
                 par_sensitivity,
                 idx_best=np.argmin(scores),
                 fig_name=key,
-                fig_supdirectory=FIG_DIR,
+                fig_subdirectory=FIG_DIR,
                 is_zoomed=True,
             )
             print(f"\n {key}: ", scores, min(scores))

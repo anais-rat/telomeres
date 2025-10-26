@@ -29,6 +29,7 @@ from copy import deepcopy
 import numpy as np
 import multiprocessing as mp
 import os
+
 # import pickle
 
 from telomeres.lineage.plot import compute_n_plot_gcurve_error
@@ -39,7 +40,7 @@ from telomeres.dataset.extract_processed_dataset import extract_postreat_lineage
 # Number of processor used for simulation.
 PROC_COUNT = os.cpu_count()
 
-# Proccesed experimental cycle duration times.
+# Processed experimental cycle duration times.
 DATA_EXP = extract_postreat_lineages()
 
 
@@ -137,18 +138,18 @@ PAR_SPACE_CHOICE = {
 
 def gather_bounds_with_int_index(kwarg=PAR_SPACE_CHOICE):
     """Return useful information on the parameters to fit depending on the
-    space of parameters previously parametred (the number of parameters to fit
+    space of parameters previously parameterized (the number of parameters to fit
     depends on the `IS_*` variables, while their respective bounds are defined
     by the `BOUNDS_*` variables).
 
     Returns
     -------
     [low_bounds, up_bounds] : list
-        List of both lists (of length N each) of the lower bounds and uper
+        List of both lists (of length N each) of the lower bounds and upper
         bounds of all the N parameters that have to be fit.
     int_par_idxs : list
         List of the indexes of the parameters to fit that should be treated by
-        CMAES as intergers.
+        CMAES as integers.
 
     """
     # NTA bounds.
@@ -332,7 +333,7 @@ def cost_function(point, is_plotted=False):
     return sum_costs
 
 
-def parallize_until_no_nan(function, point_count, optimizer, proc_count):
+def parallelize_until_no_nan(function, point_count, optimizer, proc_count):
     points = optimizer.ask(point_count)
     # print('optimizer points send to cost_function', points)
     pool = mp.Pool(proc_count)
@@ -381,7 +382,7 @@ def optimize_w_cmaes_multiple(
         cmaes_kwargs["popsize"] = int(popsizes[i])
         cmaes_kwargs["verb_append"] = bestever.evalsall
         cmaes_kwargs["CMA_stds"] = np.array(par_bounds[1]) - np.array(par_bounds[0])
-        if isinstance(point, type(None)) or i > 0:
+        if point is None or i > 0:
             # For non-indidicated 1st run / following runs initial point drawn.
             point = RNG.uniform(low=par_bounds[0], high=par_bounds[1])
         optimizer = cma.CMAEvolutionStrategy(point, sigma, cmaes_kwargs)
@@ -392,7 +393,7 @@ def optimize_w_cmaes_multiple(
             para_count = int(popsizes[i])
             points = []
             costs = []
-            out = parallize_until_no_nan(
+            out = parallelize_until_no_nan(
                 cost_function, para_count, optimizer, proc_count=proc_count
             )
             points.extend(out[0])

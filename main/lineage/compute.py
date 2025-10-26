@@ -7,18 +7,18 @@ Created on Fri Nov 25 17:51:29 2022
 
 Script to compute all the lineage data necessary to plot the figures.
 
-This is usefull if used to parallelize the `job_count` sets of `SIMU_COUNT`
-simulations on a cluster through slrum using `slrum_compute.batch`.
-In particular using `slrum_compute.batch`, the varible `#SBATCH --array` must
+This is useful if used to parallelize the `job_count` sets of `SIMU_COUNT`
+simulations on a cluster through slurm using `slrum_compute.batch`.
+In particular using `slrum_compute.batch`, the variable `#SBATCH --array` must
 be set to `0-job_count`.
 
 Otherwise, the present script will run the `job_count` required sets of
-simulations in serie, which is not recommanded because very long.
+simulations in series, which is not recommended because very long.
 
 The only parameter that should be adjusted is `PROC_COUNT`. This corresponds
 to python's number of processor use to parallelize one set of `SIMU_COUNT`
 simulations.
-Warning: if slrum is used, the varible `#SBATCH --cpus-per-task` should been
+Warning: if slurm is used, the variable `#SBATCH --cpus-per-task` should been
 change accordingly to `PROC_COUNT` (set to `= PROC_COUNT + 1` ideally).
 
 """
@@ -107,11 +107,11 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     print("job_count", job_count)
     is_run_in_parallel_from_slurm = "SLURM_ARRAY_TASK_ID" in os.environ.keys()
 
-    # If parallel computation run from sbacth command, only one idx computed.
+    # If parallel computation run from sbatch command, only one idx computed.
     if is_run_in_parallel_from_slurm:
         idx = int(os.environ["SLURM_ARRAY_TASK_ID"])
         idxs = [idx]
-    # Otherwise computation in serie.
+    # Otherwise computation in series.
     else:
         idxs = np.arange(job_count)
 

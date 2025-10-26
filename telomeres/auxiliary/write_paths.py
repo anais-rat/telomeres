@@ -72,7 +72,7 @@ def list_to_strings(list_to_write, is_last_int=False, decimal_count=None):
     if is_last_int:
         list_cp[-1] = int(np.round(list_cp[-1]))
         element_formatted_count -= 1
-    if not isinstance(decimal_count, type(None)):
+    if decimal_count is not None:
         for i in range(element_formatted_count):
             if decimal_count == 2:
                 list_cp[i] = f"{list_cp[i]:3.2f}"
@@ -166,15 +166,15 @@ def write_parameters_onset(parameters):
 def write_parameters_exit(p_exit):
     p_exit_tmp = deepcopy(p_exit)
     for key in p_exit:
-        if isinstance(p_exit[key], type(None)):
-            # None used to write path of figures with warying `p_exit`.
+        if p_exit[key] is None:
+            # None used to write path of figures with varying `p_exit`.
             p_exit_tmp[key] = "_variable"
     par_string = (
         f"pdeath{p_exit_tmp['accident']}-{p_exit_tmp['death']}"
         + f"_prepair{p_exit_tmp['repair']}"
     )
     if p_exit["sen_limit"] != math.inf:
-        if isinstance(p_exit["sen_limit"], type(None)):
+        if p_exit["sen_limit"] is None:
             par_string = par_string + "_maxSEN_variable"
         else:
             par_string = par_string + f"_maxSEN{int(p_exit['sen_limit'])}"
@@ -192,7 +192,7 @@ def write_parameters_to_fit(parameters):
 def write_parameters_finalCut(par_fc):
     l_cut = par_fc["lcut"]
     idxs_frame = par_fc["idxs_frame"]
-    if isinstance(l_cut, type(None)):
+    if l_cut is None:
         lcut_string = "noFc"
     else:
         lcut_string = f"fc{int(l_cut)}"
@@ -227,7 +227,7 @@ def characteristics_to_string(characteristics):
     Returns
     -------
     par_string : string
-        NB: types are returned orderred by alphabetical order. If several
+        NB: types are returned ordered by alphabetical order. If several
         `arrested_i` we keep only the one with the biggest `i`.
 
     """
@@ -259,7 +259,7 @@ def types_of_sort_to_string(types_of_sort):
     Returns
     -------
     par_string : string
-        NB: types are returned orderred by alphabetical order.
+        NB: types are returned ordered by alphabetical order.
 
     """
     types_of_sort_cp = deepcopy(types_of_sort)
@@ -302,7 +302,7 @@ def write_stat_path(
     types_of_sort_string = types_of_sort_to_string(types_of_sort)
     characteristics_string = characteristics_to_string(characteristics)
     # Construction of the path.
-    if isinstance(p["finalCut"], type(None)):
+    if p["finalCut"] is None:
         folder = join(FOLDER_SIM, FOLDER_L)
         fc_data = ""
     else:
@@ -310,7 +310,7 @@ def write_stat_path(
         fc_data = write_parameters_finalCut(p["finalCut"]) + "_"
     path = join(folder, write_parameters_to_fit(p["fit"]), fc_data)
 
-    if not isinstance(p["p_exit"], type(None)):
+    if p["p_exit"] is not None:
         path = path + write_parameters_exit(p["p_exit"])
     path = join(path, characteristics_string + "_lineages")
     if not p["is_htype_accounted"]:
@@ -322,15 +322,15 @@ def write_stat_path(
     if (not os.path.exists(path)) and make_dir:
         os.makedirs(path)
     path = join(path, f"stat_by_{types_of_sort_string}_s{simulation_count}_")
-    if not isinstance(lineage_count, type(None)):
+    if lineage_count is not None:
         path = path + f"l{lineage_count}_"
     path = path + f"p{fp.PERCENT}.npy"
     if psim["is_lcycle_count_saved"]:
         path = path.replace(".npy", "_w-hist-lc.npy")
-    if not isinstance(psim["hist_lmins_axis"], type(None)):
+    if psim["hist_lmins_axis"] is not None:
         path = path.replace(".npy", "_w-hist-lmin.npy")
     pdt = psim["postreat_dt"]
-    is_time_postreat = not isinstance(pdt, type(None))
+    is_time_postreat = pdt is not None
     if psim["is_evo_saved"] or is_time_postreat:
         if is_time_postreat:
             path = path.replace(".npy", f"_w-evo-dt{pdt}.npy")
@@ -397,7 +397,7 @@ def write_hist_lc_path(
     argument should be saved.
     In addition, check if the directory is created or not, if not creates it.
 
-     NB: par_update corresponds to a dict updting key is_htype_accounted,
+     NB: par_update corresponds to a dict updating key is_htype_accounted,
         is_htype_seen, parameters, postreat_dt, is_evo_saved of
         PAR_DEFAULT_LIN.
 
@@ -491,7 +491,7 @@ def write_gcurve_path(
         par_fc = par_update["finalCut"]
     else:
         par_fc = par.PAR_DEFAULT_LIN["finalCut"]
-    if not isinstance(par_fc, type(None)):  # par instead of par_update?
+    if par_fc is not None:  # par instead of par_update?
         folder = join(folder, FOLDER_FC)
     path = path.replace(
         join(folder, FOLDER_L),
@@ -547,16 +547,16 @@ def write_cycles_path(
     path = join(FOLDER_FIG, subdirectory, FOLDER_L, "cycles", "cycles_")
     if is_exp:
         path = path + "exp_"
-    if not isinstance(evo_avg, type(None)):
+    if evo_avg is not None:
         path = path + f"s{evo_avg['simu_count']}_"
     path = path + f"l{lineage_count}"
     if not is_htype_seen:
         path = path + "_htype_unseen"
-    if not isinstance(lineage_types, type(None)):
+    if lineage_types is not None:
         path = path + "_w_types"
-    if not isinstance(is_dead, type(None)):
+    if is_dead is not None:
         path = path + "_w_alive"
-    if not isinstance(evo_avg, type(None)):
+    if evo_avg is not None:
         sort_string = types_of_sort_to_string([evo_avg["type_of_sort"]])
         path = path + "_by_" + sort_string
     path = path + ".pdf"
@@ -607,7 +607,7 @@ def write_simu_pop_directory(par_update=None):
     if isinstance(par_update, dict):
         p.update(par_update)
 
-    # if isinstance(p['finalCut'], type(None)):
+    # if p['finalCut'] is None:
     folder = join(FOLDER_SIM, FOLDER_P)
     fc_data = ""
     # else:
@@ -621,14 +621,14 @@ def write_simu_pop_directory(par_update=None):
             path = path + f"{key}{tsat}-"
         path = path[:-1]
     else:
-        if isinstance(p["sat"]["prop"], type(None)):  # (For figure paths).
+        if p["sat"]["prop"] is None:  # (For figure paths).
             path = join(path, "psat_varying")
         else:
             path = join(path, f"psat{int(p['sat']['prop'])}")
     if not p["is_htype_accounted"]:
         path = path + "_wo_htype"
     path = join(path, fc_data)
-    if not isinstance(p["p_exit"], type(None)):
+    if p["p_exit"] is not None:
         path = path + write_parameters_exit(p["p_exit"])
         path = join(path, write_parameters_linit(p["fit"][2]))
     return path
@@ -643,9 +643,9 @@ def write_simu_pop_subdirectory(cell=None, para=None, par_update=None):
 
     """
     path = write_simu_pop_directory(par_update)
-    if not isinstance(cell, type(None)):
+    if cell is not None:
         path = join(path, f"cell_{cell}")
-        if not isinstance(para, type(None)):
+        if para is not None:
             path = join(path, f"para_{para}")
     return path
 
@@ -655,8 +655,8 @@ def write_simu_pop_file(cell, para, output_index, par_update=None):
     return join(sub_dir_path, f"output_{output_index:02d}.npy")
 
 
-# Postreat path
-# -------------
+# Post-treat path
+# ---------------
 
 
 def write_sim_pop_postreat_average(folder_name, simu_count, is_stat=True):
@@ -715,15 +715,15 @@ def write_fig_pop_name_end(simu=1, cell=None, para=1, tmax=None, is_stat=None):
     path = ""
     if simu > 1:
         path = path + f"_s{simu}"
-    if not isinstance(cell, type(None)):
+    if cell is not None:
         path = path + f"_c{cell}"
     if para > 1:
         path = path + f"_p{para}"
-    if not isinstance(tmax, type(None)):
+    if tmax is not None:
         path = path + f"_d{int(tmax)}"
 
     stat_names = []
-    if not isinstance(is_stat, type(None)):
+    if is_stat is not None:
         for key, is_ in is_stat.items():
             if is_:  # NB: key in 'ext', 'per' and 'std'.
                 stat_names.append(key)

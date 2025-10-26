@@ -143,21 +143,21 @@ def plot_evo_curves_w_stats(x, y_s, axis_labels, is_stat, kwargs=None):
     x : ndarray
         1D array of the x-axis values
     y_s : list
-        List (length `curve_count`) of dictionnaries (each dictionnary
+        List (length `curve_count`) of dictionaries (each dictionary
         corresponds to a set of associated y-axis statistical data to plot)
         with key 'mean' (and possibly 'min', 'max', 'perdown', 'perup',
         'std') each associated with a 1D arrays of fixed length.
     axis_labels : list
         List of strings: the x-axis and y-axis labels, respectively.
     is_stat : list or dict
-        List of dictionnaries of booleans (with keys 'ext', 'per', 'std' as
+        List of dictionaries of booleans (with keys 'ext', 'per', 'std' as
         e.g. `IS_STAT_STD`) indicating whether to show statistics for
         each curve.
         > If list (length `curve_count`): indicating for each 'mean' curve
             whether to show other statistics or not.
         > If dict same indication when assumed common to all curves.
     curve_labels : list or None, optional
-       List (length `curve_count`) of strings: the labels assiated to each
+       List (length `curve_count`) of strings: the labels associated to each
        `y_s[i]['mean']` curve. Default is None (no label).
     y_format : str, optional
         The format for the y-axis tick labels (e.g. 'sci' for scientific
@@ -204,7 +204,7 @@ def plot_evo_curves_w_stats(x, y_s, axis_labels, is_stat, kwargs=None):
 
     # Plot.
     plt.clf()
-    if isinstance(kw["figsize"], type(None)):
+    if kw["figsize"] is None:
         # plt.figure()
         fig, ax = plt.subplots(1, 1)  # plt.figure()
     else:
@@ -218,29 +218,29 @@ def plot_evo_curves_w_stats(x, y_s, axis_labels, is_stat, kwargs=None):
     if not isinstance(kw["yticks"], dict):
         plt.yticks(kw["yticks"])
 
-    # Definine plot options.
+    # Define plot options.
     if isinstance(is_stat, dict):
         is_stat = [is_stat] * len(y_s)
-    if isinstance(kw["linestyles"], type(None)):
+    if kw["linestyles"] is None:
         kw["linestyles"] = ["-"] * len(y_s)
-    if isinstance(kw["colors"], type(None)):
+    if kw["colors"] is None:
         # kw['colors'] = plt.rcParams['axes.prop_cycle'].by_key()['color']
         # while len(kw['colors']) < len(y_s):
         #     kw['colors'].extend(plt.rcParams['axes.prop_cycle'].by_key(
         #                         )['color'])
         kw["colors"] = sns.color_palette("rocket", n_colors=len(y_s))
-    if not isinstance(kw["y_format"], type(None)):
+    if kw["y_format"] is not None:
         plt.ticklabel_format(
             style=kw["y_format"], axis="y", scilimits=(0, 0), useMathText=True
         )
-    if not isinstance(kw["y_scale"], type(None)):
+    if kw["y_scale"] is not None:
         plt.yscale(kw["y_scale"])
     imax = len(x)
 
     # > First set of data with legend fo statistics.
-    if isinstance(kw["curve_labels"], type(None)):
+    if kw["curve_labels"] is None:
         kw["curve_labels"] = [None] * len(y_s)
-    if isinstance(kw["curve_labels"][0], type(None)):
+    if kw["curve_labels"][0] is None:
         legend_0 = kw["general_labels"]["avg"]
     else:
         legend_0 = kw["curve_labels"][0]
@@ -311,9 +311,9 @@ def plot_evo_curves_w_stats(x, y_s, axis_labels, is_stat, kwargs=None):
                 alpha=kw["alpha"],
                 color=kw["colors"][idx],
             )
-    is_legend = [not isinstance(g, type(None)) for g in kw["general_labels"].values()]
+    is_legend = [g is not None for g in kw["general_labels"].values()]
     if kw["curve_labels"] != [None] * len(y_s) or any(is_legend):
-        if isinstance(kw["bbox_to_anchor"], type(None)):
+        if kw["bbox_to_anchor"] is None:
             plt.legend(
                 title=kw["legend_title"],
                 loc=kw["legend_loc"],
@@ -329,7 +329,7 @@ def plot_evo_curves_w_stats(x, y_s, axis_labels, is_stat, kwargs=None):
                 fontsize=kw["leg_fontsize"],
             )
     sns.despine()  # Remove and top and right axis.
-    if not isinstance(kw["fig_path"], type(None)):  # Save.
+    if kw["fig_path"] is not None:  # Save.
         print("\n Saved at: ", kw["fig_path"])
         plt.savefig(kw["fig_path"], bbox_inches="tight")
     plt.show()
@@ -342,7 +342,7 @@ def reposition_yoffset(axes, x_pos=0.01, y_pos=0.98, pad=None):  # -0.11, y_pos=
 
     """
     yaxis = axes.yaxis
-    if not isinstance(pad, type(None)):
+    if pad is not None:
         plt.tight_layout(pad=pad)
     # Get the offset value.
     offset = yaxis.get_offset_text().get_text()
@@ -401,7 +401,7 @@ def plot_hist_lmin_at_sen(
         cell_count, para_count, par_update=par_update
     )
     stat_path = wp.write_sim_pop_postreat_average(sim_path, simu_count)
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
     if is_saved:
         fig_directory = wp.write_fig_pop_directory(
             cell=cell_count,
@@ -681,7 +681,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
             LEGEND_POS = (0.9, 1.15)
         else:
             LEGEND_POS = (0.81, 1.12)
-        if not isinstance(par_update_bis, type(None)):
+        if par_update_bis is not None:
             LABELS_SIM = [
                 LABELS["sim"] + r" (rad51$\Delta$)",
                 LABELS["sim"] + r" (rad51)",
@@ -699,12 +699,12 @@ def plot_evo_c_n_p_pcfixed_from_stat(
         CEXP = {"OD": 1.1}
 
     # General `kwargs` (see plot_evo_curves_w_stats) options.
-    if isinstance(par_update, type(None)) or "sat" not in par_update.keys():
+    if par_update is None or "sat" not in par_update.keys():
         p_sat = par.PAR_SAT["prop"]
     elif "sat" in par_update.keys():
         p_sat = par_update["sat"]["prop"]
     # > Style dependent parameters (e.g. legend position).
-    if isinstance(fig_subdirectory, type(None)) or fig_subdirectory == "manuscript":
+    if fig_subdirectory is None or fig_subdirectory == "manuscript":
         LEG_POS = (1, 1)  # LEG_POS_L =  (0.6, 1)
     elif fig_subdirectory == "article":
         LEG_POS = (0.97, 1)  # LEG_POS_L = (0.6, 1.05)
@@ -715,7 +715,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
     if isinstance(is_stat_update, dict):
         is_stat.update(is_stat_update)
     # > Figure name (None if figures should not be saved).
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
     if is_saved:
         directory = wp.write_fig_pop_directory(
             c, p, par_update=par_update, subdirectory=fig_subdirectory
@@ -735,9 +735,9 @@ def plot_evo_c_n_p_pcfixed_from_stat(
                 path = join(directory, name + end_name_none)
             else:
                 path = join(directory, name + end_name)
-            if not isinstance(ysim_scale, type(None)):
+            if ysim_scale is not None:
                 path = path.replace(".pdf", f"_ysim{ysim_scale}.pdf")
-            if not isinstance(yexp_scale, type(None)):
+            if yexp_scale is not None:
                 path = path.replace(".pdf", f"_yexp{yexp_scale}.pdf")
             return path
 
@@ -749,7 +749,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
     # Genearal data.
     # > Paths to data.
     sim_paths = [wp.write_simu_pop_subdirectory(c, p, par_update)]
-    if not isinstance(par_update_bis, type(None)):
+    if par_update_bis is not None:
         sim_paths.append(wp.write_simu_pop_subdirectory(c, p, par_update_bis))
     stat_data_paths = [
         wp.write_sim_pop_postreat_average(path, simu_count) for path in sim_paths
@@ -779,7 +779,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
     else:
         days_sim = days
     # > Extraction simulated data in the dictionary `d`.
-    d = np.load(stat_data_paths[0], allow_pickle="TRUE").item()
+    d = np.load(stat_data_paths[0], allow_pickle=True).item()
     # > And only evolution of concentration but on all simu_count simulations.
     if is_all_points:
         #   Index 0 of `np.genfromtxt(wp.write_sim_c_csv...` is day 1 of simu.
@@ -887,7 +887,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
         plt.show()
         if is_saved:
             path = fpath("evo_c_by_day_w_exp1", "std", ysim_scale, yexp_scale)
-            if not isinstance(par_update_bis, type(None)):
+            if par_update_bis is not None:
                 path = path.replace("_w_exp1_", "_w_exp1_x2_")
             print("\n Saved at: ", path)
             plt.savefig(path, bbox_inches="tight")
@@ -973,7 +973,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
         sns.despine(top=True, right=False)
         if is_saved:
             path = fpath("evo_c_by_day_w_exp2", "std", ysim_scale, yexp_scale)
-            if not isinstance(par_update_bis, type(None)):
+            if par_update_bis is not None:
                 path = path.replace("_w_exp2_", "_w_exp2_x2_")
             print("\n Saved at: ", path)
             plt.savefig(path, bbox_inches="tight")
@@ -1058,7 +1058,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
         sns.despine(top=True, right=False)
         if is_saved:
             path = fpath("evo_c_by_day_w_exp3", "std", ysim_scale, yexp_scale)
-            if not isinstance(par_update_bis, type(None)):
+            if par_update_bis is not None:
                 path = path.replace("_w_exp3_", "_w_exp3_x2_")
             print("\n Saved at: ", path)
             plt.savefig(path, bbox_inches="tight")
@@ -1281,7 +1281,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
         plt.ylabel(AXIS_LABELS[1], labelpad=8, wrap=True)
         sns.despine()
         fig_path = fpath("evo_p_type_n_sen_woH_fill")
-        if not isinstance(fig_path, type(None)):
+        if fig_path is not None:
             print("\n Saved at: ", fig_path)
             plt.savefig(fig_path, bbox_inches="tight")
         plt.show()
@@ -1385,7 +1385,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
         plt.xticks(XTICKS)
         sns.despine()
         fig_path = fpath("evo_p_type_sen_n_sen_woH_fill")
-        if not isinstance(fig_path, type(None)):
+        if fig_path is not None:
             print("\n Saved at: ", fig_path)
             plt.savefig(fig_path, bbox_inches="tight")
         plt.show()
@@ -1404,7 +1404,7 @@ def plot_evo_l_pcfixed_from_stat(
     # General `kwargs` (see plot_evo_curves_w_stats) options.
     # > Style dependent parameters (e.g. legend position).
     if (
-        isinstance(fig_subdirectory, type(None)) or fig_subdirectory == "manuscript"
+        fig_subdirectory is None or fig_subdirectory == "manuscript"
     ):  # format = 'manuscript'
         LEG_POS = (1, 1)
     elif fig_subdirectory == "article":  # format = 'article'
@@ -1417,7 +1417,7 @@ def plot_evo_l_pcfixed_from_stat(
         is_stat.update(is_stat_update)
     # > Figure name (None if figures should not be saved).
     fig_path = None
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
     if is_saved:
         directory = wp.write_fig_pop_directory(
             cell=c, para=p, subdirectory=fig_subdirectory, par_update=par_update
@@ -1548,7 +1548,7 @@ def plot_evo_p_anc_pcfixed_from_stat(
     # General configuration.
     # > Style dependent parameters (e.g. legend position).
     if (
-        isinstance(fig_subdirectory, type(None)) or fig_subdirectory == "manuscript"
+        fig_subdirectory is None or fig_subdirectory == "manuscript"
     ):  # format = 'manuscript'
         LEG_POS = (1, 1.06)
     elif fig_subdirectory == "article":  # format = 'article'
@@ -1571,7 +1571,7 @@ def plot_evo_p_anc_pcfixed_from_stat(
     # > Colors.
     COLORS = sns.color_palette("viridis", group_count)[::-1]
     # > Figure name.
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
     if is_saved:
         directory = wp.write_fig_pop_directory(
             cell=c, para=p, subdirectory=fig_subdirectory
@@ -1685,7 +1685,7 @@ def plot_evo_gen_pcfixed_from_stat(
     )
     plt.legend(bbox_to_anchor=bbox_to_anchor)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         directory = wp.write_fig_pop_directory(
             cell=c, para=p, subdirectory=fig_subdirectory
         )
@@ -1817,7 +1817,7 @@ def plot_performances_pfixed(
     )
     plt.legend()
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         directory, name_end = write_fig_pfixe_path(
             simu_counts, para_count, None, IS_STAT_STD, par_update, fig_subdirectory
         )
@@ -1859,7 +1859,7 @@ def plot_extinct_pfixed(
         np.load(path, allow_pickle=True).item().get("extinct_prop")
         for path in stat_path_s
     ]
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
 
     # Printing.
     for i in idxs:
@@ -1943,7 +1943,7 @@ def plot_sat_pfixed(
         np.load(path, allow_pickle=True).item().get("sat_prop") for path in stat_path_s
     ]
     dsat_count = np.max([len(tsat_s[i]["mean"]) for i in idxs])
-    if not isinstance(dsat_count_max, type(None)):
+    if dsat_count_max is not None:
         dsat_count = min(dsat_count_max, dsat_count)
     tsat_s_avg = np.transpose(
         [fct.reshape_with_nan(tsat_s[i]["mean"], dsat_count) for i in idxs]
@@ -1975,7 +1975,7 @@ def plot_sat_pfixed(
     plt.legend(title=LABELS["leg_day"], loc="upper left", bbox_to_anchor=(1, 0.95))
     sns.despine()
     # Saving.
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         directory, name_end = write_fig_pfixe_path(
             simu_counts, para_count, None, IS_STAT_STD, par_update, fig_subdirectory
         )
@@ -2044,7 +2044,7 @@ def plot_p_pfixed(
         ]
     )
 
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
 
     fig, ax = plt.subplots(1, 1, figsize=fig_size)
     plt.xscale("log")
@@ -2139,7 +2139,7 @@ def plot_evo_pfixed(
         is_stat.update(is_stat_update)
     ALPHA = 0.1
     # > Figure name (None if figures should not be saved).
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
     if is_saved:
         directory, name_end = write_fig_pfixe_path(
             simu_counts, para_count, t_max, is_stat, par_update, fig_subdirectory
@@ -2505,7 +2505,7 @@ def plot_evo_w_variable(
     # General `kwargs` (see plot_evo_curves_w_stats) options.
     # > Style dependent parameters (e.g. legend position).
     if (
-        isinstance(fig_subdirectory, type(None)) or fig_subdirectory == "manuscript"
+        fig_subdirectory is None or fig_subdirectory == "manuscript"
     ):  # format = 'manuscript'
         LEG_POS = None
         LEG_POS_L = None
@@ -2518,14 +2518,14 @@ def plot_evo_w_variable(
         raise Exception("Parameters of plotting to adjust manually should bespecified")
     # > Curves.
     COLORS = sns.color_palette("viridis", curve_count)
-    if isinstance(linestyles, type(None)):
+    if linestyles is None:
         linestyles = ["-" for i in range(curve_count)]
 
     is_stat = deepcopy(IS_STAT_NONE)
     if isinstance(is_stat_update, dict):
         is_stat.update(is_stat_update)
     # > Figure name (None if figures should not be saved).
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
     if is_saved:
         # Fig path with varying parameters set to None (no subfolder created).
         fig_par_update = deepcopy(par_updates[0])

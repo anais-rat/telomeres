@@ -9,20 +9,20 @@ Script in two parts:
     - Part 1 gathers all the results of obtained running CMA-ES parameter
         estimation with `fit.py`.
     - Part 2 allows to simulate lineage data with the different parameters of
-        Part 1. This is usefull if used to parallelize the `job_count` sets of
-        `SIMU_COUNT` simulations on a cluster through slrum using
+        Part 1. This is useful if used to parallelize the `job_count` sets of
+        `SIMU_COUNT` simulations on a cluster through slurm using
         `slrum_fit_compute.batch`.
-        In particular using `slrum_compute.batch`, the varible
+        In particular using `slrum_compute.batch`, the variable
         `#SBATCH --array`must be set to `0-job_count`.
 
         Otherwise, the present script will run the required simulations in
-        serie, which is not recommanded because very long.
+        series, which is not recommended because very long.
         If Run locally, possibility to plot simulated data.
 
 The only parameters that should be adjusted are `PROC_COUNT`. This corresponds
 to python's number of processor use to parallelize one set of `SIMU_COUNT`
 simulations.
-Warning: if slrum is used, the varible `#SBATCH --cpus-per-task` should been
+Warning: if slurm is used, the variable `#SBATCH --cpus-per-task` should been
 change accordingly to `PROC_COUNT` (set to `= PROC_COUNT + 1` ideally).
 
 """
@@ -37,7 +37,7 @@ import fit_estimate as lfit
 # Parameters
 # ----------
 
-# Number of procesort used per job (i.e. set of `SIMU_COUNT̀̀` simulations).
+# Number of processor used per job (i.e. set of `SIMU_COUNT̀̀` simulations).
 # NB: if run form .batch script `cpu-per-task` should be `PROC_COUNT + 1`.
 #     if run locally, better not exceed your machine capacities.
 PROC_COUNT = 11
@@ -1008,12 +1008,12 @@ if __name__ == "__main__":
     print(f"SLURM_ARRAY_TASK_ID should ran from 0 to {job_count - 1}")
 is_run_in_parallel_from_slurm = "SLURM_ARRAY_TASK_ID" in os.environ.keys()
 
-# > If parallel computation run from sbacth command, only one idx computed.
+# > If parallel computation run from sbatch command, only one idx computed.
 if is_run_in_parallel_from_slurm:
     idx = int(os.environ["SLURM_ARRAY_TASK_ID"])
     idxs = [idx]
     IS_PLOTTED = False
-# > Otherwise computation in serie.
+# > Otherwise computation in series.
 else:
     idxs = np.array([])
     if __name__ == "__main__":

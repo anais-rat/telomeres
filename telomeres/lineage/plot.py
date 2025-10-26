@@ -188,7 +188,7 @@ def write_typelabel_w_count(characteristics, lineage_count):
     characteristics : list
         List of strings among 'atype' btype' 'htype' 'arrested1' 'arrested2'...
         'senescent' 'dead' dead_accidentally' 'dead_naturally'.
-        See `is_as_expected_lineage` docsting.
+        See `is_as_expected_lineage` docstring.
     lineage_count : int
         Number of experimental lineages with the characteristics given / of
         lineage simulated.
@@ -200,7 +200,7 @@ def write_typelabel_w_count(characteristics, lineage_count):
 
     """
     characteristics_cp = copy.deepcopy(characteristics)
-    characteristics_cp.sort()  # Orderring in alphabetical order.
+    characteristics_cp.sort()  # Ordering in alphabetical order.
 
     label = ""
     for charac in characteristics_cp:
@@ -252,7 +252,7 @@ PARAMETERS_COMPUT = None
 LABEL_ERRORS = [
     r"$L^2$-error for ",
     r"Error between proportions of type B for ",
-    r"Error between polynomal fits for",
+    r"Error between polynomial fits for",
 ]
 
 
@@ -292,7 +292,7 @@ def compute_n_plot_gcurve_error(
     #     thus htype unseen for simulations as well.
     lineage_count = len(exp_data_s[gcurves[0]][0]["cycle"])
     lineages = np.arange(lineage_count)
-    if isinstance(simulation_count, type(None)):
+    if simulation_count is None:
         simulation_count = int(lineage_count_on_all_simu / lineage_count)
     p_update = deepcopy(par_update) or {}
     p_update["is_htype_seen"] = is_htype_seen
@@ -313,7 +313,7 @@ def compute_n_plot_gcurve_error(
         # Default value.
         error_s[gcurve] = np.nan * np.ones(3)
         # If computation was too long for `PARAMETERS_COMPUT` parameters.
-        if isinstance(sim_data_s[gcurve], type(None)):
+        if sim_data_s[gcurve] is None:
             # No need to compute: parameters s.t. lineages with given charac.
             # are not enough probable.
             pass
@@ -411,14 +411,14 @@ def plot_lineages_cycles(
     """Plot cycle duration times (in the order given) indicating the type of
     each lineages or if dead before the end of the experiment if given in
     argument. If not None also plot `curve_to_plot` (can be e.g. `gtrig_sen`).
-    If average of cycles among several simulations specifiying the
-    type of data orderring use `type_of_sort` will specifyin it in y-axis.
+    If average of cycles among several simulations specifying the
+    type of data ordering use `type_of_sort` will specifying it in y-axis.
     If 'saved_as' is True, the plot is saved.
 
     """
     with sns.axes_style("dark"), mpl.rc_context(PAR_RC_HEATMAP):
         lineage_count, generation_count = np.shape(cycles)
-        if isinstance(gmax, type(None)):
+        if gmax is None:
             gmax = generation_count
         generations = np.arange(gmax + 3)
         lineages = np.arange(lineage_count)
@@ -439,7 +439,7 @@ def plot_lineages_cycles(
             df.to_csv(
                 os.path.join(FOLDER_LIN_DATA, "Source Data Fig2b.csv"), index=False
             )
-        if isinstance(evo_avg, type(None)):
+        if evo_avg is None:
             ylabel = LABELS["ax_lin"]
             blabel = LABELS["cycle"]
         else:
@@ -466,7 +466,7 @@ def plot_lineages_cycles(
         fs = plt.rcParams["legend.fontsize"]
         if isinstance(fs, str):
             fs = 24
-        if not isinstance(lineage_types, type(None)):
+        if lineage_types is not None:
             is_htype_seen = np.any(np.isnan(lineage_types))
             btype_idxs = lineage_types == 1
             if is_exp:
@@ -500,11 +500,11 @@ def plot_lineages_cycles(
                 color="black",
                 label=leg_htype,
             )
-            if isinstance(bbox_to_anchor, type(None)):
+            if bbox_to_anchor is None:
                 plt.legend(loc="lower right", facecolor="w", edgecolor="w")
             else:
                 plt.legend(bbox_to_anchor=bbox_to_anchor, loc="lower right")
-        if not isinstance(is_dead, type(None)):
+        if is_dead is not None:
             is_alive = np.isnan(is_dead)
             plt.scatter(
                 gen_counts[is_alive] + 0.85,
@@ -514,11 +514,11 @@ def plot_lineages_cycles(
                 color="black",
                 label=LABELS["alive"],
             )
-            if isinstance(bbox_to_anchor, type(None)):
+            if bbox_to_anchor is None:
                 plt.legend(loc="lower right", facecolor="w", edgecolor="w")
             else:
                 plt.legend(bbox_to_anchor=bbox_to_anchor, loc="upper left")
-        if not isinstance(curve_to_plot, type(None)):
+        if curve_to_plot is not None:
             plt.plot(
                 curve_to_plot,
                 lineages,
@@ -526,7 +526,7 @@ def plot_lineages_cycles(
                 zorder=10000,
                 label="Generation of \n senescence onset",
             )
-            if isinstance(bbox_to_anchor, type(None)):
+            if bbox_to_anchor is None:
                 plt.legend(
                     loc="lower right", facecolor="w", edgecolor="w", framealpha=0.9
                 ).set_zorder(10001)
@@ -547,7 +547,7 @@ def plot_lineages_cycles(
         plt.ylabel(ylabel, labelpad=8)  # , size=font_size)
         plt.ylim(0, lineage_count)
         sns.despine()
-        if not isinstance(fig_subdirectory, type(None)):
+        if fig_subdirectory is not None:
             path = wp.write_cycles_path(
                 lineage_count,
                 is_exp,
@@ -557,7 +557,7 @@ def plot_lineages_cycles(
                 evo_avg=evo_avg,
                 subdirectory=fig_subdirectory,
             )
-            if not isinstance(add_to_name, type(None)):
+            if add_to_name is not None:
                 path = path.replace(".pdf", f"_{add_to_name}.pdf")
             print("\n Saved at: ", path)
             plt.savefig(path, bbox_inches="tight")
@@ -579,7 +579,7 @@ def plot_lineage_avg_proportions(
     with sns.axes_style("dark"), mpl.rc_context(PAR_RC_HEATMAP):
         plt.figure(figsize=(5.8, 9.5))  # default: (6.4, 4.8)
         df = pd.DataFrame(data=cycles, columns=generations, index=lineages)
-        if isinstance(evo_avg, type(None)):
+        if evo_avg is None:
             ylabel = LABELS["ax_lin"]
             blabel = LABELS["propB"]
         else:
@@ -595,14 +595,14 @@ def plot_lineage_avg_proportions(
             cbar_kws={"ticklocation": "left", "label": blabel},
         )
         # Legend.
-        if not isinstance(curve_to_plot, type(None)):
+        if curve_to_plot is not None:
             plt.plot(curve_to_plot, lineages, color="black", zorder=10000)
         # Axis.
         plt.xlabel(LABELS["ax_gen"], labelpad=6)
         plt.ylabel(ylabel, labelpad=8)
         plt.ylim(0, lineage_count)
         sns.despine()
-        if not isinstance(fig_subdirectory, type(None)):
+        if fig_subdirectory is not None:
             path = wp.write_propB_path(
                 lineage_count, evo_avg, subdirectory=fig_subdirectory
             )
@@ -631,7 +631,7 @@ def plot_gcurves_exp(
     char_count = len(characteristics_s)
     labels = labels or [""] * char_count
 
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(wp.FOLDER_FIG, fig_subdirectory, wp.FOLDER_L)
         dir_name = join(folder, "gcurves_n_hists", "exp")
         if not os.path.exists(dir_name):
@@ -685,7 +685,7 @@ def plot_gcurves_exp(
 
         plt.xlabel(LABELS["ax_gen"], labelpad=6)
         sns.despine()
-        if not isinstance(fig_subdirectory, type(None)):
+        if fig_subdirectory is not None:
             path = join(dir_name, "gcurves_exp.pdf")
             print("\n Saved at: ", path)
             plt.savefig(path, bbox_inches="tight")
@@ -705,7 +705,7 @@ def plot_gcurves_exp(
         axes.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
         plt.legend()
         sns.despine()
-        if not isinstance(fig_subdirectory, type(None)):
+        if fig_subdirectory is not None:
             path = join(dir_name, "gcurves_exp.pdf")
             print("\n Saved at: ", path)
             plt.savefig(path, bbox_inches="tight")
@@ -726,9 +726,9 @@ def plot_gcurves_exp(
         axes.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
         plt.legend()
         sns.despine()
-        if not isinstance(fig_subdirectory, type(None)):
+        if fig_subdirectory is not None:
             path = join(dir_name, "gcurves_normalized_exp.pdf")
-            if not isinstance(add_to_name, type(None)):
+            if add_to_name is not None:
                 path = path.replace(".pdf", f"_{add_to_name}.pdf")
             print("\n Saved at: ", path)
             plt.savefig(path, bbox_inches="tight")
@@ -775,7 +775,7 @@ def compute_n_plot_gcurve(
     # Plot.
     w, h = plt.figaspect(0.6) + 0.3
     fig, axes = plt.subplots(1, 1, figsize=(w, h))
-    if not isinstance(tick_spacing, type(None)):
+    if tick_spacing is not None:
         axes.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
     plt.xlabel(LABELS[gcurve], labelpad=6)
     if type_of_sort == gcurve:
@@ -805,7 +805,7 @@ def compute_n_plot_gcurve(
     else:
         plt.title(title)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         path = wp.write_gcurve_path(
             simu_count,
             len(lineages),
@@ -814,7 +814,7 @@ def compute_n_plot_gcurve(
             par_update=p_update,
             subdirectory=fig_subdirectory,
         )
-        if not isinstance(add_to_name, type(None)):
+        if add_to_name is not None:
             path = path.replace(".pdf", f"_{add_to_name}.pdf")
         print("\n Saved at: ", path)
         plt.savefig(path, bbox_inches="tight")
@@ -846,7 +846,7 @@ def compute_n_plot_gcurves_wrt_charac(
     fig_count = len(characteristics_s)
     fig, ax = plt.subplots(fig_count, 1, sharex="col", figsize=fig_size)
     for i in range(fig_count):
-        if not isinstance(xticks, type(None)):
+        if xticks is not None:
             ax[i].set_xticks(xticks)
         characteristics = characteristics_s[i]
         gcurve = gcurve_s[i]
@@ -872,7 +872,7 @@ def compute_n_plot_gcurves_wrt_charac(
             label=LABELS["per"],
             color="gray",
         )
-        if not isinstance(labels, type(None)):
+        if labels is not None:
             ax[i].text(
                 0.96,
                 0.85,
@@ -883,7 +883,7 @@ def compute_n_plot_gcurves_wrt_charac(
             )
         ax[i].set_ylabel(None)
         ax[i].xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
-    if isinstance(bbox_to_anchor, type(None)):
+    if bbox_to_anchor is None:
         ax[0].legend(borderaxespad=0.2)
     else:
         ax[0].legend(bbox_to_anchor=bbox_to_anchor, loc="upper left")
@@ -900,11 +900,11 @@ def compute_n_plot_gcurves_wrt_charac(
     plt.xlabel(LABELS["ax_gen"], labelpad=9)
     plt.ylabel(LABELS["ax_lin"], labelpad=16)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         path = path or wp.write_gcurves_path(
             par_update=p_update, subdirectory=fig_subdirectory
         )
-        if not isinstance(add_to_name, type(None)):
+        if add_to_name is not None:
             path = path.replace(".pdf", f"_{add_to_name}.pdf")
         plt.savefig(path, bbox_inches="tight")
         print("\n Saved at: ", path)
@@ -975,7 +975,7 @@ def compute_n_plot_gcurves_wrt_sort_n_gen(
     plt.ylabel(LABELS["ax_lin"], labelpad=8)
     axes.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         if is_unique_gcurve:
             path = wp.write_gcurve_path(
                 simulation_count,
@@ -1027,7 +1027,7 @@ def plot_gcurves_wrt_par(
 
     fig, axes = plt.subplots(1, 1, figsize=fig_size)
     colors = sns.color_palette("rocket", par_count)[::-1]
-    if isinstance(linestyles, type(None)):
+    if linestyles is None:
         linestyles = ["-" for i in range(par_count)]
     for i in range(par_count):
         p_update = {"is_htype_seen": False}  # Default for comparison with exp.
@@ -1069,8 +1069,8 @@ def plot_gcurves_wrt_par(
             label=LABELS["exp"],
             linestyle="--",
         )
-    if not isinstance(curve_labels, type(None)):
-        if isinstance(bbox_to_anchor, type(None)):
+    if curve_labels is not None:
+        if bbox_to_anchor is None:
             plt.legend(title=fp.LABELS[varying_key], loc="lower right")
         else:
             plt.legend(title=fp.LABELS[varying_key], bbox_to_anchor=bbox_to_anchor)
@@ -1079,7 +1079,7 @@ def plot_gcurves_wrt_par(
     plt.ylabel(LABELS["ax_lin"], labelpad=8)
     axes.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         # Fig path with varying parameters set to None (no subfolder created).
         fig_par_update = deepcopy(p_update)
         if varying_key == varying_supkey:
@@ -1097,7 +1097,7 @@ def plot_gcurves_wrt_par(
             subdirectory=fig_subdirectory,
         )
         path = path.replace("gcurves_b", f"gcurves_wrt_{varying_key}_b")
-        if not isinstance(add_to_name, type(None)):
+        if add_to_name is not None:
             path = path.replace(".pdf", f"_{add_to_name}.pdf")
         print("\n Saved at", path)
         plt.savefig(path, bbox_inches="tight")
@@ -1134,7 +1134,7 @@ def plot_gcurves_wrt_par_n_char(
     colors = sns.color_palette("rocket", par_count)[::-1]
     tick_spacing = 10
 
-    if isinstance(linestyles, type(None)):
+    if linestyles is None:
         linestyles = ["-" for i in range(par_count)]
     fig_count = len(characteristics_s)
     fig, ax = plt.subplots(fig_count, 1, sharex="col", figsize=fig_size)
@@ -1164,7 +1164,7 @@ def plot_gcurves_wrt_par_n_char(
                 alpha=0.12,
                 color=colors[i],
             )
-            if not isinstance(texts, type(None)):
+            if texts is not None:
                 ax[f_idx].text(
                     0.95,
                     0.1,
@@ -1174,7 +1174,7 @@ def plot_gcurves_wrt_par_n_char(
                     transform=ax[f_idx].transAxes,
                 )
         ax[f_idx].xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
-    if not isinstance(curve_labels, type(None)):
+    if curve_labels is not None:
         ax[0].legend(title=fp.LABELS[varying_key], loc="lower right")
     fig.add_subplot(111, frameon=False)  # Add big axes, hide frame.
     plt.tick_params(
@@ -1188,7 +1188,7 @@ def plot_gcurves_wrt_par_n_char(
     plt.xlabel(LABELS[gcurve], labelpad=9)
     plt.ylabel(LABELS["ax_lin"], labelpad=16)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         characteristics = characteristics_s[
             np.argmin([len(c) for c in characteristics_s])
         ]
@@ -1239,7 +1239,7 @@ def plot_medians_wrt_par(
     median_means = np.zeros(par_count)
     median_perdowns, median_perups = np.zeros(par_count), np.zeros(par_count)
     medians = np.zeros(par_count)
-    if isinstance(linestyles, type(None)):
+    if linestyles is None:
         linestyles = ["-" for i in range(par_count)]
     for i in range(par_count):
         p_update = {"is_htype_seen": False}  # Default for comparison w exp
@@ -1279,7 +1279,7 @@ def plot_medians_wrt_par(
     plt.xlabel(x_label + LABELS[varying_key], labelpad=6)
     plt.ylabel("Median generation of\nsenescent onset", labelpad=8)
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         # Fig path with varying parameters set to None (no subfolder created).
         fig_par_update = deepcopy(p_update)
         if varying_key == varying_supkey:
@@ -1297,7 +1297,7 @@ def plot_medians_wrt_par(
             subdirectory=fig_subdirectory,
         )
         path = path.replace("gcurves_b", f"medians_wrt_{varying_key}_b")
-        if not isinstance(add_to_name, type(None)):
+        if add_to_name is not None:
             path = path.replace(".pdf", f"_{add_to_name}.pdf")
         print("\n Saved at", path)
         plt.savefig(path, bbox_inches="tight")
@@ -1319,7 +1319,7 @@ def plot_histogram(
     title=None,
 ):
     plt.figure()
-    if not isinstance(ylim, type(None)):
+    if ylim is not None:
         plt.ylim(ylim)
     plt.xlabel(LABELS["gsen"], labelpad=6)
     if normalized:
@@ -1436,7 +1436,7 @@ def compute_n_plot_hist_lmin(
         print("prop > 27 bp: ", np.sum(hist_new[axis > 27]), np.sum(hist_new), "\n")
         plt.legend()
         sns.despine()
-        if not isinstance(fig_subdirectory, type(None)):
+        if fig_subdirectory is not None:
             par_update = {"fit": parameters, "is_htype_seen": is_htype_seen}
             path = wp.write_hist_lmin_path(
                 simulation_count,
@@ -1468,7 +1468,7 @@ def compute_n_plot_hist_lmin(
         handles, labels = plt.gca().get_legend_handles_labels()
         plt.legend(handles[::-1], labels[::-1], title="Cell type")
         sns.despine()
-        if not isinstance(fig_subdirectory, type(None)):
+        if fig_subdirectory is not None:
             par_update = {"fit": parameters, "is_htype_seen": is_htype_seen}
             path = wp.write_hist_lmin_path(
                 simulation_count,
@@ -1537,7 +1537,7 @@ def compute_n_plot_hist_lmin(
                 handles[::-1], labels[::-1], title="Cell type", loc="upper right"
             )
             sns.despine()
-            if not isinstance(fig_subdirectory, type(None)):
+            if fig_subdirectory is not None:
                 par_update = {"fit": parameters, "is_htype_seen": is_htype_seen}
                 path = wp.write_hist_lmin_path(
                     simulation_count,
@@ -1605,7 +1605,7 @@ def plot_histogram_from_lcycle_counts(
     """
     colors = sns.color_palette("YlOrRd", 4)[-2:]
     is_sim_data = len(np.shape(lcycle_per_seq_counts["sen"])) == 2
-    if isinstance(fig_size, type(None)):
+    if fig_size is None:
         fig, axes = plt.subplots(1, 1)
     else:
         fig, axes = plt.subplots(1, 1, figsize=fig_size)
@@ -1750,7 +1750,7 @@ def plot_histogram_from_lcycle_counts(
     plt.xlabel(label_x, labelpad=6, wrap=True)
     plt.ylabel(LABEL_HIST_Y[lcycle_type], labelpad=8, wrap=True)
     sns.despine()
-    if not isinstance(path_to_save, type(None)):
+    if path_to_save is not None:
         print("\n Saved at: ", path_to_save)
         plt.savefig(path_to_save, bbox_inches="tight")
     plt.show()
@@ -1768,7 +1768,7 @@ def compute_n_plot_lcycle_hist(
     is_exp_support=False,
     fig_size=None,
 ):
-    is_saved = not isinstance(fig_subdirectory, type(None))
+    is_saved = fig_subdirectory is not None
     p_update = deepcopy(par_update) or {}
 
     # Definition of some parameters

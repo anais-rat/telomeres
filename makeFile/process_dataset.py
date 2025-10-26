@@ -13,9 +13,9 @@ This will create the folder `data/processed`, filled with processed data.
 import telomeres.dataset.make_processed_dataset as mk
 
 
-# Create formated datasets.
+# Create formatted datasets.
 if __name__ == "__main__":
-    # MICROFLUIDIC DATA.
+    # MICROFLUIDICS DATA.
     # Coutelier at al. 2008.
     out = mk.make_microfluidic_dataset("TelomeraseNegative.mat", strain="TetO2-TLC1")
     # Rad 51.

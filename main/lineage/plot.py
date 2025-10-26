@@ -12,8 +12,8 @@ Ideally, the data needed to plot these figures should have been already
 computed with the script `main.lineage.compute.py` on a cluster in order to
 parallelize all the "sets" of simulations (generally `SIMU_COUNT` simulation
 per "set"). If not, the present script will run the required sets of
-simulations in serie. Although each can be run in parrallel through
-`PROC_COUNT > 1`, this is not recommanded for big `SIMU_COUNT`values because
+simulations in series. Although each can be run in parallel through
+`PROC_COUNT > 1`, this is not recommended for big `SIMU_COUNT`values because
 very long.
 
 """
@@ -79,7 +79,7 @@ SIMU_COUNT = 1000
 # Default parameters of the model.
 PAR_DEFAULT = deepcopy(par.PAR_DEFAULT_LIN)
 
-# x-axis of the histogram of the telomere length trigerring sencence.
+# x-axis of the histogram of the telomere length triggering senescence.
 X_AXIS_HIST_LMIN = par.X_AXIS_HIST_LMIN
 
 # Time step for time evolution along lineages (10 min).
@@ -329,7 +329,7 @@ for key_sort in ["lmin", "gsen", "lavg"]:
     )
 
 
-# Time / generation evolution postreat
+# Time / generation evolution post-treat
 # ------------------------------------
 # NB: this figures were not published, are are thus not saved.
 
@@ -455,7 +455,7 @@ pl.compute_n_plot_lcycle_hist(
 )
 
 
-# > Lmin trigerring senescence
+# > Lmin triggering senescence
 # ----------------------------
 
 CHARACTERISTICS_S = [["btype", "senescent"], ["atype", "senescent"]]

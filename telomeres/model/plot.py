@@ -77,7 +77,7 @@ def list_to_strings(list_to_write, is_last_int=False, decimal_count=None):
     if is_last_int:
         list_cp[-1] = int(np.round(list_cp[-1]))
         element_formatted_count -= 1
-    if not isinstance(decimal_count, type(None)):
+    if decimal_count is not None:
         for i in range(element_formatted_count):
             if decimal_count == 2:
                 list_cp[i] = f"{list_cp[i]:3.2f}"
@@ -172,7 +172,7 @@ def write_laws(parameters, decimal_count=DECIMAL_COUNT):
 
 def print_data_on_special_initial_distributions(l_short, l_medium, l_long):
     print(
-        "\n Generation of short, medium and long intial distribution of "
+        "\n Generation of short, medium and long initial distribution of "
         "telomeres: \n -----------------------------------------------------"
         "-----------------"
     )
@@ -241,7 +241,7 @@ def plot_laws_nta_various_a(
     plt.legend()
     sns.despine()
     # Saving.
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -286,7 +286,7 @@ def plot_laws_nta_various_b(
     plt.legend()
     sns.despine()
     # Saving.
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -328,7 +328,7 @@ def plot_laws_s(
     pnta_s = [law_nta(lengths, *par[0]) for par in parameters_s]
     probas["pnta"] = stat_all(pnta_s)
     probas["pnta"]["all"] = pnta_s
-    if not isinstance(idx_best, type(None)):
+    if idx_best is not None:
         colors[idx_best] = "black"
         probas["pnta"]["best"] = pnta_s[idx_best]
     psen_s = [law_sen(lengths, *par[1][0]) for par in parameters_s]
@@ -341,7 +341,7 @@ def plot_laws_s(
         psenB_s = [law_sen(lengths, *par[1][1]) for par in parameters_s]
         probas["psenB"] = stat_all(psenB_s)
         probas["psenB"]["all"] = psenB_s
-        if not isinstance(idx_best, type(None)):
+        if idx_best is not None:
             probas["psenA"]["best"] = psen_s[idx_best]
             probas["psenB"]["best"] = psenB_s[idx_best]
     else:
@@ -350,7 +350,7 @@ def plot_laws_s(
             fig_sizes.append((8, 2))
         probas["psen"] = stat_all(psen_s)
         probas["psen"]["all"] = psen_s
-        if not isinstance(idx_best, type(None)):
+        if idx_best is not None:
             probas["psen"]["best"] = psen_s[idx_best]
 
     j = 0
@@ -367,7 +367,7 @@ def plot_laws_s(
             for proba_individual in proba["all"]:
                 axes_all[i].plot(lengths, proba_individual, color=colors[count])
                 count += 1
-            if not isinstance(idx_best, type(None)):
+            if idx_best is not None:
                 axes[i].plot(
                     lengths, proba["best"], label=LABELS["best"], color="black"
                 )
@@ -406,7 +406,7 @@ def plot_laws_s(
                 transform=axes[i].transAxes,
                 bbox=dict(boxstyle="round", fc="w", ec="w"),
             )
-            if not isinstance(tick_spacing, type(None)):
+            if tick_spacing is not None:
                 fig.tight_layout()
                 axes[i].xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
             i += 1
@@ -427,7 +427,7 @@ def plot_laws_s(
             ax.set_ylabel(LABELS["ax_proba"], labelpad=16)
             sns.despine(fig=figure)
 
-        if not isinstance(fig_subdirectory, type(None)):
+        if fig_subdirectory is not None:
             folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
             if not os.path.exists(folder):
                 os.makedirs(folder)
@@ -507,7 +507,7 @@ def plot_laws(
     plt.tight_layout()
     plt.xlabel(LABELS["ax_lmin_min"])
     plt.ylabel(LABELS["ax_proba"], wrap=True)
-    if not isinstance(tick_spacing, type(None)):
+    if tick_spacing is not None:
         axes.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
     if is_par_plot:
         plt.legend(
@@ -519,7 +519,7 @@ def plot_laws(
         plt.legend(title=labels["linit"])
     sns.despine()
     # Saving.
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -625,7 +625,7 @@ def plot_distributions_shortest_min(
             plt.plot(distrib[:350], label=cell_counts[i], color=colors[i])
     plt.legend(title=LABELS["leg_cell_count"])
     sns.despine()
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -683,7 +683,7 @@ def plot_distributions_shortest(cell_counts, is_rescaled=False, fig_subdirectory
     plt.grid(False)  # And hide grid.
     plt.xlabel(LABELS["ax_l"], labelpad=8)  # Set common titles
     plt.ylabel("Density", labelpad=23)
-    if not isinstance(fig_subdirectory, type(None)):
+    if fig_subdirectory is not None:
         folder = join(wp.FOLDER_FIG, fig_subdirectory, FDIR_PAR)
         if not os.path.exists(folder):
             os.makedirs(folder)

@@ -16,7 +16,7 @@ This is where the mathematical model is encoded, with its
 default parameters (`parameters.py`). More generally, it contains all
 the functions allowing to
 
-- Posttreat the raw data (`make_*.py`)
+- Post-treat the raw data (`make_*.py`)
 - Simulate the model (`simulation.py`)
 - Plot the simulated and experimental data, the laws of the model... (`plot.py`)
 

@@ -44,17 +44,17 @@ HTYPE_CHOICE = True
 # Telomeres
 # ---------
 
-# Number of chromoses per cell.
+# Number of chromosomes per cell.
 CHROMOSOME_COUNT = 16
 
 # Overhang / shortening rate (assumed constant) [bp].
 OVERHANG = 7
 
-# Postreatment of the intial distribution of telomere lengths.
-# The "original" distribution is sligtly transformed as follows
+# Post-treatment of the initial distribution of telomere lengths.
+# The "original" distribution is slightly transformed as follows
 # > Translation by `LTRANS` [bp].
-# > Dilatation at the left/rigth side of the mode of the distribution s.t. the
-#   mimimum/maximum of the support of the distribution is translated by
+# > Dilatation at the left/right side of the mode of the distribution s.t. the
+#   minimum/maximum of the support of the distribution is translated by
 #   `L0`/`L1` [bp].
 LTRANS, L0, L1 = 0, 40, 58  # Our fit.
 # Concatenation ...............................................................
@@ -101,9 +101,9 @@ PAR_SEN_B = [2.45423414e-06, 0.122028128, 0.0]  # Our fit.
 #   'exp_new': experimental ones, from `TelomeraseNegative.mat` (see below).
 
 
-# ------------------------------
-# 2) Parameters for postreatment
-# ------------------------------
+# --------------------------------
+# 2) Parameters for post-treatment
+# --------------------------------
 
 
 # Experimental conditions
@@ -137,7 +137,7 @@ SAT_CHOICE = ["prop"]
 PROP_SAT = 1e3  # 720 # 1e3
 
 # Times of saturation [min].
-# NB: `i` must be a key of TIMES_SAT everytime `SAT_CHOICE[i]` is 'times'
+# NB: `i` must be a key of TIMES_SAT every time `SAT_CHOICE[i]` is 'times'
 #     meaning that at day `i`, saturation happens at time `TIMES_SAT[i]`.
 TIMES_SAT = {}
 
@@ -190,7 +190,7 @@ PAR_DEFAULT_SIM_POP = {
 # Postreat and plot
 # -----------------
 
-# x-axis of the histogram of the telomere length trigerring sencence.
+# x-axis of the histogram of the telomere length triggering senescence.
 # NB: shared by lineage and population plotting parameters.
 X_AXIS_HIST_LMIN = np.linspace(0, 250, 251)
 

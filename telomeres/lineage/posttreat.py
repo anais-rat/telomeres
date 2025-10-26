@@ -56,7 +56,7 @@ def is_as_expected_lineage(gtrigs, lineage_type, is_accidental_death, characteri
     Parameters
     ----------
     gtrigs : dict
-        Dictionnary with generations of event (nta, senescence and death) of
+        Dictionary with generations of event (nta, senescence and death) of
         the format returned by `simulate_lineage_evolution`.
     lineage_type : int
         0 for type A, 1 for type B and Nan for H (in case of simulated
@@ -75,7 +75,7 @@ def is_as_expected_lineage(gtrigs, lineage_type, is_accidental_death, characteri
     Returns
     -------
     is_as_expected : bool
-        True if the lineage correponds to the characteristics given, False
+        True if the lineage corresponds to the characteristics given, False
         otherwise.
 
     """
@@ -184,7 +184,7 @@ def select_exp_lineages(exp_data, characteristics):
     for key in gtrigs:
         gtrigs[key] = gtrigs[key][selected_lineage_idxs]
     lineage_types = lineage_types[selected_lineage_idxs]
-    if not isinstance(is_unseen_htypes, type(None)):
+    if is_unseen_htypes is not None:
         is_unseen_htypes = is_unseen_htypes[selected_lineage_idxs]
     is_accidental_deaths = is_accidental_deaths[selected_lineage_idxs]
     for key in lcycle_per_seq_counts:
@@ -223,13 +223,13 @@ def count_exp_lineages(characteristics, strain="TetO2-TLC1"):
     return len(data_exp_selected[0]["cycle"])
 
 
-# Postreat
-# --------
+# Post-treat
+# ----------
 
 
 def sort_lineages(data, type_of_sort):
     """Sort the information on lineages (contained in `data` formatted as any
-    ouput of `simulate_lineages_evolution` or
+    output of `simulate_lineages_evolution` or
     `lineage.posttreat.postreat_experimental_lineages`)
     accordingly to `type_of_sort`.
     WARNING : also forget the lineages than cannot be sorted (for exemple if we
@@ -239,7 +239,7 @@ def sort_lineages(data, type_of_sort):
     Parameters
     ----------
     data : list
-        List of data of sets of lineages formatted as the ouputs of
+        List of data of sets of lineages formatted as the outputs of
         `simulate_lineages_evolution` or
         `lineage.posttreat.postreat_experimental_lineages`
         (see corresponding docstrings).
@@ -274,7 +274,7 @@ def sort_lineages(data, type_of_sort):
     if type_of_sort == "gdeath":
         idxs_sorted = nanargsort1D(gtrigs_s["death"])
     elif type_of_sort in ["lmin", "lavg"]:
-        if isinstance(evo_s, type(None)):
+        if evo_s is None:
             raise ValueError(
                 f"ERROR: to sort by '{type_of_sort}' you need to"
                 " set `is_evo_returned` to True."
@@ -284,7 +284,7 @@ def sort_lineages(data, type_of_sort):
         nta_idx = int(type_of_sort[-1]) - 1
         idxs_sorted = nanargsort1D(gtrigs_s["nta"][:, nta_idx].flatten())
     elif type_of_sort == "gsen":
-        # NB: we need to be carefull for experimental lineage: need to remove
+        # NB: we need to be careful for experimental lineage: need to remove
         #     lineages ended by long cycle (thus classified as senescent) but
         #     that have not died at the end of measurement.
         is_dead = ~np.isnan(gtrigs_s["death"])
@@ -307,20 +307,20 @@ def sort_lineages(data, type_of_sort):
         )
     # Ordering of data.
     # > `evo_s`.
-    if not isinstance(evo_s, type(None)):
+    if evo_s is not None:
         for key, evos in evo_s.items():
             evo_s[key] = evos[idxs_sorted]
     # > `gtrigs_s`.
     for key in gtrigs_s:
         gtrigs_s[key] = gtrigs_s[key][idxs_sorted]
     # > `lcycle_per_seq_counts` if computed
-    if not isinstance(lcycle_per_seq_counts["nta"], type(None)):
+    if lcycle_per_seq_counts["nta"] is not None:
         lcycle_per_seq_counts = {
             "nta": lcycle_per_seq_counts["nta"][idxs_sorted],
             "sen": lcycle_per_seq_counts["sen"][idxs_sorted],
         }
     # > Gathering of all sorted outputs.
-    if not isinstance(is_unseen_htypes, type(None)):
+    if is_unseen_htypes is not None:
         is_unseen_htypes = is_unseen_htypes[idxs_sorted]
     return (
         evo_s,
@@ -334,7 +334,7 @@ def sort_lineages(data, type_of_sort):
 
 def compute_exp_lcycle_counts(cycles, gtrigs, is_lcycle):
     """Compute the number of successive long cycles of every sequence of arrest
-    of every lineage, orderring them similarly to `gtrigs`.
+    of every lineage, ordering them similarly to `gtrigs`.
 
     Parameters
     ----------
@@ -343,7 +343,7 @@ def compute_exp_lcycle_counts(cycles, gtrigs, is_lcycle):
         duration time of the jth cell of the ith lineage (in minutes).
         NB: is Nan if the the ith lineage is already dead at generation j.
     gtrigs : dict
-        Dictionnary with generations of event (nta, senescence and death) of
+        Dictionary with generations of event (nta, senescence and death) of
         the format returned by `simulate_lineages_evolution`.
     is_lcycle : ndarray
         2D array (lineage_count, gen_count) s.t. `is_lcycle[i, j]` is True if
@@ -354,7 +354,7 @@ def compute_exp_lcycle_counts(cycles, gtrigs, is_lcycle):
     Returns
     -------
     lcycle_per_seq_counts : dict
-        Dictionnary of the number of long cycles per sequence of long cycles
+        Dictionary of the number of long cycles per sequence of long cycles
         gathered by entries st.:
         nta : ndarray
             2D array with same shape as `gtrigs['nta']` s.t.
@@ -419,10 +419,10 @@ def postreat_experimental_lineages(
         Data file having the structure of
         `TelomeraseNegative.mat['OrdtryT528total160831']`.
     threshold : int
-        In 10 minutes, threeshold between long cycles (> threeshold) and normal
-        cycles (<= threeshold).
+        In 10 minutes, threshold between long cycles (> threshold) and normal
+        cycles (<= threshold).
     gen_count_min : int
-        Lineages counting striclty less than `gen_count_min`
+        Lineages counting strictly less than `gen_count_min`
         generations (from after DOX addition) are forgotten from the data.
     par_multiple_thresholds : list
         par_multiple_thresholds[0]: threshold during the new conditions (C2).
@@ -432,30 +432,30 @@ def postreat_experimental_lineages(
     Returns
     -------
     cycles : dict
-        Dictionnary with only one entry 'cycle' that is a 2D array
+        Dictionary with only one entry 'cycle' that is a 2D array
         (lineage_count, gen_count) with all cycle duration times (in min).
-        NB: any lineage shorter than the longest one extended with NaN values.
+        NB: any lineage shorter than the longest one extended with nan values.
     gtrigs : dict
-        Dictionnary of generations at which an event is triggered, entries st.:
+        Dictionary of generations at which an event is triggered, entries st.:
         nta : ndarray
             2D array (lineage_count, nta_count) of generations at which
             non-terminal arrests (nta) are triggered.
             NB: `gtrigs['nta'][l, i]` for the ith arrest of the lth lineage is
-                NaN if no such arrest.
+                nan if no such arrest.
         sen : ndarray
             1D array (lineage_count,) of the generations at which senescence
-            (in the broad sense of serie of long cycles terminated by either
+            (in the broad sense of series of long cycles terminated by either
              death or the end of measurements for lineages that have not died)
-            is trigerred, nan if never trigerred.
+            is triggered, nan if never triggered.
         death : ndarray
             1D array (lineage_count,) of the generations at which death is
             triggered (i.e. the cell having this generation has died at the end
-             of its cycle). Is NaN if the lineage has not died.
+             of its cycle). Is nan if the lineage has not died.
     lineage_types : ndarray
         1D array (lineage_count,) st. lineage_types[i] is
         > 0 if the lineage is type A (normal cycles, senescence and death),
         > 1 if it is "type B" (ie. at least 1 long cycle followed by 1 normal),
-        > NaN when we cannot say: any lineage (accidentally) dead but without
+        > nan when we cannot say: any lineage (accidentally) dead but without
           arresting (i.e. acc. died after only normal cycles) or alive but that
           cannot be said type B (i.e. with a long cycle followed by normal).
     is_unseen_htypes : NoneType
@@ -474,7 +474,7 @@ def postreat_experimental_lineages(
     # Under usual conditions, it is when DOX was added.
     init_times = data["DOXaddition"][0].astype(int)
     # NB: for finalCut data 'DOXaddition' corresponds to Gal addition.
-    if not isinstance(par_multiple_thresholds, type(None)):
+    if par_multiple_thresholds is not None:
         threshold_new, time_change = par_multiple_thresholds
     # Extraction of cycles duration times after DOX addition saving some info.
     # > Initialization of lists:
@@ -496,7 +496,7 @@ def postreat_experimental_lineages(
         # And turn "times of division" to cycle duration times.
         cycles.append(div_times[is_kept] - birth_times[is_kept])
         # Update other data concerning the ith lineage.
-        if isinstance(par_multiple_thresholds, type(None)):  # Only 1 threshold
+        if par_multiple_thresholds is None:  # Only 1 threshold
             is_long.append(cycles[i] > threshold)
         else:  # Change of environment -> multiple thresholds.
             div_times_kept = div_times[div_times > init_times[i]]
@@ -520,7 +520,7 @@ def postreat_experimental_lineages(
     lineage_kept_count = len(lineages_kept)
     # > Ordering of kept lineages by increasing length (i.e. number of gen).
     lineages_kept = lineages_kept[np.argsort(gen_counts[lineages_kept])]
-    # > Update of data, also turning lists to array extending by NaN.
+    # > Update of data, also turning lists to array extending by nan.
     gen_counts = gen_counts[lineages_kept]
     gen_count = int(max(gen_counts))  # Maximal lineage length.
     is_last_long = is_last_long[lineages_kept]
@@ -544,10 +544,10 @@ def postreat_experimental_lineages(
     nta_counts = np.array([len(gtrigs_temp[i]) for i in range(lineage_kept_count)])
     nta_count = max(nta_counts)
 
-    # Extraction of bool array indicating if (orderred kept) lineages died.
+    # Extraction of bool array indicating if (ordered kept) lineages died.
     is_dead = data["endlineage"][0][lineages_kept].astype(bool)
     # Computation of lineages' generations at nta, sen or death was triggered.
-    # > Initialization with NaN values by default.
+    # > Initialization with nan values by default.
     gtrigs = {
         "nta": np.nan * np.zeros((nta_count, lineage_kept_count)),
         "sen": np.nan * np.zeros(lineage_kept_count),
@@ -572,9 +572,9 @@ def postreat_experimental_lineages(
             # Otherwise the last arrest (and previous) for sure non-terminal.
             else:
                 gtrigs["nta"][: nta_counts[lin_idx], lin_idx] = gtrigs_temp[lin_idx]
-    # We reshape `gtrigs['nta']` under rigth form.
+    # We reshape `gtrigs['nta']` under right form.
     gtrigs["nta"] = np.transpose(gtrigs["nta"])
-    # and remove posible columns full of nan.
+    # and remove possible columns full of nan.
     is_col_of_nan = np.all(np.isnan(gtrigs["nta"]), axis=0)
     gtrigs["nta"] = np.delete(gtrigs["nta"], is_col_of_nan, axis=1)
 

@@ -53,16 +53,16 @@ from telomeres.lineage.posttreat import (
 from telomeres.model.parameters import PAR_L_INIT
 
 
-# Parameters for cycle duration times postreatment
+# Parameters for cycle duration times posttreatment
 # ------------------------------------------------
 
 # Threshold between long (>) and normal (<=) cycles [10 min].
 THRESHOLD = 18  # (Martin et al. 2021)
 
-# Minimal duration of cell cycles in the postreated dataset [10 min].
+# Minimal duration of cell cycles in the posttreated dataset [10 min].
 CYCLE_MIN = 5
 
-# Minimal number of generations per lineage in the postreated dataset.
+# Minimal number of generations per lineage in the posttreated dataset.
 GEN_COUNT_MIN = 2  # 1 or 2 does change 'RAD51' dataset but not 'TetO2-TLC1'.
 
 # .............................................................................
@@ -106,7 +106,7 @@ def make_distributions_cycles(data, threshold, cdt_min, sfolder=None):
     lineage_count = len(cycles)
 
     # Long cycles: all long cycles except the one terminating a dead lineages,
-    # saved separetely & normal cycles distinguishing before or after 1st nta.
+    # saved separately & normal cycles distinguishing before or after 1st nta.
     keys = ["arr", "sen_last", "nta", "senA", "senB", "norA", "norB"]
     file_names = {
         "arr": "cycles_arrest",
@@ -134,7 +134,7 @@ def make_distributions_cycles(data, threshold, cdt_min, sfolder=None):
         gtrigs, lineage_types, is_accidental_deaths, ["btype"]
     )
     for lin in range(lineage_count):
-        # Cycles of the current lineage (excluding NaN values).
+        # Cycles of the current lineage (excluding nan values).
         ctemp = cycles[lin][~np.isnan(cycles[lin])]
         if is_btype_s[lin]:  # If the lineage is type B.
             idx_nta1 = int(gtrigs["nta"][lin, 0])
@@ -160,7 +160,7 @@ def make_distributions_cycles(data, threshold, cdt_min, sfolder=None):
             cdts_["senA"] = np.append(cdts_["senA"], ctemp[idx_sen:-1])
             cdts_["sen_last"] = np.append(cdts_["sen_last"], ctemp[-1])
             cdts_["arr"] = np.append(cdts_["arr"], ctemp[:-1])
-        # Otherwise, NaN types need to account for them only for 'arr'.
+        # Otherwise, nan types need to account for them only for 'arr'.
         #    (see `pst.postreat_experimental_lineages`).
         else:
             ncycles_idxs = ctemp <= 10 * threshold
@@ -178,7 +178,7 @@ def make_distributions_cycles(data, threshold, cdt_min, sfolder=None):
     rng.shuffle(cdts_["sen"])
 
     # Saving.
-    if not isinstance(sfolder, type(None)):
+    if sfolder is not None:
         for key, cdts in cdts_.items():
             path = os.path.join(sfolder, f"{file_names[key]}.csv")
             pd.DataFrame(cdts).to_csv(path, header=None, index=None)
@@ -222,7 +222,7 @@ def make_distribution_telomeres_init(file_name, is_saved=True):
 
     NB: The file is assumed to be structured as an array `arr`s.t. P(L = i) is
         on the 2nd half of `raw` for all `i ` in the 1st half (`i` not
-        neccessarily an integer).
+        necessarily an integer).
 
     Parameters
     ----------
@@ -239,12 +239,12 @@ def make_distribution_telomeres_init(file_name, is_saved=True):
     data_raw = np.loadtxt(os.path.join(DIR_DATA_RAW, file_name))
 
     # Separation of the file: full distribution (non zero probability to have
-    # non-interger length).
+    # non-integer length).
     idx_middle = int(len(data_raw) / 2)
     # lengths_all = data_raw[:idx_middle]
     densities_all = data_raw[idx_middle:]
 
-    # "Compressed" distribution: supported only on intergers.
+    # "Compressed" distribution: supported only on integers.
     length_count = int(idx_middle / 2)
     lengths = np.arange(1, length_count + 1)
     densities = np.zeros(length_count)

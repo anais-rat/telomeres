@@ -73,7 +73,7 @@ def draw_cells_lengths(cell_count: int, par_l_init: list, rng):
     Parameters
     ----------
     cell_count : int
-        Number of cell disributions to create.
+        Number of cell distributions to create.
     par_l_init : list
         Parameters (l_trans, l_0, l_1) defined in (Rat et al.).
         See also `transform_l_init` docstring.
@@ -102,7 +102,7 @@ def law_exponential(length, a, b, rng):
     """Return True with probability `p(length) = b exp(-a length)`."""
     # Compute telomere-length dependent probability to trigger an arrest.
     proba = min(1, b * math.exp(-a * length))
-    # Test if an arrest is triggered according to this probiblity.
+    # Test if an arrest is triggered according to this probability.
     return bool(rng.binomial(1, proba))
 
 
@@ -112,7 +112,7 @@ def law_exponential(length, a, b, rng):
 def is_nta_trig(length, parameters, rng):
     """Test if a telomere with length `length` triggers a non-terminal arrest.
 
-    Test with probabibility `p_nta(length) = b exp(-a length)`.
+    Test with probability `p_nta(length) = b exp(-a length)`.
 
     Parameters
     ----------
@@ -131,7 +131,7 @@ def is_nta_trig(length, parameters, rng):
 def is_sen_trig(length, parameters, rng):
     """Test if a telomere with length `length` triggers senescence.
 
-    If `length <= lmin` senescence is trigerred, otherwise it is trigerred with
+    If `length <= lmin` senescence is triggered, otherwise it is triggered with
     probability `p(length) = b exp(-a length)`.
 
     """
@@ -162,7 +162,7 @@ def is_dead(sen_count, p_exit, rng):
     Parameters
     ----------
     sen_count : int
-        Number of sencescent ancestors in the lineage of the cell.
+        Number of senescent ancestors in the lineage of the cell.
     p_exit : dict
         p_exit['sen_limit'] : Maximum number of senescent cycles.
         p_exit['death'] : Probability die "naturally", from senescence.

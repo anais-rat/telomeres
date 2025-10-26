@@ -9,7 +9,7 @@ List the keys of commonly-used dictionaries of the `telomeres` package to avoid
 rewriting them elsewhere and risking spelling mistakes.
 
 Importing the lists of keys of this script, rather that writing them again, is
-thus recommanded.
+thus recommended.
 
     Copyright (C) 2024  Anaïs Rat
 
@@ -71,8 +71,8 @@ evo_c_keys = evo_c_anc_keys.copy()
 evo_c_keys.extend(evo_c_gen_keys)
 
 
-# Keys for postreatment
-# ---------------------
+# Keys for post-treatment
+# -----------------------
 
 # Keys of data to sum.
 to_sum_keys = evo_c_keys.copy()
