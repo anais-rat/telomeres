@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 import mpl_axes_aligner  # pip install mpl-axes-aligner
 
 from os.path import join
-from mpl_toolkits.axes_grid1.inset_locator import InsetPosition, mark_inset
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 from scipy import interpolate
 
 import numpy as np
@@ -414,8 +414,8 @@ def plot_hist_lmin_at_sen(
         )
     # Data extraction.
     days = np.arange(day_count)
-    hist = np.load(stat_path, allow_pickle=True).any().get("hist_lmin_all")
-    hist_day = np.load(stat_path, allow_pickle=True).any().get("hist_lmin_per_day")
+    hist = np.load(stat_path, allow_pickle=True).item().get("hist_lmin_all")
+    hist_day = np.load(stat_path, allow_pickle=True).item().get("hist_lmin_per_day")
     y_s, yday_s, sup_idx = {}, {}, {}
     xmax = 120
     for key in ks.type_keys:  # Iteration on types.
@@ -486,15 +486,12 @@ def plot_hist_lmin_at_sen(
             ["btype", "h+mtype", "atype"],
             ["b+htype", "mtype", "atype"],
         ]:
-            ax2 = plt.axes([0, 0, 1, 1])  # Create a set of inset Axes.
-            # Manually set the position and relative size of the inset axes
-            # within ax1 [(x, y, pW, pH)] (x,y) with coordinate left bottom
-            # corner, p proportion of the parent image.
-            ip = InsetPosition(ax1, [0.44, 0.4, 0.56, 0.56])
-            ax2.set_axes_locator(ip)
-            # Mark the region corresponding to the inset axes on ax1 and draw
-            # lines in grey linking the two axes. loc1, loc2 : {1, 2, 3, 4}.
-            # Corners to use to connect the inset ax & the area in parent axes.
+            # Manually set the position and relative size of the inset axes ax2
+            # created from ax1 according to [(x, y, pW, pH)]; where (x,y) coor-
+            # dinate of ax2 left bottom corner, p proportion of the parent axes ax1.
+            ax2 = ax1.inset_axes([0.44, 0.4, 0.56, 0.56], transform=ax1.transAxes)
+            sns.despine(ax=ax2, top=True, right=True)
+            # Draw the connecting lines between the inset axes and the parent axes.
             mark_inset(ax1, ax2, loc1=2, loc2=4, alpha=0.3, fc="none", ec="0.5")
             bottom = 0 * x_ax[x_ax < xmax_rescale]
             for key in keys:
@@ -518,10 +515,11 @@ def plot_hist_lmin_at_sen(
                 handles[::-1],
                 labels[::-1],
                 title="Cell type",
-                bbox_to_anchor=(0.62, 1.25),
+                bbox_to_anchor=(0.7, 1.3),
                 loc="upper left",
                 fancybox=True,
                 facecolor="white",
+                fontsize="small",
             )
             to_add = f"_xlim{xmax_rescale}_ylim{ymax_rescale}"
         else:
@@ -742,6 +740,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
             if not isinstance(yexp_scale, type(None)):
                 path = path.replace(".pdf", f"_yexp{yexp_scale}.pdf")
             return path
+
     else:
 
         def fpath(*_):
@@ -756,7 +755,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
         wp.write_sim_pop_postreat_average(path, simu_count) for path in sim_paths
     ]
     # > Times array (only up to `t_max`).
-    times = np.load(stat_data_paths[0], allow_pickle="TRUE").any().get("times")
+    times = np.load(stat_data_paths[0], allow_pickle=True).item().get("times")
     t_max = min(t_max, times[-1])
     times = times[times <= t_max]
     # > Days arrays.
@@ -1442,7 +1441,7 @@ def plot_evo_l_pcfixed_from_stat(
     # > Experimental data.
     evo_l_exp = xtd.extract_population_lmode()
     # > Times array up to `t_max`.
-    times = np.load(stat_data_path, allow_pickle="TRUE").any().get("times")
+    times = np.load(stat_data_path, allow_pickle=True).item().get("times")
     t_max = min(t_max, times[-1])
     times = times[times <= t_max]
     # > Days arrays.
@@ -1465,7 +1464,7 @@ def plot_evo_l_pcfixed_from_stat(
         "evo_lmin_min",
     ]
     for key in ckeys:
-        d[key] = np.load(stat_data_path, allow_pickle="TRUE").any().get(key)
+        d[key] = np.load(stat_data_path, allow_pickle=True).item().get(key)
     if is_all_points:
         evo_mode = np.genfromtxt(
             wp.write_sim_lmode_csv(sim_path, simu_count), delimiter=","
@@ -1586,7 +1585,7 @@ def plot_evo_p_anc_pcfixed_from_stat(
     stat_data_path = wp.write_sim_pop_postreat_average(sim_path, simu_count)
 
     # Load data and plot.
-    times = np.load(stat_data_path, allow_pickle="TRUE").any().get("times")
+    times = np.load(stat_data_path, allow_pickle=True).item().get("times")
     t_max = min(t_max, times[-1])
     XTICKS = np.arange(int(t_max) + 1)
     times = times[times <= t_max]
@@ -1596,8 +1595,8 @@ def plot_evo_p_anc_pcfixed_from_stat(
         keys.extend([key + "_lavg" for key in keys])
     for key in keys:
         evo = (
-            np.load(stat_data_path, allow_pickle="TRUE")
-            .any()
+            np.load(stat_data_path, allow_pickle=True)
+            .item()
             .get(key)["mean"][:time_count]
         )
         evo_group = np.array(
@@ -1642,7 +1641,7 @@ def plot_evo_gen_pcfixed_from_stat(
     sim_path = wp.write_simu_pop_subdirectory(c, p, par_update)
     stat_data_path = wp.write_sim_pop_postreat_average(sim_path, simu_count)
     # > Time
-    times = np.load(stat_data_path, allow_pickle="TRUE").any().get("times")
+    times = np.load(stat_data_path, allow_pickle=True).item().get("times")
     t_max = min(t_max, times[-1])
     times = times[times <= t_max]
     time_count = len(times)
@@ -1850,14 +1849,14 @@ def plot_extinct_pfixed(
     ]
 
     textinct_s = [
-        np.load(path, allow_pickle="TRUE").any().get("extinction_time")
+        np.load(path, allow_pickle=True).item().get("extinction_time")
         for path in stat_path_s
     ]
     textinct_sen_s = [
-        np.load(path, allow_pickle="TRUE").any().get("sen_time") for path in stat_path_s
+        np.load(path, allow_pickle=True).item().get("sen_time") for path in stat_path_s
     ]
     prop_s = [
-        np.load(path, allow_pickle="TRUE").any().get("extinct_prop")
+        np.load(path, allow_pickle=True).item().get("extinct_prop")
         for path in stat_path_s
     ]
     is_saved = not isinstance(fig_subdirectory, type(None))
@@ -1938,10 +1937,10 @@ def plot_sat_pfixed(
         wp.write_sim_pop_postreat_average(sim_path_s[i], simu_counts[i]) for i in idxs
     ]
     tsat_s = [
-        np.load(path, allow_pickle="TRUE").any().get("sat_time") for path in stat_path_s
+        np.load(path, allow_pickle=True).item().get("sat_time") for path in stat_path_s
     ]
     psat_s = [
-        np.load(path, allow_pickle="TRUE").any().get("sat_prop") for path in stat_path_s
+        np.load(path, allow_pickle=True).item().get("sat_prop") for path in stat_path_s
     ]
     dsat_count = np.max([len(tsat_s[i]["mean"]) for i in idxs])
     if not isinstance(dsat_count_max, type(None)):
@@ -2022,25 +2021,25 @@ def plot_p_pfixed(
     ]
     prop_B_avg_s = np.transpose(
         [
-            np.load(path, allow_pickle="TRUE").any().get("evo_p_B")["mean"][dil_idxs]
+            np.load(path, allow_pickle=True).item().get("evo_p_B")["mean"][dil_idxs]
             for path in stat_path_s
         ]
     )
     prop_sen_avg_s = np.transpose(
         [
-            np.load(path, allow_pickle="TRUE").any().get("evo_p_sen")["mean"][dil_idxs]
+            np.load(path, allow_pickle=True).item().get("evo_p_sen")["mean"][dil_idxs]
             for path in stat_path_s
         ]
     )
     prop_B_std_s = np.transpose(
         [
-            np.load(path, allow_pickle="TRUE").any().get("evo_p_B")["std"][dil_idxs]
+            np.load(path, allow_pickle=True).item().get("evo_p_B")["std"][dil_idxs]
             for path in stat_path_s
         ]
     )
     prop_sen_std_s = np.transpose(
         [
-            np.load(path, allow_pickle="TRUE").any().get("evo_p_sen")["std"][dil_idxs]
+            np.load(path, allow_pickle=True).item().get("evo_p_sen")["std"][dil_idxs]
             for path in stat_path_s
         ]
     )
@@ -2163,6 +2162,7 @@ def plot_evo_pfixed(
             if stat_type == "per":
                 return join(directory, name + "_wrt_c" + name_end_per)
             return join(directory, name + "_wrt_c" + name_end)
+
     else:
 
         def fpath(*_):
@@ -2180,7 +2180,7 @@ def plot_evo_pfixed(
     # > Experimental data.
     evo_l_exp = xtd.extract_population_lmode()
     # > Time array.
-    times = np.load(stat_paths[0], allow_pickle="TRUE").any().get("times")
+    times = np.load(stat_paths[0], allow_pickle=True).item().get("times")
     t_max = min(t_max, times[-1])
     times = times[times <= t_max]
     time_count = len(times)
@@ -2197,7 +2197,7 @@ def plot_evo_pfixed(
     # Plot.
     # > Concentration of cells at all times.
     data = [
-        np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_c")
+        np.load(stat_paths[i], allow_pickle=True).item().get("evo_c")
         for i in range(curve_count)
     ]
     custom_args = {
@@ -2241,7 +2241,7 @@ def plot_evo_pfixed(
     # Plot telomere lengths evolution (average and mode).
     # > At all times.
     data = [
-        np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_lavg_avg")
+        np.load(stat_paths[i], allow_pickle=True).item().get("evo_lavg_avg")
         for i in range(curve_count)
     ]
     custom_args = {
@@ -2257,7 +2257,7 @@ def plot_evo_pfixed(
     )
 
     data = [
-        np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_lmode")
+        np.load(stat_paths[i], allow_pickle=True).item().get("evo_lmode")
         for i in range(curve_count)
     ]
     custom_args = {
@@ -2280,7 +2280,7 @@ def plot_evo_pfixed(
     )
 
     data = [
-        np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_lmin_min")
+        np.load(stat_paths[i], allow_pickle=True).item().get("evo_lmin_min")
         for i in range(curve_count)
     ]
     custom_args["fig_path"] = fpath("evo_lmin_min")
@@ -2293,7 +2293,7 @@ def plot_evo_pfixed(
     )
 
     data = [
-        np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_lmin_avg")
+        np.load(stat_paths[i], allow_pickle=True).item().get("evo_lmin_avg")
         for i in range(curve_count)
     ]
     custom_args["fig_path"] = fpath("evo_lmin_avg")
@@ -2318,7 +2318,7 @@ def plot_evo_pfixed(
         color="black",
     )
     for i in range(curve_count):
-        data = np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_lavg_avg")
+        data = np.load(stat_paths[i], allow_pickle=True).item().get("evo_lavg_avg")
         plt.errorbar(
             days,
             data["mean"][idxs_bf_dil],
@@ -2352,7 +2352,7 @@ def plot_evo_pfixed(
         color="black",
     )
     for i in range(curve_count):
-        data = np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_lmode")
+        data = np.load(stat_paths[i], allow_pickle=True).item().get("evo_lmode")
         plt.errorbar(
             days,
             data["mean"][idxs_bf_dil],
@@ -2375,7 +2375,7 @@ def plot_evo_pfixed(
     # Proportions.
     # > Senescent cells.
     data = [
-        np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_p_sen")
+        np.load(stat_paths[i], allow_pickle=True).item().get("evo_p_sen")
         for i in range(curve_count)
     ]
     custom_args = {
@@ -2398,7 +2398,7 @@ def plot_evo_pfixed(
     )
     # > Type B cells.
     data = [
-        np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_p_B")
+        np.load(stat_paths[i], allow_pickle=True).item().get("evo_p_B")
         for i in range(curve_count)
     ]
     custom_args = {
@@ -2418,9 +2418,7 @@ def plot_evo_pfixed(
     group_sizes = cell_counts * anc_prop
     group_sizes = group_sizes.astype(int)
     for i in range(curve_count):
-        evo = (
-            np.load(stat_paths[i], allow_pickle="TRUE").any().get("evo_p_ancs")["mean"]
-        )
+        evo = np.load(stat_paths[i], allow_pickle=True).item().get("evo_p_ancs")["mean"]
         data.append({"mean": fct.nansum(evo[:, -group_sizes[i] :], axis=1)})
     custom_args = {
         "curve_labels": CURVE_LABELS,
@@ -2551,6 +2549,7 @@ def plot_evo_w_variable(
             if stat_type == "none":
                 return join(directory, name + f"_wrt_{varying_key}" + name_end_none)
             return join(directory, name + f"_wrt_{varying_key}" + name_end)
+
     else:
 
         def fpath(*_):
@@ -2565,7 +2564,7 @@ def plot_evo_w_variable(
     # > Experimental data.
     evo_l_exp = xtd.extract_population_lmode()
     # > Time array (up to t_max).
-    times = np.load(stat_data_paths[0], allow_pickle="TRUE").any().get("times")
+    times = np.load(stat_data_paths[0], allow_pickle=True).item().get("times")
     t_max = min(t_max, times[-1])
     times = times[times <= t_max]
     time_count = len(times)
@@ -2594,7 +2593,7 @@ def plot_evo_w_variable(
     for key in ["c", "c_sen", "c_B"]:
         evo_key = "evo_" + key
         data = [
-            np.load(stat_path, allow_pickle="TRUE").any().get(evo_key)
+            np.load(stat_path, allow_pickle=True).item().get(evo_key)
             for stat_path in stat_data_paths
         ]
         # Continuous version.
@@ -2655,7 +2654,7 @@ def plot_evo_w_variable(
         evo_key = "evo_" + key
         key = key.replace("_avg", "")
         data = [
-            np.load(stat_path, allow_pickle="TRUE").any().get(evo_key)
+            np.load(stat_path, allow_pickle=True).item().get(evo_key)
             for stat_path in stat_data_paths
         ]
         custom_args["fig_path"] = fpath(evo_key)
@@ -2701,7 +2700,7 @@ def plot_evo_w_variable(
         evo_key = "evo_" + key
         custom_args["fig_path"] = fpath(evo_key)
         data = [
-            np.load(stat_path, allow_pickle="TRUE").any().get(evo_key)
+            np.load(stat_path, allow_pickle=True).item().get(evo_key)
             for stat_path in stat_data_paths
         ]
         plot_evo_curves_w_stats(
@@ -2717,8 +2716,8 @@ def plot_evo_w_variable(
     anc_count = int(c * anc_prop)
     for i in range(curve_count):
         evo = (
-            np.load(stat_data_paths[i], allow_pickle="TRUE")
-            .any()
+            np.load(stat_data_paths[i], allow_pickle=True)
+            .item()
             .get("evo_p_ancs")["mean"]
         )
         data.append({"mean": fct.nansum(evo[:, -anc_count:], 1)})

@@ -251,14 +251,11 @@ def postreat_performances_from_path(folder_name, simu_count):
     p = {}
     # > Computation times.
     p["computation_time"] = statistics(
-        [
-            np.load(s[i], allow_pickle="TRUE").any().get("computation_time")
-            for i in simus
-        ]
+        [np.load(s[i], allow_pickle=True).item().get("computation_time") for i in simus]
     )
     # > Allocated memory.
     memory_s = np.array(
-        [np.load(s[i], allow_pickle="TRUE").any().get("memory") for i in simus]
+        [np.load(s[i], allow_pickle=True).item().get("memory") for i in simus]
     )  # (Mio)
     p["memory"] = statistics(memory_s)
     # Added to correct the unit of memory:
@@ -305,7 +302,7 @@ def statistics_simus_from_path(folder, simu_count):
 
     # > Extinction times and longuest time array.
     textinct_s = [
-        np.load(s[i], allow_pickle="TRUE").any().get("extinction_time") for i in simus
+        np.load(s[i], allow_pickle=True).item().get("extinction_time") for i in simus
     ]
     extinct_prop = np.sum(~np.isnan(textinct_s)) / len(textinct_s)
     if extinct_prop == 0:
@@ -313,7 +310,7 @@ def statistics_simus_from_path(folder, simu_count):
     else:
         tmax_sim_idx = np.nanargmax(textinct_s)
     es["extinction_time"] = statistics(textinct_s)
-    times = np.load(s[tmax_sim_idx], allow_pickle="TRUE").any().get("times")
+    times = np.load(s[tmax_sim_idx], allow_pickle=True).item().get("times")
     if not np.isnan(textinct_s[tmax_sim_idx]):
         times = times[times <= textinct_s[tmax_sim_idx]]
     time_count = len(times)
@@ -321,7 +318,7 @@ def statistics_simus_from_path(folder, simu_count):
 
     # > Saturation times.
     sat_times_s = [
-        np.load(s[i], allow_pickle="TRUE").any().get("sat_time") for i in simus
+        np.load(s[i], allow_pickle=True).item().get("sat_time") for i in simus
     ]
     sat_day_count = max([np.argmax(sat_times_s[i]) for i in simus])
     sat_times_s = np.array(
@@ -330,7 +327,7 @@ def statistics_simus_from_path(folder, simu_count):
     es["sat_time"] = statistics(sat_times_s)
     # > Proportion of saturated subsimulations.
     sat_props_s = [
-        np.load(s[i], allow_pickle="TRUE").any().get("sat_prop") for i in simus
+        np.load(s[i], allow_pickle=True).item().get("sat_prop") for i in simus
     ]
     sat_props_s = np.array(
         [fct.reshape_with_nan(sat_props_s[i], max(2, sat_day_count)) for i in simus]
@@ -340,13 +337,13 @@ def statistics_simus_from_path(folder, simu_count):
     # > Time of senescence of the population.
     tsen_idx_s = [
         np.nanargmin(
-            np.load(s_postreat[i], allow_pickle="TRUE").any().get("evo_c")
-            - np.load(s_postreat[i], allow_pickle="TRUE").any().get("evo_c_sen")
+            np.load(s_postreat[i], allow_pickle=True).item().get("evo_c")
+            - np.load(s_postreat[i], allow_pickle=True).item().get("evo_c_sen")
         )
         for i in simus
     ]
     tsen_s = [
-        np.load(s[i], allow_pickle="TRUE").any().get("times")[tsen_idx_s[i]]
+        np.load(s[i], allow_pickle=True).item().get("times")[tsen_idx_s[i]]
         for i in simus
     ]
     es["sen_time"] = statistics(tsen_s)
@@ -354,7 +351,7 @@ def statistics_simus_from_path(folder, simu_count):
     # Computation of evo_gen/anc len (subsimus' gen distrib reshape to common).
     gen_count_s = np.array(
         [
-            len(np.load(s[i], allow_pickle="TRUE").any().get("evo_c_gens")[1])
+            len(np.load(s[i], allow_pickle=True).item().get("evo_c_gens")[1])
             for i in simus
         ]
     )
@@ -362,7 +359,7 @@ def statistics_simus_from_path(folder, simu_count):
     # Ordering of ancestors by increasing shortest telomere.
     lmin_init_s = [
         np.min(
-            np.load(s[i], allow_pickle="TRUE").any().get("day_init_data")["lengths"][0],
+            np.load(s[i], allow_pickle=True).item().get("day_init_data")["lengths"][0],
             axis=(1, 2),
         )
         for i in simus
@@ -370,7 +367,7 @@ def statistics_simus_from_path(folder, simu_count):
     # Ordering of ancestors by increasing average telomere.
     lavg_init_s = [
         np.mean(
-            np.load(s[i], allow_pickle="TRUE").any().get("day_init_data")["lengths"][0],
+            np.load(s[i], allow_pickle=True).item().get("day_init_data")["lengths"][0],
             axis=(1, 2),
         )
         for i in simus
@@ -382,7 +379,7 @@ def statistics_simus_from_path(folder, simu_count):
 
     # Reshape and computation of evolution arrays.
     cell_count = len(
-        np.load(s[0], allow_pickle="TRUE").any().get("day_init_data")["lengths"][0]
+        np.load(s[0], allow_pickle=True).item().get("day_init_data")["lengths"][0]
     )
     # > For all key to postreat.
     print("\nData processing...")
@@ -391,14 +388,13 @@ def statistics_simus_from_path(folder, simu_count):
         # We reshape to common shape for all simulations.
         if key in ks.evo_1Dkeys_new:
             evo_s = [
-                np.load(s_postreat[i], allow_pickle="TRUE").any().get(key)
-                for i in simus
+                np.load(s_postreat[i], allow_pickle=True).item().get(key) for i in simus
             ]
             evo_s = [fct.reshape_with_nan(evo_s[i], time_count, 0) for i in simus]
         elif key in ks.evo_c_anc_keys:  # Ancestors orderred by increasing lmin
             evo_s = [
                 fct.reshape2D_along0_w_NaN_along1_w_0_or_NaN(
-                    np.load(s[i], allow_pickle="TRUE").any().get(key),
+                    np.load(s[i], allow_pickle=True).item().get(key),
                     time_count,
                     cell_count,
                 )
@@ -412,7 +408,7 @@ def statistics_simus_from_path(folder, simu_count):
         elif key in ks.evo_p_anc_keys:
             evo_s = [
                 fct.reshape2D_along0_w_NaN_along1_w_0_or_NaN(
-                    np.load(s_postreat[i], allow_pickle="TRUE").any().get(key),
+                    np.load(s_postreat[i], allow_pickle=True).item().get(key),
                     time_count,
                     cell_count,
                 )
@@ -423,7 +419,7 @@ def statistics_simus_from_path(folder, simu_count):
             es[key + "_lavg"] = statistics(tmp_s)
             evo_s = [evo_s[i][:, anc_s["by_lmin"][i]] for i in simus]
         elif key in ks.evo_c_gen_keys:
-            evo_s = [np.load(s[i], allow_pickle="TRUE").any().get(key) for i in simus]
+            evo_s = [np.load(s[i], allow_pickle=True).item().get(key) for i in simus]
             evo_s = [
                 fct.reshape2D_along0_w_NaN_along1_w_0_or_NaN(
                     evo_s[i], time_count, gen_count
@@ -438,7 +434,7 @@ def statistics_simus_from_path(folder, simu_count):
         if "_avg" in key:
             evo_s = [
                 fct.reshape_with_nan(
-                    np.load(s_postreat[i], allow_pickle="TRUE").any().get(key),
+                    np.load(s_postreat[i], allow_pickle=True).item().get(key),
                     time_count,
                     0,
                 )
@@ -447,7 +443,7 @@ def statistics_simus_from_path(folder, simu_count):
         else:
             evo_s = [
                 fct.reshape_with_nan(
-                    np.load(s[i], allow_pickle="TRUE").any().get(key), time_count, 0
+                    np.load(s[i], allow_pickle=True).item().get(key), time_count, 0
                 )
                 for i in simus
             ]
@@ -455,14 +451,14 @@ def statistics_simus_from_path(folder, simu_count):
 
     # > Histogram of lmin triggering senescence.
     hist_s = [
-        np.load(s_postreat[i], allow_pickle="TRUE").any().get("hist_lmin_all")
+        np.load(s_postreat[i], allow_pickle=True).item().get("hist_lmin_all")
         for i in simus
     ]
     es["hist_lmin_all"] = {
         key: statistics([hist[key] for hist in hist_s]) for key in ks.type_keys
     }
     hist_s = [
-        np.load(s_postreat[i], allow_pickle="TRUE").any().get("hist_lmin_per_day")
+        np.load(s_postreat[i], allow_pickle=True).item().get("hist_lmin_per_day")
         for i in simus
     ]
     days = np.arange(len(hist_s[0]["atype"]))
@@ -516,7 +512,7 @@ def postreat_cgen(is_stat, folder, simu_count):
         # print("Load: ", path)
         return np.load(path, allow_pickle="TRUE").item()
 
-    evo = np.load(spath, allow_pickle="TRUE").any().get("evo_c_gens")["mean"]
+    evo = np.load(spath, allow_pickle=True).item().get("evo_c_gens")["mean"]
     time_count, gen_count = np.shape(evo)
     # Need to compute evolution of the avg, max, min... generation.
     evo_gmin = np.nanargmax(evo > 0, axis=1)
@@ -570,7 +566,7 @@ def statistics_simus_csv(para_count, cell_count, simu_count, par_update=None):
     # > Paths to data.
     stat_data_path = wp.write_sim_pop_postreat_average(folder, simu_count)
     # > Times array (only up to `t_max`).
-    times = np.load(stat_data_path, allow_pickle="TRUE").any().get("times")
+    times = np.load(stat_data_path, allow_pickle=True).item().get("times")
     time_count = len(times)
     # t_max = min(t_max, times[-1])
     # times = times[times <= t_max]
@@ -585,7 +581,7 @@ def statistics_simus_csv(para_count, cell_count, simu_count, par_update=None):
         print(f"\n Save {key} in csv at: {folder}")
         # We reshape to common shape for all simulations.
         evo_s = [
-            np.load(s_postreat[i], allow_pickle="TRUE").any().get(key) for i in simus
+            np.load(s_postreat[i], allow_pickle=True).item().get(key) for i in simus
         ]
         evo_s = [
             fct.reshape_with_nan(evo_s[i], time_count, 0)[idxs_bf_dil] for i in simus
@@ -595,7 +591,7 @@ def statistics_simus_csv(para_count, cell_count, simu_count, par_update=None):
 
     # > Time evolution of telomere lengths.
     # > Times array up to `t_max`.
-    times = np.load(stat_data_path, allow_pickle="TRUE").any().get("times")
+    times = np.load(stat_data_path, allow_pickle=True).item().get("times")
     # > Days arrays.
     days_exp = np.arange(DAY_COUNT_EXP)
     idxs_bf_dil = np.array(
@@ -607,7 +603,7 @@ def statistics_simus_csv(para_count, cell_count, simu_count, par_update=None):
         print(f"\n Save {key} in csv at: {folder}")
         evo_s = [
             fct.reshape_with_nan(
-                np.load(s[i], allow_pickle="TRUE").any().get(key), time_count, 0
+                np.load(s[i], allow_pickle=True).item().get(key), time_count, 0
             )[idxs_bf_dil]
             for i in simus
         ]
