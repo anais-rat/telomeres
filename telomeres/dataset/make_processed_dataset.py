@@ -38,10 +38,7 @@ import numpy as np
 import pandas as pd
 import scipy.io as sio
 
-from telomeres.dataset.extract_processed_dataset import (
-    write_parameters_linit,
-    extract_distribution_telomeres_init,
-)
+from telomeres.dataset.extract_processed_dataset import write_parameters_linit
 from telomeres.lineage.posttreat import (
     postreat_experimental_lineages,
     is_as_expected_lineages,
@@ -265,19 +262,18 @@ def make_distribution_telomeres_init(file_name, is_saved=True):
     return lengths, densities
 
 
-def make_distribution_telomeres_init_fitted(is_saved=True, par_l_init=PAR_L_INIT):
+def make_distribution_telomeres_init_fitted(is_saved=True):
     from telomeres.model.posttreat import transform_l_init
 
-    distribution = extract_distribution_telomeres_init()
-    distribution_new = transform_l_init(distribution, par_l_init=par_l_init)
+    distribution_fit = transform_l_init(par_l_init=PAR_L_INIT)
     if is_saved:
-        msg = write_parameters_linit(par_l_init)
+        msg = write_parameters_linit(PAR_L_INIT)
         path = os.path.join(
             DIR_DATA, "telomeres_initial_distribution", f"modified_{msg}.csv"
         )
-        df = pd.DataFrame({"x": distribution_new[0], "y": distribution_new[1]})
+        df = pd.DataFrame({"x": distribution_fit[0], "y": distribution_fit[1]})
         df.to_csv(path, index=False)
-    return distribution_new
+    return distribution_fit
 
 
 def postreat_population_concentration():
