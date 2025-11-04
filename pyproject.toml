@@ -50,6 +50,7 @@ telomeres = { path = ".", editable = true }
 pre-commit = ">=4.3.0,<5"
 
 [tool.pixi.feature.interactive.dependencies]
+jupyterlab = ">=4.4.10,<5"
 ipykernel = ">=7.1.0,<8"
 pip = ">=25.2,<26"
 

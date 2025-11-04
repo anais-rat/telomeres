@@ -510,7 +510,7 @@ def simulate_lineages_evolution(
         else {key: np.array(value) for key, value in evo_s.items()},
         {key: np.array(value) for key, value in gtrigs_s.items()},
         np.array(lineage_types),
-        np.array(is_unseen_htypes),
+        is_unseen_htypes if is_unseen_htypes is None else np.array(is_unseen_htypes),
         np.array(is_accidental_deaths),
         lcycle_per_seq_counts,
     )

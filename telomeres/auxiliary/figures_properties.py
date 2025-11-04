@@ -124,9 +124,9 @@ if __name__ == "__main__":
     sns.palplot(MY_COLORS_3)
     sns.palplot(sns.color_palette("viridis", n_colors=3))
     sns.palplot(COLORS_SIM_VS_EXP)
-    plt.show()
 
-sns.palplot(MY_COLORS)
+    sns.palplot(MY_COLORS)
+    plt.show()
 
 # > Colors for cell types.
 type_keys = ["b+htype", "mtype", "atype"]

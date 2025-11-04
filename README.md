@@ -93,7 +93,7 @@ For an easy and reproducible installation, we recommend using [Pixi↗](https://
 
    This creates a dedicated environment named `default`, with all project dependencies installed.<br> Other environments are also available:
 
-   - For **using notebooks or the VSCode Interactive Window**, use the `interactive` environment instead, which also includes `pip` and `ipykernel`:
+   - For **using notebooks or the VSCode Interactive Window**, use the `interactive` environment instead, which also includes `jupyterlab`, `pip` and `ipykernel`:
 
      ```bash
      # Create the environment (.pixi/envs/interactive)
