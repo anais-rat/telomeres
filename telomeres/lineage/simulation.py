@@ -100,20 +100,20 @@ def simulate_lineage_evolution(parameters, rng):
     Returns
     -------
     evo : dict
-        Dictionnary of evolution arrays, with entry:
-        cycle : ndarray
-            1D array (gen_count,) of cells' cycle times (min) over generations.
-        lengths : ndarray
+        Dictionary of evolution arrays/lists, with entry:
+        cycle : list
+            List (gen_count,) of cells' cycle times (min) over generations.
+        lengths : ndarray  # REMOVED (add with evo_s["lengths"] = evo_lengths[1:]).
             3D array (gen_count, 2, 16) of cell's telomere lengths over gens.
         lavg : ndarray
             1D array (gen_count,) of cells' average telo length over gens.
-        lmin : ndarray
-            1D array (gen_count,) of cells' shortest telo length over gens.
+        lmin : list
+            List (gen_count,) of cells' shortest telo length over gens.
     gtrigs : dict
-        Dictionnary of generations at which an event is triggered, with entires
-        nta : ndarray
-            1D array (nta_count,) of generations at which a sequence of
-            non-terminal arrests (nta) is triggered, nan if no such sequence.
+        Dictionary of generations at which an event is triggered, with entries
+        nta : list
+            List (nta_count,) of generations at which a sequence of
+            non-terminal arrests (nta) is triggered.
         senescence : int or nan
             Generation at which senescence is triggered, nan if accidently
             dead before the onset of senescence.
@@ -133,7 +133,7 @@ def simulate_lineage_evolution(parameters, rng):
         Length / number of long cycles per sequence of arrest. Keys are:
         'sen': integer
             Number of senescent cycles / length of senescence.
-        'nta': ndarray
+        'nta': list
             lcycle_per_seq_count['nta'][i] length of the ith sequence of nta.
 
     """
@@ -152,6 +152,7 @@ def simulate_lineage_evolution(parameters, rng):
     nta_count = 0
     generation = -1
     evo_lengths = list(mfct.draw_cells_lengths(1, par_l_init, rng))
+    evo_lmin = [np.min(evo_lengths[0])]
     gtrigs = {"nta": [], "sen": np.nan}
     lcycle_per_seq_count = {"nta": [], "sen": np.nan}
     # > Final cut exp conditions.
@@ -200,15 +201,12 @@ def simulate_lineage_evolution(parameters, rng):
 
         # Otherwise it divides, we add one generation and create the next cell.
         generation += 1
-        # Extend evolution arrays at the new generation w default values.
-        evo_lengths.append(evo_lengths[-1])
-        evo_cycle.append(evo_cycle[-1])
 
         # Computation of telomere lengths following the shortening model.
         loss = rng.binomial(1, 0.5, 16)
-        evo_lengths[-1] -= OVERHANG * np.array([loss, 1 - loss])
-        # Update of other length-related evolution arrays.
+        evo_lengths.append(evo_lengths[-1] - OVERHANG * np.array([loss, 1 - loss]))
         lmin = np.min(evo_lengths[-1])
+        evo_lmin.append(lmin)
 
         # Update of other new-born cell's data depending its mother's data
         # (current or previous data) and its telomere lengths.
@@ -272,12 +270,12 @@ def simulate_lineage_evolution(parameters, rng):
                     # Update of the length of current seq of lcycles.
                     lcycle_per_seq_count["nta"][-1] += 1
 
-        # Update of the cell cycle duration time and array of cyle times.
+        # Draw and store the cell cycle duration time.
         if parameters["finalCut"] is None:
-            evo_cycle[-1] = mfct.draw_cycle(nta_count, is_senescent, rng)
-        else:  # Experimental conditions of the fincalCut experiment.
-            evo_cycle[-1] = fc_fct.draw_cycle_finalCut(
-                nta_count, is_senescent, is_galactose, rng
+            evo_cycle.append(mfct.draw_cycle(nta_count, is_senescent, rng))
+        else:  # Experimental conditions of the finalCut experiment.
+            evo_cycle.append(
+                fc_fct.draw_cycle_finalCut(nta_count, is_senescent, is_galactose, rng)
             )
             # If finalcut experiment, possible change of condition and cut.
             t_current += evo_cycle[-1]  # Time just bf div of current cell.
@@ -301,7 +299,11 @@ def simulate_lineage_evolution(parameters, rng):
                 evo_cycle = evo_cycle[-1:]
                 evo_lengths = evo_lengths[-1:]
                 for key, gtrig in gtrigs.items():
-                    gtrigs[key] = gtrig - np.abs(generation)
+                    gen_abs = np.abs(generation)
+                    if key == "nta":
+                        gtrigs[key] = [gen - gen_abs for gen in gtrig]
+                    else:
+                        gtrigs[key] = gtrig - gen_abs
                 generation = -1  # = generation - dgen_rescale
             # Possible cut if the length after cut is not None (ie there
             # is a Cas9 cut), ...
@@ -319,7 +321,7 @@ def simulate_lineage_evolution(parameters, rng):
                         rng=rng,
                     ):
                         is_telo_cut = True
-                        # extremity cut, and index of the chromosome cut
+                        # Index of the extremity cut, and of the chromosome cut.
                         t1, t2 = rng.integers((2, CHROMOSOME_COUNT))
                         evo_lengths[-1][t1, t2] = parameters["finalCut"]["lcut"]
 
@@ -331,14 +333,12 @@ def simulate_lineage_evolution(parameters, rng):
     else:
         lineage_type = np.nan
 
-    evo_lavg = np.mean(evo_lengths, axis=(1, 2))
-    evo_lmin = np.min(evo_lengths, axis=(1, 2))
-    gtrigs["nta"] = np.array(gtrigs["nta"])
-    lcycle_per_seq_count["nta"] = np.array(lcycle_per_seq_count["nta"])
+    evo_lavg = np.mean(evo_lengths[1:], axis=(1, 2))  # Remove 1st day.
 
-    # Return data removing data of the 1st cell (born before DOX addition).
+    # Return data removing data of the 1st cell (born before DOX addition)
+    # if not already done.
     return (
-        {"cycle": evo_cycle[1:], "lavg": evo_lavg[1:], "lmin": evo_lmin[1:]},
+        {"cycle": evo_cycle[1:], "lavg": evo_lavg, "lmin": evo_lmin[1:]},
         gtrigs,
         lineage_type,
         is_unseen_htype,
@@ -392,8 +392,17 @@ def simulate_lineages_evolution(
         arrays evo[key] (dimension *), extended by Nan values if needed, of all
         the lineages simulated and kept.
     gtrigs_s : dict
-        Dictionnary of the generation for each kept lineage at which an event
-        is triggered. Same description as `evo_s` replacing `evo` by `gtrigs`.
+        Dictionary of the generation for each kept lineage at which an event
+        is triggered, with entries:
+        nta : ndarray
+            2D array (lineage_count, max_nta_count) s.t. in [i,j]: the generation
+            at which the jth sequence of non-terminal arrests (nta) is triggered
+            in the ith lineage (is nan if no such sequence).
+        senescence : int or nan
+            1D array (lineage_count,) of the generations at which senescence is
+            triggered in each lineage (nan if accidentally dead before senescence).
+        death : int
+            1D array (lineage_count,) of the generations of death in each lineage.
     lineage_types : ndarray
         1D array (lineage_count,) of lineages types (0, 1 or NaN for A B or H).
     is_unseen_htypes : ndarray or Nonetype
@@ -421,14 +430,19 @@ def simulate_lineages_evolution(
     print("New subsimulation.")
     rng = np.random.default_rng(rng)
     lineage_types = []
-    is_unseen_htypes = []
+    # If H type seen or are not accounted by the model: `is_unseen_htypes` is None.
+    is_none = parameters["is_htype_seen"] or (not parameters["is_htype_accounted"])
+    if is_none:
+        is_unseen_htypes = None
+    else:
+        is_unseen_htypes = []
     is_accidental_deaths = []
     if is_lcycle_count_returned:
         lcycle_per_seq_count_s = {"nta": [], "sen": []}
     nta_counts = []
     evo_s = None
     if is_evo_returned:
-        evo_s = {}
+        evo_s = {"cycle": [], "lavg": [], "lmin": []}
     gtrigs_s = {"nta": [], "sen": [], "death": []}
 
     # While all lineages have not been simulated.
@@ -451,11 +465,10 @@ def simulate_lineages_evolution(
 
         # > Update of `is_accidental_deaths` `lineage_types` `nta_counts`.
         lineage_types.append(lineage_type)
-        is_unseen_htypes.append(is_unseen_htype)
+        if not is_none:
+            is_unseen_htypes.append(is_unseen_htype)
         is_accidental_deaths.append(is_accidental_death)
         nta_counts.append(len(gtrigs["nta"]))
-        # and the number of generations in the lineage (gen of death + 1).
-        gen_count_temp = gtrigs["death"] + 1
 
         # > Update of `gtrigs_s`.
         gtrigs_s["nta"].append(gtrigs["nta"])
@@ -469,57 +482,40 @@ def simulate_lineages_evolution(
 
         # > Update of `evo_s`, iterating on all keys, if asked.
         if is_evo_returned:
-            if len(lineage_types) == 1:
-                gen_count = gen_count_temp
-                evo_s = {key: [evo] for key, evo in evos.items()}
-            else:
-                # > We reshaphe either `evos` either `evo_s` if necessary.
-                if gen_count > gen_count_temp:
-                    for key, evo in evos.items():
-                        evos[key] = list(afct.reshape_with_nan(evo, gen_count))
-                        # > And add the current lineage to previous ones.
-                        evo_s[key].append(evos[key])
-                # If `evo_s` reshape, update of current max number of gen.
-                elif gen_count < gen_count_temp:
-                    gen_count = gen_count_temp
-                    for key, evo in evos.items():
-                        evo_s[key] = list(
-                            afct.reshape_with_nan(evo_s[key], gen_count, 1)
-                        )
-                        evo_s[key].append(evo)
-                # Otherwise we add directly, no need to reshape first.
-                else:
-                    for key, evo in evos.items():
-                        evo_s[key].append(evo)
+            for key in ["cycle", "lavg", "lmin"]:
+                evo_s[key].append(evos[key])
 
-    # `gtrigs_s['nta']` and `lcycle_per_seq_count_s` converted from list to
-    #  array extending with NaN.
+    # `gtrigs_s['nta']`, `lcycle_per_seq_count_s` `evo_s[key]` converted from list
+    # to array (or to list convertible to an array) by filling with nan.
     nta_count = int(max(nta_counts))
     gtrigs_s["nta"] = [
-        afct.reshape_with_nan(gtrigs, nta_count) for gtrigs in gtrigs_s["nta"]
+        afct.reshape_list_with_nan(gtrigs, nta_count) for gtrigs in gtrigs_s["nta"]
     ]
     lcycle_per_seq_counts = {"nta": None, "sen": None}
     if is_lcycle_count_returned:
-        seq_count = max([len(lc) for lc in lcycle_per_seq_count_s["nta"]])
         lcycle_per_seq_counts = {
             "nta": np.array(
                 [
-                    afct.reshape_with_nan(count, seq_count)
+                    afct.reshape_list_with_nan(count, nta_count)
                     for count in lcycle_per_seq_count_s["nta"]
                 ]
             ),
             "sen": np.array(lcycle_per_seq_count_s["sen"]),
         }
-    # If no type H to keep track of `is_unseen_htypes` simply set to nan.
-    if parameters["is_htype_seen"] or (not parameters["is_htype_accounted"]):
-        is_unseen_htypes = None
+    if is_evo_returned:
+        gen_max = max([len(value) for value in evo_s["cycle"]])
+        evo_s["lavg"] = np.array(
+            [afct.reshape_with_nan(value, gen_max) for value in evo_s["lavg"]]
+        )
+        for key in ["cycle", "lmin"]:
+            evo_s[key] = np.array(
+                [afct.reshape_list_with_nan(value, gen_max) for value in evo_s[key]]
+            )
     return (
-        evo_s
-        if evo_s is None
-        else {key: np.array(value) for key, value in evo_s.items()},
+        evo_s,
         {key: np.array(value) for key, value in gtrigs_s.items()},
         np.array(lineage_types),
-        is_unseen_htypes if is_unseen_htypes is None else np.array(is_unseen_htypes),
+        is_unseen_htypes if is_none else np.array(is_unseen_htypes),
         np.array(is_accidental_deaths),
         lcycle_per_seq_counts,
     )
@@ -740,8 +736,8 @@ def cell_types_from_gtrigs_n_lin_types(
     Parameters
     ----------
     gtrigs : dict
-        Dictionnary with generations of event (nta, senescence and death) of
-        the format returned by `simulate_lineage_evolution`.
+        Dictionary with generations of event (nta, senescence and death) of
+        the format returned by `simulate_lineages_evolution`.
     lineage_types : ndarray
         1D array (lineage_count,) of lineages types: 0, 1 or NaN respectively
         for A, B and H (if simulated lineages with is_unseen_htypes False),

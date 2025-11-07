@@ -157,6 +157,19 @@ def reshape_with_nan(arr, len_new, axis=-1):
     return arr
 
 
+def reshape_list_with_nan(lst, len_new):
+    """Return the list `lst` reshaped from length `len_current` to `len_new`
+    either by removing values or adding nan.
+
+    """
+    len_current = len(lst)
+    if len_new > len_current:
+        lst.extend([np.nan] * (len_new - len_current))
+    elif len_new < len_current:
+        lst = lst[:len_new]
+    return lst
+
+
 def reshape2D_along1_with_0_or_NaN(arr, col_len_new):
     """Return the 2D array `arr` (row_len, col_len) reshaped to shape
     (row_len, col_len_new), either by removing or adding columns so that rows
