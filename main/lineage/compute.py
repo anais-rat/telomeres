@@ -52,7 +52,8 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     # Adjustable, depending on the machine or cluster from which is run the
     # script.
 
-    # Random seed for reproducibility
+    # (Reproducibility)
+    # Random seed used to create a parent random generator (RNG), from which "independent" child RNGs will be spawned.
     SEED = 1
     rng = np.random.default_rng(SEED)
 
@@ -130,7 +131,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 proc_count=PROC_COUNT,
                 is_lcycle_count_saved=True,
                 is_evo_saved=True,
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         elif run_idx < i1 - 1:  # Htype unseen, no evolution array.
@@ -144,7 +145,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False},
                 is_lcycle_count_saved=True,
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         elif run_idx < i1:
@@ -159,7 +160,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 par_update={"is_htype_seen": False},
                 is_lcycle_count_saved=False,
                 is_evo_saved=True,
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         # Varying parameters.
@@ -177,7 +178,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 characteristics,
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False, "p_exit": p_exit},
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         # ii) Varying ltrans.
@@ -205,7 +206,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                     "fit": parameters,
                     "p_exit": p_exit,
                 },
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         # iii) Varying l0.
@@ -232,7 +233,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                     "fit": parameters,
                     "p_exit": p_exit,
                 },
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         # iv) Varying l1.
@@ -251,7 +252,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 characteristics,
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False, "fit": parameters},
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         # v) Varying lmode.
@@ -272,7 +273,7 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 characteristics,
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False, "fit": parameters},
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         elif run_idx < i1 + i2 + i3 + i4 + i5 + i6 + i7:
@@ -288,16 +289,24 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
                 characteristics,
                 proc_count=PROC_COUNT,
                 par_update={"is_htype_seen": False, "p_exit": p_exit},
-                rng=rng,
+                rng=rng.spawn(1)[0],
             )
 
         else:  # Time vs generation evo with best-fit parameters.
             if run_idx % 2 == 0:
                 par_update = {}
                 compute_postreat_data_vs_exp(
-                    SIMULATION_COUNT, ["senescent"], POSTREAT_DT, proc_count=PROC_COUNT
+                    SIMULATION_COUNT,
+                    ["senescent"],
+                    POSTREAT_DT,
+                    proc_count=PROC_COUNT,
+                    rng=rng.spawn(1)[0],
                 )
             else:
                 compute_postreat_data_vs_exp(
-                    SIMULATION_COUNT, ["senescent"], POSTREAT_DT, proc_count=PROC_COUNT
+                    SIMULATION_COUNT,
+                    ["senescent"],
+                    POSTREAT_DT,
+                    proc_count=PROC_COUNT,
+                    rng=rng.spawn(1)[0],
                 )

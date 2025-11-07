@@ -94,6 +94,8 @@ def simulate_lineage_evolution(parameters, rng):
               `par_finalCut['lcut']` bp with constant probability in time
               (exponential law). Galactose also affects cell growth. It is
               removed at frame `par_finalCut['idxs_frame'][2]`.
+        rng : `numpy.random.Generator`
+            Pseudorandom number generator state.
 
     Returns
     -------
@@ -318,7 +320,7 @@ def simulate_lineage_evolution(parameters, rng):
                     ):
                         is_telo_cut = True
                         # extremity cut, and index of the chromosome cut
-                        t1, t2 = rng.randint((2, CHROMOSOME_COUNT))
+                        t1, t2 = rng.integers((2, CHROMOSOME_COUNT))
                         evo_lengths[-1][t1, t2] = parameters["finalCut"]["lcut"]
 
     # Computation of the type of the lineage (ie of the last cell).
@@ -372,6 +374,13 @@ def simulate_lineages_evolution(
     is_evo_returned : bool
         If True, evolution arrays computed of every lineages are concatenated
         and returned, otherwise `is_evo_returned` is set to None.
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
 
     Returns
     -------
@@ -536,6 +545,13 @@ def simulate_lineages_evolutions(
     proc_count : int, optional
         Number of processors used for parallel computation (if 1 no parallel
         computation).
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
 
     Returns
     -------
@@ -575,10 +591,11 @@ def simulate_lineages_evolutions(
         "is_lcycle_count_returned": is_lcycle_count_saved,
         "is_evo_returned": is_evo_saved,
     }
+    rng_children = rng.spawn(simulation_count)
     if proc_count == 1:
         output_s = [
             simulate_lineages_evolution(
-                lineage_count, characteristics, p, **kwargs, rng=rng
+                lineage_count, characteristics, p, **kwargs, rng=rng_children[s]
             )
             for s in simus
         ]
@@ -594,7 +611,7 @@ def simulate_lineages_evolutions(
             pool.apply_async(
                 simulate_lineages_evolution,
                 args=(lineage_count, characteristics, p),
-                kwds=kwargs | {"rng": rng.integers(2**32) + i},
+                kwds=kwargs | {"rng": rng_children[i]},
             )
             for i in simus
         ]
@@ -1261,6 +1278,13 @@ def simulate_n_average_lineages(
         to compute `simulate_lineages_evolution` with `parameters_comput[0]`
         lineages is greater than `parameters_comput[1]` (sec) the whole
         simulation (with a priori more) is not run (None result instead).
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
 
     Returns
     -------
@@ -1349,7 +1373,6 @@ def simulate_n_average_lineages(
                             simulate_lineages_evolution,
                             parameters_comput[1],
                             args,
-                            kwargs={"rng": rng},
                         ):
                             print("Too long")
                             is_too_long = True
@@ -1372,6 +1395,7 @@ def simulate_n_average_lineages(
                                 rng=rng,
                             )
                         else:
+                            rng_children = rng.spawn(simulation_count)
                             data_s_0 = [
                                 simulate_lineages_evolution(
                                     lineage_count,
@@ -1381,7 +1405,7 @@ def simulate_n_average_lineages(
                                         "is_lcycle_count_saved"
                                     ],
                                     is_evo_returned=is_evo_temp,
-                                    rng=rng,
+                                    rng=rng_children[s],
                                 )
                                 for s in simus
                             ]

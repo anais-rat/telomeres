@@ -42,10 +42,12 @@ import telomeres.population.posttreat as pps
 
 from telomeres.model.parameters import PAR_DEFAULT_POP, OVERHANG, PAR_DEFAULT_SIM_POP
 # Recall.
-# PAR_DEFAULT_POP = {'is_htype_accounted': par.HTYPE_CHOICE,
-#                    'p_exit': par.P_EXIT,
-#                    'fit': par.PAR,
-#                    'sat': par.PAR_SAT}
+# PAR_DEFAULT_POP = {
+#     "is_htype_accounted": par.HTYPE_CHOICE,
+#     "p_exit": par.P_EXIT,
+#     "fit": par.PAR,
+#     "sat": par.PAR_SAT,
+# }
 
 # Creation of time related arrays for population simulations ..................
 # TIMES, TIME_SAVED_IDXS, DIL_IDXS, DIL_SAVED_IDXS = make_time_arrays(
@@ -65,6 +67,8 @@ def population_init(c_init_s, par_l_init, rng):
         Parameters (l_trans, l_0, l_1) defined in (Rat et al.) and used to
         define the initial distribution of telomoere lengths.
         See also `model.posttreat.transform_l_init` docstring.
+    rng : `numpy.random.Generator`
+        Pseudorandom number generator state.
 
     Returns
     -------
@@ -149,6 +153,14 @@ def population_evolution(
         Estimation of the maximum number of cells that will be reached during
         simulation. Optional is None in which case the number is computed from
         saturation parameters (assuming population growth up to saturation).
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
+
 
     Returns
     -------
@@ -721,9 +733,15 @@ def population_evolution(
 
 
 # # Stupid test for `population_evolution`.
+# RNG = np.random.default_rng(1)
 # out = population_evolution(
-#     np.linspace(0, 1, 1000), np.linspace(0, 999, 10).astype(int), 20,
-#     population_init(np.array([20]), par.PAR_L_INIT)[0], PAR_DEFAULT_POP)
+#     np.linspace(0, 1, 1000),
+#     np.linspace(0, 999, 10).astype(int),
+#     20,
+#     population_init(np.array([20]), PAR_DEFAULT_POP["fit"][2], RNG)[0],
+#     PAR_DEFAULT_POP,
+#     RNG,
+# )
 
 
 def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, rng):
@@ -750,6 +768,13 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
     gen_count_previous : int
         The biggest generation reached since time 0, will be taken as minimal
         number of rows for the returned distribution of cell w.r.t. generation.
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
 
     Returns
     -------
@@ -975,6 +1000,13 @@ def simu_parallel(
         saved as `output_01.py` if it exits) but not saved. If `output_index`
         is an integer the simulation is run (or loaded if already run and
         saved) and saved as `output_<output_index>.py`.
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
 
     output : dict
         Only one output: a big dictionnary whose entries are detailed below.
@@ -1148,12 +1180,13 @@ def simu_parallel(
             ]
         # > Otherwise, initialization of the parallelization.
         else:
+            rng_children = rng.spawn(simu_count)
             pool = mp.Pool(simu_count)
             pool_s = [
                 pool.apply_async(
                     population_evolution,
                     args=(times_temp, tsaved_idxs_temp, c_init, data_s[i], p),
-                    kwds={"cell_count_max": cell_count_max},
+                    kwds={"cell_count_max": cell_count_max, "rng": rng_children[i]},
                 )
                 for i in range(simu_count)
             ]

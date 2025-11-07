@@ -57,9 +57,6 @@ import telomeres.auxiliary.write_paths as wp
 import telomeres.lineage.simulation as sim
 import telomeres.model.parameters as par
 
-# Random seed for reproducibility
-SEED = 1
-rng = np.random.default_rng(1)
 
 # ------------------------------------
 # Definition of name-related variables
@@ -151,7 +148,7 @@ def type_of_sort_to_label_string(type_of_sort):
         elif nta == 2:
             return r"onset of $2^{nd}$ sequence of nta"
         elif nta == 3:
-            return "$\mathrm{generation~of~3^{nd}~sequence~of~nta}$"
+            return r"$\mathrm{generation~of~3^{nd}~sequence~of~nta}$"
         return r"generation of " + rf"${nta}$" + r"th~arrest"
     if type_of_sort == "gsen":
         return "generation of senescence"
@@ -233,13 +230,14 @@ def distance_l2(arr_1, arr_2):
 LINEAGE_COUNT_PER_TCOMPUT = 15
 CHARAC_S = {"atype": ["atype", "senescent"], "btype": ["btype"]}
 if __name__ == "__main__":
+    # Run once to recalibrate the value of `T_COMPUT_MAX` if needed.
     tcomputs = np.empty((0, len(CHARAC_S)))
     for i in range(100):
         tcomputs_temp = np.array([])
         for characteristics in CHARAC_S:
             tstart = time.time()
             sim.simulate_lineages_evolution(
-                LINEAGE_COUNT_PER_TCOMPUT, characteristics, par.PAR_DEFAULT_LIN, rng=rng
+                LINEAGE_COUNT_PER_TCOMPUT, characteristics, par.PAR_DEFAULT_LIN
             )
             tend = time.time()
             tcomputs_temp = np.append(tcomputs_temp, [tend - tstart], axis=0)

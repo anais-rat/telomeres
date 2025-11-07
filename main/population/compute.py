@@ -51,10 +51,6 @@ import telomeres.population.posttreat as pps
 # Parameters
 # ----------
 
-# Random seed for reproducibility
-SEED = 1
-rng = np.random.default_rng(SEED)
-
 # Experimental concentration initially / at dilution [cell].
 C_EXP = np.array([300])  # 250, 300. Cas test: 15
 
@@ -72,6 +68,12 @@ PARA_COUNT = [np.array([1])]
 #     the number of simulations is set through `#SBATCH --array=0-<to_adust>`
 #     with  `<to_ajust>`equal to `SIMU_COUNT - 1`, in `slurm_compute.batch`.
 SIMU_COUNT = 30  # 25, 20. Cas test: 3
+
+# (Reproducibility of outputs)
+# Fixed seed used to create a parent random generator (RNG), from which "independent" child RNGs will be spawned.
+SEED = 1
+rng = np.random.default_rng(SEED)
+rng_children = rng.spawn(SIMU_COUNT)
 
 # Plotting options.
 IS_PLOT = False  # True to plot (only possible from local simulation).
@@ -216,7 +218,7 @@ for cell_count in C_EXP:
                 cell_count,
                 output_index=idx,
                 par_update=PAR_UPDATE,
-                rng=rng,
+                rng=rng_children[idx - 1],
             )
             pps.postreat_from_evo_c(para_count, cell_count, idx, par_update=PAR_UPDATE)
 
@@ -231,7 +233,7 @@ for cell_count in C_EXP:
                     cell_count,
                     output_index=i,
                     par_update=PAR_UPDATE,
-                    rng=rng,
+                    rng=rng_children[idx - 1],
                 )
                 pps.postreat_from_evo_c(
                     para_count, cell_count, i, par_update=PAR_UPDATE

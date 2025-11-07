@@ -49,9 +49,16 @@ import telomeres.model.parameters as par
 # Adjustable parameters
 # ---------------------
 
-# Random seed (for reproducible figures).
+# (Reproducibility of figures).
+# Fixed seed used to create a parent random generator (RNG),
+# from which "independent" child RNGs will be spawned.
 SEED = 1
 rng = np.random.default_rng(SEED)
+# WARNING. In practice, we first ran `main.lineage.compute.py` in a reproducible way, and then ran the current script.
+# Therefore, most of the simulations called below have already been executed (with different RNGs),
+# and their outputs saved under filenames that do not record the RNG used.
+# Consequently, most outputs from this script will be loaded rather than recomputed, regardless of any RNG passed as an argument.
+# To make this explicit, we only pass an RNG argument to functions that are not called by `main.lineage.compute.py`.
 
 # True to save figures.
 IS_SAVED = False
@@ -194,7 +201,11 @@ if FORMAT == "manuscript":
     # WARNING: we need a unique simulation. It is run below (not already run
     #          and saved contrarily to other figures).
     data = sim.simulate_lineages_evolution(
-        len(CYCLES_EXP), ["senescent"], PAR_DEFAULT, is_evo_returned=True, rng=rng
+        len(CYCLES_EXP),
+        ["senescent"],
+        PAR_DEFAULT,
+        is_evo_returned=True,
+        rng=rng.spawn(1)[0],
     )
     data = sim.sort_lineages(data, "gdeath")
     pl.plot_lineages_cycles(
@@ -211,7 +222,7 @@ PAR = deepcopy(PAR_DEFAULT)
 PAR["is_htype_seen"] = False
 
 data = sim.simulate_lineages_evolution(
-    len(CYCLES_EXP), ["senescent"], PAR, is_evo_returned=True, rng=rng
+    len(CYCLES_EXP), ["senescent"], PAR, is_evo_returned=True, rng=rng.spawn(1)[0]
 )
 data = sim.sort_lineages(data, "gdeath")
 pl.plot_lineages_cycles(
@@ -233,9 +244,15 @@ if FORMAT == "manuscript":  # With legend for types.
         fig_size=FIG_SIZE,
     )
 elif FORMAT == "article":  # 2 additional simulations.
-    for seed in [2, 3]:
+    rng_children = rng.spawn(2)
+
+    for idx in [2, 3]:
         data = sim.simulate_lineages_evolution(
-            len(CYCLES_EXP), ["senescent"], PAR, is_evo_returned=True, rng=rng
+            len(CYCLES_EXP),
+            ["senescent"],
+            PAR,
+            is_evo_returned=True,
+            rng=rng_children[idx],
         )
         data = sim.sort_lineages(data, "gdeath")
         pl.plot_lineages_cycles(
@@ -244,7 +261,7 @@ elif FORMAT == "article":  # 2 additional simulations.
             FIG_DIR,
             gmax=GMAX,
             # is_data_saved=["SFig2a", "SFig2b"][seed-2])
-            add_to_name=str(seed),
+            add_to_name=str(idx),
             fig_size=FIG_SIZE,
         )
 

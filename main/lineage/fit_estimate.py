@@ -35,10 +35,6 @@ from telomeres.lineage.plot import compute_n_plot_gcurve_error
 from telomeres.lineage.simulation import type_of_sort_from_characteristics
 from telomeres.dataset.extract_processed_dataset import extract_postreat_lineages
 
-# For random reproducibility
-SEED = 1
-rng = np.random.default_rng(SEED)
-
 
 # Number of processor used for simulation.
 PROC_COUNT = os.cpu_count()
@@ -87,8 +83,16 @@ PAR_L_INIT = [LTRANS, L0, L1]
 # -------------------------------
 
 # Initial point.
-# NB: if None chosen randomly, uniformly in the parameters domain.
+# NB: If None is chosen, the initial point is generated randomly, uniformly
+#  over the parameter domain using the Numpy Generator `RNG` defined below.
+#  > To explore the parameter domain from different starting point accros runs
+#    of this script, `RNG` is initialized  randomly.
+#  > Since we did not use the CMAES `seed` argument to produce reproducible
+#    fits, reproducibility of `RNG` is not a concern here.
+#  > For future estimation procedures, proper handling of `RNG` initialization and
+#    CMAES function arguments should be implemented to enable reproducible fits.
 POINT_0 = None
+RNG = np.random.default_rng()
 
 # Initial standard deviation.
 # NB: the value expected is the value scaled for the set [0, 1] (the sigma
@@ -379,7 +383,7 @@ def optimize_w_cmaes_multiple(
         cmaes_kwargs["CMA_stds"] = np.array(par_bounds[1]) - np.array(par_bounds[0])
         if isinstance(point, type(None)) or i > 0:
             # For non-indidicated 1st run / following runs initial point drawn.
-            point = rng.uniform(low=par_bounds[0], high=par_bounds[1])
+            point = RNG.uniform(low=par_bounds[0], high=par_bounds[1])
         optimizer = cma.CMAEvolutionStrategy(point, sigma, cmaes_kwargs)
         optimizer.disp()
         # logger = cma.CMADataLogger().register(optimizer,
