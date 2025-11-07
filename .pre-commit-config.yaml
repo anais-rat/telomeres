@@ -53,12 +53,14 @@ repos:
   #   rev: v1.16.0
   #   hooks:
   #     - id: mypy
-  - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.9.1
-    hooks:
-      - id: nbqa-black
-        # additional_dependencies: [jupytext]  # optional, only if you're using Jupytext
-      - id: nbqa-pyupgrade
-        args: ["--py37-plus"]
-      - id: nbqa-isort
-        args: ["--float-to-top"]
+
+  # Uncomment to get .ipynb formatted ! You might need to comment it afterwards to finish the commit.
+  # - repo: https://github.com/nbQA-dev/nbQA
+  #   rev: 1.9.1
+  #   hooks:
+  #     - id: nbqa-black
+  #       # additional_dependencies: [jupytext]  # optional, only if you're using Jupytext
+  #     - id: nbqa-pyupgrade
+  #       args: ["--py37-plus"]
+  #     - id: nbqa-isort
+  #       args: ["--float-to-top"]
