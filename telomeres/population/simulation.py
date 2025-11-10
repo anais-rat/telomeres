@@ -84,7 +84,8 @@ def population_init(c_init_s, par_l_init, rng):
     simus = np.arange(subpop_count)
 
     # Computation of subpopulations' cumulative concentration.
-    ccum_s = np.cumulative_sum(c_init_s, include_initial=True)
+    ccum_s = np.zeros(subpop_count + 1, dtype=int)
+    ccum_s[1:] = np.cumsum(c_init_s)
 
     # Creation of the initial subpopupulations.
     dic_s = [{} for subsimu in simus]
@@ -950,7 +951,9 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
 
     # Weither the (non-empty) population has been diluted or not we compute its
     # data into subpopulation format.
-    ccum_s = np.cumulative_sum(c_init_s, include_initial=True)
+    ccum_s = np.zeros(subpop_count + 1, dtype=int)
+    ccum_s[1:] = np.cumsum(c_init_s)
+
     # Initialization.
     data_s = [{} for subsimu in range(subpop_count)]
     # Iteration on the number of subpopulation to create.
