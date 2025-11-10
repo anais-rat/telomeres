@@ -77,8 +77,7 @@ def extract_distribution_telomeres_init(par_l_init=[0, 0, 0]):
 def extract_distribution_cycles():
     path = os.path.join(DIR, "cycles_TetO2-TLC1", "EMPIRICAL_DISTRIBUTIONS.npy")
     cdts = np.load(path, allow_pickle="TRUE").item()
-    cdts["norA"] = cdts["norA"].astype(np.int32)
-    return cdts
+    return {key: subdataset.astype(np.int32) for key, subdataset in cdts.items()}
 
 
 def extract_population_lmode():

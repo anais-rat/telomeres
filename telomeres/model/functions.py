@@ -209,9 +209,3 @@ def draw_cycle(arrest_count, is_senescent, rng):
         return rng.choice(CDTS["norB"])
     # Non-senescent type B in a 2nd, 3rd... sequence of arrests.
     return rng.choice(CDTS["nta"])
-
-
-def desynchronize(cycles, rng):
-    """Delays cell's cycle duration time `cycles`."""
-    delays = rng.uniform(0, cycles, len(cycles))
-    return cycles - delays

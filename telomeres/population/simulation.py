@@ -41,6 +41,7 @@ import telomeres.auxiliary.keys as ks
 import telomeres.population.posttreat as pps
 
 from telomeres.model.parameters import PAR_DEFAULT_POP, OVERHANG, PAR_DEFAULT_SIM_POP
+
 # Recall.
 # PAR_DEFAULT_POP = {
 #     "is_htype_accounted": par.HTYPE_CHOICE,
@@ -94,11 +95,11 @@ def population_init(c_init_s, par_l_init, rng):
         c_init = c_init_s[i]
         # Lengths generated.
         dic_s[i]["lengths"] = mfct.draw_cells_lengths(c_init, par_l_init, rng)
-        # Cycle duration times (cdt).
-        cycles = mfct.draw_cycles_atype(c_init, rng)
-        # Remaining time before death.
-        dic_s[i]["clocks"] = mfct.desynchronize(cycles, rng)
-        # Other data account for non-sencescent type A generation 0 cells.
+        # Remaining time before death (draw cycle duration times and dephase them).
+        dic_s[i]["clocks"] = rng.integers(
+            mfct.draw_cycles_atype(c_init, rng), dtype=np.int32
+        )
+        # Other data account for non-senescent type A generation 0 cells.
         dic_s[i]["ancestors"] = ccum_s[i] + np.arange(c_init)
         dic_s[i]["nta_counts"] = np.zeros(c_init, dtype=np.int32)
         dic_s[i]["generations"] = np.zeros(c_init, dtype=np.int32)
@@ -1247,9 +1248,7 @@ def simu_parallel(
             # Computation of `extinction_time`.
             d["extinction_time"] = np.nanmax(
                 [
-                    output_s[sim][  # min to day.
-                        "extinction_time"
-                    ]
+                    output_s[sim]["extinction_time"]  # min to day.
                     for sim in range(simu_count)
                 ]
             ) / (60 * 24)
