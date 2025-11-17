@@ -405,10 +405,16 @@ def write_hist_lc_path(
     path_stat = write_stat_path(
         simulation_count, lineage_count, [""], characteristics, par_update=par_update
     )
-    path = path_stat.replace(
-        join(FOLDER_SIM, FOLDER_L),
-        join(FOLDER_FIG, subdirectory, FOLDER_L, "gcurves_n_hists"),
-    )
+    if par_update["finalCut"] is None:
+        path = path_stat.replace(
+            join(FOLDER_SIM, FOLDER_L),
+            join(FOLDER_FIG, subdirectory, FOLDER_L, "gcurves_n_hists"),
+        )
+    else:
+        path = path_stat.replace(
+            join(FOLDER_SIM, FOLDER_FC, FOLDER_L),
+            join(FOLDER_FIG, FOLDER_FC, subdirectory, FOLDER_L, "gcurves_n_hists"),
+        )
     lcycle_types_string = types_of_sort_to_string(lcycle_types)
     path = path.replace("stat_", f"hist_lc_{lcycle_types_string}_")
     path = path.replace("by__", "")
@@ -439,6 +445,34 @@ def write_hist_lmin_path(
         subdirectory=subdirectory,
     )
     path = path.replace("_lc_", f"_lmin_w{width}")
+    path = path.replace("_p95", "")
+    # Creation of the directory if not existing.
+    directory_path = write_path_directory_from_file(path)
+    if (not os.path.exists(directory_path)) and make_dir:
+        os.makedirs(directory_path)
+    return path
+
+
+def write_hist_finalcut_path(
+    simulation_count,
+    lineage_count,
+    bin_width,
+    bin_max,
+    characteristics,
+    par_update=None,
+    make_dir=True,
+    subdirectory="",
+):
+    path = write_hist_lmin_path(
+        simulation_count,
+        lineage_count,
+        bin_width,
+        characteristics,
+        par_update=par_update,
+        make_dir=make_dir,
+        subdirectory=subdirectory,
+    )
+    path = path.replace("_lmin_", f"_len_af_cut_m{bin_max}_")
     # Creation of the directory if not existing.
     directory_path = write_path_directory_from_file(path)
     if (not os.path.exists(directory_path)) and make_dir:

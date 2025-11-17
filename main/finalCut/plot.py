@@ -13,7 +13,6 @@ Script to plot the figures associated to the finalCut experiment.
 if __name__ == "__main__":
     # Required on mac to use multiprocessing called in
     # telomeres.lineages.simulation for PROC_COUNT > 1.
-
     from copy import deepcopy
 
     # import math  # Needed if DELAY = math.inf
@@ -43,7 +42,7 @@ if __name__ == "__main__":
 
     # Plotting style: 'manuscript' or 'article'.
     FORMAT = "manuscript"
-    # FORMAT = 'article'
+    # FORMAT = "article"
 
     # Number of processor used for parallel computing.
     PROC_COUNT = 5  # Add one for cluster.
@@ -72,6 +71,11 @@ if __name__ == "__main__":
     LENGTHS_CUT = [None, 0, 20, 30, 40, 50, 70]  # [bp]
 
     KEYS = ["noFc_n2", "Fc0_n2", "Fc20_n2", "Fc30_n2", "Fc40_n2", "Fc50_n2", "Fc70_n2"]
+
+    # (Reproducibility)
+    # Random seed used to create a parent random generator (RNG), from which "independent" child RNGs will be spawned.
+    SEED = 1
+    rng = np.random.default_rng(SEED)
 
     # Fixed
     # -----
@@ -169,7 +173,7 @@ if __name__ == "__main__":
     plt.plot(fce.x_exp, 1 - fce.y_exp, "x", label="Experiment", color="black")
     plt.xticks(np.arange(15))
     plt.legend()
-    if FIG_DIR is None:
+    if FIG_DIR is not None:
         plt.savefig(os.path.join(FIG_DIR, "fit_prop_cut.pdf"), bbox_inches="tight")
     plt.show()
 
@@ -216,6 +220,7 @@ if __name__ == "__main__":
         bbox_to_anchor=bbox_to_anchor,
         fig_size=FIG_SIZE,
         proc_count=PROC_COUNT,
+        rng=rng.spawn(1)[0],
     )
 
     # > FinalCut conditions.
@@ -251,7 +256,23 @@ if __name__ == "__main__":
             proc_count=PROC_COUNT,
             tick_spacing=5,
             bbox_to_anchor=BBOX_TO_ANCHOR,
+            rng=rng.spawn(1)[0],
         )
+
+        if LENGTHS_CUT[key] is not None:
+            BIN_MAX = 700
+            BIN_WIDTH = 10
+
+            pl.compute_n_plot_finalcul_hist(
+                data,
+                SIMU_COUNT,
+                ["senescent"],
+                FORMAT if IS_SAVED else None,
+                BIN_WIDTH,
+                BIN_MAX,
+                par_update=par_update,
+            )  # rng not needed, previous computation should be loaded.
+
         pl.compute_n_plot_gcurve(
             data,
             SIMU_COUNT,
@@ -262,6 +283,7 @@ if __name__ == "__main__":
             title=key.replace("_", " "),
             is_propB=True,
             proc_count=PROC_COUNT,
+            rng=rng.spawn(1)[0],
         )
 
         # Experiment.

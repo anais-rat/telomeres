@@ -74,7 +74,7 @@ def simulate_lineage_evolution(parameters, rng):
             but as either type A or B (depending on whether or not they
             experienced more than one nta). The fact that it was H is saved in
             `is_unseen_htype`.
-        'fit' : list
+        fit : list
             0: The parameters [a, b] of the law of the onset of the 1st arrest.
             1: The parameters [a, b, l_min] of the law of the onset of sen for
                type A and B.
@@ -85,7 +85,7 @@ def simulate_lineage_evolution(parameters, rng):
             'death': terminal arrest (p_death).
             'repair': non-terminal arrest (p_repair).
             'sen_limit': maximum nb of senescent cycles (math.inf: no limit).
-        'finaCut' : dict
+        finalCut : dict
             None corresponds to usual experimental setting with from Dox
             addition to lineage death. Otherwise, mimic the experiment where
             - Dox is added at frame `par_finalCut['idxs_frame'][0]`
@@ -133,8 +133,14 @@ def simulate_lineage_evolution(parameters, rng):
         Length / number of long cycles per sequence of arrest. Keys are:
         'sen': integer
             Number of senescent cycles / length of senescence.
+            Is np.nan if no senescent cycle.
         'nta': list
             lcycle_per_seq_count['nta'][i] length of the ith sequence of nta.
+    finalCut_data : dict or None
+        None if `parameters["fit"]` is None otherwise a dictionary with entries:
+        'len_af_cut' : ndarray or None
+            2D array (2, 16) of telomere lengths right after the cut. None if
+            no cut has been done (e.g. if `parameters["fit"]["lcut"]` is None).
 
     """
     par_nta, par_sen, par_l_init = parameters["fit"]
@@ -156,8 +162,8 @@ def simulate_lineage_evolution(parameters, rng):
     gtrigs = {"nta": [], "sen": np.nan}
     lcycle_per_seq_count = {"nta": [], "sen": np.nan}
     # > Final cut exp conditions.
-    # gen_cut = math.inf  # Generation at which a cut happens.
     if parameters["finalCut"] is not None:
+        finalCut_data = {"len_af_cut": None}
         # Cell cycles [min] under raffinose conditions.
         evo_cycle = [
             fc_fct.draw_cycle_finalCut(nta_count, is_senescent, is_galactose, rng)
@@ -170,6 +176,7 @@ def simulate_lineage_evolution(parameters, rng):
         t_gal = (idxf_gal - idx_dox) * 10  # (1 frame every 10 min).
         t_raf = (idxf_raf - idx_dox) * 10
     else:  # Cell cycle [min] under usual conditions.
+        finalCut_data = None
         evo_cycle = list(mfct.draw_cycles_atype(1, rng))
     is_telo_cut = False  # No cut initially.
 
@@ -324,6 +331,7 @@ def simulate_lineage_evolution(parameters, rng):
                         # Index of the extremity cut, and of the chromosome cut.
                         t1, t2 = rng.integers((2, CHROMOSOME_COUNT))
                         evo_lengths[-1][t1, t2] = parameters["finalCut"]["lcut"]
+                        finalCut_data = {"len_af_cut": evo_lengths[-1]}
 
     # Computation of the type of the lineage (ie of the last cell).
     if nta_count == 0:
@@ -344,6 +352,7 @@ def simulate_lineage_evolution(parameters, rng):
         is_unseen_htype,
         is_accidental_death,
         lcycle_per_seq_count,
+        finalCut_data,
     )
 
 
@@ -405,7 +414,7 @@ def simulate_lineages_evolution(
             1D array (lineage_count,) of the generations of death in each lineage.
     lineage_types : ndarray
         1D array (lineage_count,) of lineages types (0, 1 or nan for A B or H).
-    is_unseen_htypes : ndarray or Nonetype
+    is_unseen_htypes : ndarray or None
         If no H-type (i.e. `parameters['is_htype_accounted']` is False) or
         `is_htype_seen` is True, always None, otherwise 1D array
         (lineage_count,) of the `is_unseen_htype` values of lineages.
@@ -415,15 +424,21 @@ def simulate_lineages_evolution(
     lcycle_per_seq_counts : dict
         Dictionary of the number of arrests (/long cycles) per sequence of
         arrests gathered by entries st.:
-        nta : ndarray
+        nta : ndarray or None
             2D array with same shape as `gtrigs_s['nta']` s.t.
             `lcycle_per_seq_counts['nta'][i, j]` is the number of successive
             long cycles of the jth nta of the ith lineage.
-        sen : ndarray
+        sen : ndarray or None
             1D array (lineage_count, ) (ie with shape of `gtrigs_s['sen']`) st.
             `lcycle_per_seq_counts['sen'][i]` is the number of successive
             senescent cycles of the ith lineage.
-        NB: Nan value whenever there is if no such sequence.
+        NB: nan value whenever there is if no such sequence, None if computation
+            not needed (`is_lcycle_count_returned` is False).
+    finalCut_datas : dict or None
+        None if `parameters["fit"]` is None, otherwise a dictionary with entries:
+        'len_af_cut' : ndarray or None
+            3D array (cut_count, 2, 16) of telomere length distributions right after
+            the cut in all cut lineages (None if no such lineage).
 
     """
     # Initialization.
@@ -431,19 +446,35 @@ def simulate_lineages_evolution(
     rng = np.random.default_rng(rng)
     lineage_types = []
     # If H type seen or are not accounted by the model: `is_unseen_htypes` is None.
-    is_none = parameters["is_htype_seen"] or (not parameters["is_htype_accounted"])
-    if is_none:
+    is_unseen_none = parameters["is_htype_seen"] or (
+        not parameters["is_htype_accounted"]
+    )
+    if is_unseen_none:
         is_unseen_htypes = None
     else:
         is_unseen_htypes = []
     is_accidental_deaths = []
     if is_lcycle_count_returned:
-        lcycle_per_seq_count_s = {"nta": [], "sen": []}
+        lcycle_per_seq_counts = {"nta": [], "sen": []}
+    else:
+        lcycle_per_seq_counts = {"nta": None, "sen": None}
     nta_counts = []
-    evo_s = None
     if is_evo_returned:
         evo_s = {"cycle": [], "lavg": [], "lmin": []}
+    else:
+        evo_s = None
     gtrigs_s = {"nta": [], "sen": [], "death": []}
+
+    is_lfc_not_none = (
+        parameters["finalCut"] is not None
+        and parameters["finalCut"]["lcut"] is not None
+    )
+    if parameters["finalCut"] is None:
+        finalCut_datas = None
+    elif is_lfc_not_none:
+        finalCut_datas = {"len_af_cut": []}
+    else:
+        finalCut_datas = {"len_af_cut": None}
 
     # While all lineages have not been simulated.
     while len(lineage_types) < lineage_count:
@@ -455,6 +486,7 @@ def simulate_lineages_evolution(
             is_unseen_htype,
             is_accidental_death,
             lcycle_per_seq_count,
+            finalCut_data,
         ) = simulate_lineage_evolution(parameters, rng)
 
         # And keep it only if it has the expected characteristic.
@@ -465,7 +497,7 @@ def simulate_lineages_evolution(
 
         # > Update of `is_accidental_deaths` `lineage_types` `nta_counts`.
         lineage_types.append(lineage_type)
-        if not is_none:
+        if not is_unseen_none:
             is_unseen_htypes.append(is_unseen_htype)
         is_accidental_deaths.append(is_accidental_death)
         nta_counts.append(len(gtrigs["nta"]))
@@ -478,12 +510,16 @@ def simulate_lineages_evolution(
         # Update of `lcycle_per_seq_counts` if asked to be computed.
         if is_lcycle_count_returned:
             for key in ["nta", "sen"]:
-                lcycle_per_seq_count_s[key].append(lcycle_per_seq_count[key])
+                lcycle_per_seq_counts[key].append(lcycle_per_seq_count[key])
 
         # > Update of `evo_s`, iterating on all keys, if asked.
         if is_evo_returned:
             for key in ["cycle", "lavg", "lmin"]:
                 evo_s[key].append(evos[key])
+
+        if is_lfc_not_none:
+            if finalCut_data["len_af_cut"] is not None:
+                finalCut_datas["len_af_cut"].append(finalCut_data["len_af_cut"])
 
     # `gtrigs_s['nta']`, `lcycle_per_seq_count_s` `evo_s[key]` converted from list
     # to array (or to list convertible to an array) by filling with nan.
@@ -491,16 +527,15 @@ def simulate_lineages_evolution(
     gtrigs_s["nta"] = [
         afct.reshape_list_with_nan(gtrigs, nta_count) for gtrigs in gtrigs_s["nta"]
     ]
-    lcycle_per_seq_counts = {"nta": None, "sen": None}
     if is_lcycle_count_returned:
         lcycle_per_seq_counts = {
             "nta": np.array(
                 [
                     afct.reshape_list_with_nan(count, nta_count)
-                    for count in lcycle_per_seq_count_s["nta"]
+                    for count in lcycle_per_seq_counts["nta"]
                 ]
             ),
-            "sen": np.array(lcycle_per_seq_count_s["sen"]),
+            "sen": np.array(lcycle_per_seq_counts["sen"]),
         }
     if is_evo_returned:
         gen_max = max([len(value) for value in evo_s["cycle"]])
@@ -515,9 +550,10 @@ def simulate_lineages_evolution(
         evo_s,
         {key: np.array(value) for key, value in gtrigs_s.items()},
         np.array(lineage_types),
-        is_unseen_htypes if is_none else np.array(is_unseen_htypes),
+        is_unseen_htypes if is_unseen_none else np.array(is_unseen_htypes),
         np.array(is_accidental_deaths),
         lcycle_per_seq_counts,
+        finalCut_datas,
     )
 
 
@@ -1003,13 +1039,18 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
         - 'mean' : for the average on simulation.
         - 'perup' : for the `fp.P_UP` percentile.
         - 'perup' : for the `fp.P_DOWN` percentile.
+    finalCut_datas : dict or None
+        None if `data_s[i][6]` is None (if `parameters["fit"]` is None) or a
+        dictionary with entries:
+        'len_af_cut' : ndarray or None
+            All telomere lengths right after the cut.
 
     """
     simus = np.arange(len(data_s))
     nta_counts = np.array([np.shape(data_s[s][1]["nta"])[1] for s in simus])
     nta_count = int(max(nta_counts))
 
-    # Time/gen evolution postreatment of data if asked.
+    # Time/gen evolution post-treatment of data if asked.
     evo_avg = None
     postreat_stat = {"gen": None, "time": None}
     postreat_dt = parameters_sim["postreat_dt"]
@@ -1051,7 +1092,7 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
         evo_avg["prop_atype"] = np.sum(cell_types_s == 0, 0) / cell_counts
         evo_avg["prop_btype"] = np.sum(cell_types_s == 1, 0) / cell_counts
         evo_avg["prop_htype"] = np.sum(np.isnan(cell_types_s), 0) / cell_counts
-        if postreat_dt is not None:  # Postreat.
+        if postreat_dt is not None:  # Post-treat.
             # Computation of division times of all sets of lineages.
             div_times_s = [
                 np.concatenate(
@@ -1089,7 +1130,6 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
                             0,
                         )
     # Concatenation of `lcycle_counts` if computed for each/the 1st simulation.
-    lcycle_counts_s = {"nta": None, "sen": None}
     if data_s[0][5]["nta"] is not None:
         seq_count = max([np.shape(data_s[s][5]["nta"])[1] for s in simus])
         lcycle_counts_s = {
@@ -1101,6 +1141,25 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
             ),
             "sen": np.array([data_s[s][5]["sen"] for s in simus]),
         }
+    else:
+        lcycle_counts_s = {"nta": None, "sen": None}
+    # Concatenation of FinalCut data if computed.
+    if data_s[0][6] is not None:
+        if data_s[0][6]["len_af_cut"] is None:
+            finalCut_datas = {"len_af_cut": None}
+        else:
+            finalCut_datas = {
+                "len_af_cut": np.concatenate(
+                    [
+                        np.array(data_s[s][6]["len_af_cut"]).flatten()
+                        for s in simus
+                        if data_s[s][6]["len_af_cut"] is not None
+                    ]
+                )
+            }
+    else:
+        finalCut_datas = None
+
     gtrigs_stat = {}
     for trig_key in data_s[0][1]:
         if trig_key == "nta":
@@ -1145,6 +1204,7 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
         postreat_stat,
         lcycle_counts_s,
         hist_lmins,
+        finalCut_datas,
     )
 
 
@@ -1268,7 +1328,7 @@ def simulate_n_average_lineages(
         is_lcycle_counts : bool
             If True, the number of consecutive long cycles per sequence of
             arrest is computed and saved, otherwise set to None.
-    parameters_comput : list or Nonetpype, optional
+    parameters_comput : list or None, optional
         If None no specific time limit for computing, otherwise if the time
         to compute `simulate_lineages_evolution` with `parameters_comput[0]`
         lineages is greater than `parameters_comput[1]` (sec) the whole
@@ -1644,6 +1704,35 @@ def compute_lcycle_histogram_data(
         )[type_of_sort]
         lcycle_counts_sim_h = data_sim_h[4]
     return (lineage_count, lcycle_counts_exp, lcycle_counts_sim, lcycle_counts_sim_h)
+
+
+def compute_finalcut_histogram_data(
+    exp_data,
+    simulation_count,
+    characteristics,
+    par_update=None,
+    proc_count=1,
+    rng=None,
+):
+    p_update = {"is_htype_seen": False}  # Similar to `compute_gtrigs`.
+    p_update.update(par_update or {})
+
+    # Definition of some parameters.
+    exp_data_selected = select_exp_lineages(exp_data, characteristics)
+    lineage_count = len(exp_data_selected[0]["cycle"])
+    type_of_sort = type_of_sort_from_characteristics(characteristics)
+
+    # Simulation.
+    data = simulate_n_average_lineages(
+        lineage_count,
+        simulation_count,
+        [type_of_sort],
+        characteristics,
+        par_update=p_update,
+        proc_count=proc_count,
+        rng=rng,
+    )[type_of_sort]
+    return lineage_count, data[6]
 
 
 # Evolution 2D arrays

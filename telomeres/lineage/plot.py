@@ -751,6 +751,7 @@ def compute_n_plot_gcurve(
     proc_count=1,
     add_to_name=None,
     tick_spacing=None,
+    rng=None,
 ):
     p_update = {"is_htype_seen": False}  # Default for comparison with exp.
     p_update.update(par_update or {})
@@ -769,6 +770,7 @@ def compute_n_plot_gcurve(
         par_update=p_update,
         is_propB=is_propB,
         proc_count=proc_count,
+        rng=rng,
     )
     lineages, gtrigs_exp, gtrigs_sim = out[:3]
 
@@ -835,6 +837,7 @@ def compute_n_plot_gcurves_wrt_charac(
     add_to_name=None,
     fig_size=(5.5, 11),
     xticks=None,
+    rng=None,
 ):
     p_update = {"is_htype_seen": False}  # Default for comparison with exp.
     p_update.update(par_update or {})  # !!! (added) (changes only path).
@@ -850,7 +853,6 @@ def compute_n_plot_gcurves_wrt_charac(
             ax[i].set_xticks(xticks)
         characteristics = characteristics_s[i]
         gcurve = gcurve_s[i]
-
         lineages, gtrigs_exp, gtrigs_sim = sim.compute_gtrigs(
             exp_data,
             simu_count,
@@ -859,6 +861,7 @@ def compute_n_plot_gcurves_wrt_charac(
             gcurve,
             par_update=p_update,
             proc_count=proc_count,
+            rng=rng,
         )
 
         ax[i].plot(gtrigs_exp, lineages, label=LABELS["exp"], color="black")
@@ -1841,6 +1844,52 @@ def compute_n_plot_lcycle_hist(
                 x_max=x_max,
                 fig_size=fig_size,
             )
+    return
+
+
+def compute_n_plot_finalcul_hist(
+    exp_data,
+    simulation_count,
+    characteristics,
+    fig_subdirectory,
+    bin_width,
+    bin_max,
+    par_update=None,
+    proc_count=1,
+    rng=None,
+):
+    p_update = deepcopy(par_update) or {}
+
+    # Simulation.
+    lineage_count, lengths_af_cut = sim.compute_finalcut_histogram_data(
+        exp_data,
+        simulation_count,
+        characteristics,
+        par_update=p_update,
+        proc_count=proc_count,
+        rng=rng,
+    )
+    print(lengths_af_cut)
+    # Plotting.
+    bins = np.arange(0, bin_max + bin_width, bin_width)
+    plt.hist(lengths_af_cut["len_af_cut"], bins=bins, density=True)
+    plt.xlabel(LABELS["ax_l"])
+    plt.ylabel("Frequency")
+    plt.xticks(np.arange(0, bin_max + bin_width, 100))
+    sns.despine()
+    if fig_subdirectory is not None:
+        path = wp.write_hist_finalcut_path(
+            simulation_count,
+            lineage_count,
+            bin_width,
+            bin_max,
+            characteristics,
+            par_update=p_update,
+            subdirectory=fig_subdirectory,
+        )
+        print("\n Saved at: ", path)
+        plt.savefig(path, bbox_inches="tight")
+    plt.show()
     return
 
 

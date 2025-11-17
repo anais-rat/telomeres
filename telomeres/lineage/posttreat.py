@@ -262,6 +262,8 @@ def sort_lineages(data, type_of_sort):
         sorted have been forgotten.
 
     """
+    # Copy `data` and None if data is of length 6 (no `finalCut_datas` field).
+    data_copy = deepcopy(data)
     (
         evo_s,
         gtrigs_s,
@@ -269,7 +271,7 @@ def sort_lineages(data, type_of_sort):
         is_unseen_htypes,
         is_accidental_deaths,
         lcycle_per_seq_counts,
-    ) = deepcopy(data)
+    ) = data_copy[:6]
 
     if type_of_sort == "gdeath":
         idxs_sorted = nanargsort1D(gtrigs_s["death"])
@@ -313,23 +315,29 @@ def sort_lineages(data, type_of_sort):
     # > `gtrigs_s`.
     for key in gtrigs_s:
         gtrigs_s[key] = gtrigs_s[key][idxs_sorted]
-    # > `lcycle_per_seq_counts` if computed
+    # > `lcycle_per_seq_counts` if computed.
     if lcycle_per_seq_counts["nta"] is not None:
         lcycle_per_seq_counts = {
             "nta": lcycle_per_seq_counts["nta"][idxs_sorted],
             "sen": lcycle_per_seq_counts["sen"][idxs_sorted],
         }
-    # > Gathering of all sorted outputs.
+    # > `is_unseen_htypes`.
     if is_unseen_htypes is not None:
         is_unseen_htypes = is_unseen_htypes[idxs_sorted]
-    return (
+
+    result = [
         evo_s,
         gtrigs_s,
         lineage_types[idxs_sorted],
         is_unseen_htypes,
         is_accidental_deaths[idxs_sorted],
         lcycle_per_seq_counts,
-    )
+    ]
+
+    # Add finalCut_datas if existing in the input.
+    if len(data_copy) > 6:
+        result.append(data_copy[6])
+    return tuple(result)
 
 
 def compute_exp_lcycle_counts(cycles, gtrigs, is_lcycle):

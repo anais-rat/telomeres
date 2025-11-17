@@ -98,7 +98,7 @@ for key in list(mk.IDXS_CDT.keys()):
         # # Save.
         # np.save(os.path.join(FOLDERS[key], "postreat.npy"), out)
 
-# Gather postreated data of replicated experiments.
+# Gather post-treated data of replicated experiments.
 for key in ["noFc_n2", "Fc0_n2", "Fc20_n2", "Fc30_n2", "Fc40_n2", "Fc50_n2", "Fc70_n2"]:
     key_1 = key.replace("_n2", "_1")
     key_2 = key.replace("_n2", "_2")
