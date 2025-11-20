@@ -1847,13 +1847,14 @@ def compute_n_plot_lcycle_hist(
     return
 
 
-def compute_n_plot_finalcul_hist(
-    exp_data,
+def compute_n_plot_finalcut_hist(
+    lineage_count,
     simulation_count,
     characteristics,
     fig_subdirectory,
     bin_width,
     bin_max,
+    exp_data=None,
     par_update=None,
     proc_count=1,
     rng=None,
@@ -1862,14 +1863,14 @@ def compute_n_plot_finalcul_hist(
 
     # Simulation.
     lineage_count, lengths_af_cut = sim.compute_finalcut_histogram_data(
-        exp_data,
+        lineage_count,
         simulation_count,
         characteristics,
+        exp_data=exp_data,
         par_update=p_update,
         proc_count=proc_count,
         rng=rng,
     )
-    print(lengths_af_cut)
     # Plotting.
     bins = np.arange(0, bin_max + bin_width, bin_width)
     plt.hist(lengths_af_cut["len_af_cut"], bins=bins, density=True)
@@ -1890,6 +1891,21 @@ def compute_n_plot_finalcul_hist(
         print("\n Saved at: ", path)
         plt.savefig(path, bbox_inches="tight")
     plt.show()
+
+    # Proportion of cells whose shortest telomere is not the cutted one.
+    count_cut_min = np.sum(lengths_af_cut["p_cut_min"] * lengths_af_cut["cut_count"])
+    count_cut = np.sum(lengths_af_cut["cut_count"])
+    print(
+        "Proportion of lineages where the shortest telomere after the cut was the cut telomere: \n   ",
+        count_cut_min / count_cut,
+    )
+    print(
+        "(Cut / total) number of lineages: \n   ",
+        count_cut,
+        " / ",
+        simulation_count * lineage_count,
+        "\n",
+    )
     return
 
 

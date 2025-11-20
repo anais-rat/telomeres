@@ -436,9 +436,13 @@ def simulate_lineages_evolution(
             not needed (`is_lcycle_count_returned` is False).
     finalCut_datas : dict or None
         None if `parameters["fit"]` is None, otherwise a dictionary with entries:
-        'len_af_cut' : ndarray or None
-            3D array (cut_count, 2, 16) of telomere length distributions right after
-            the cut in all cut lineages (None if no such lineage).
+        'len_af_cut' : list or None
+            List of `cut_count` 2D array (2, 16) of telomere length distributions
+            right after the cut in all cut lineages (None if no such lineage).
+        'is_cut_min' : list or None
+            List of `cut_count` booleans indicating in all cut lineages whether,
+            after the cut, the shortest telomere is the one that was cut.
+            None if no lineage was cut.
 
     """
     # Initialization.
@@ -465,16 +469,14 @@ def simulate_lineages_evolution(
         evo_s = None
     gtrigs_s = {"nta": [], "sen": [], "death": []}
 
-    is_lfc_not_none = (
-        parameters["finalCut"] is not None
-        and parameters["finalCut"]["lcut"] is not None
-    )
+    lcut = parameters["finalCut"]["lcut"]
+    is_lfc_not_none = parameters["finalCut"] is not None and lcut is not None
     if parameters["finalCut"] is None:
         finalCut_datas = None
     elif is_lfc_not_none:
-        finalCut_datas = {"len_af_cut": []}
+        finalCut_datas = {"len_af_cut": [], "is_cut_min": []}
     else:
-        finalCut_datas = {"len_af_cut": None}
+        finalCut_datas = {"len_af_cut": None, "is_cut_min": None}
 
     # While all lineages have not been simulated.
     while len(lineage_types) < lineage_count:
@@ -520,6 +522,9 @@ def simulate_lineages_evolution(
         if is_lfc_not_none:
             if finalCut_data["len_af_cut"] is not None:
                 finalCut_datas["len_af_cut"].append(finalCut_data["len_af_cut"])
+                finalCut_datas["is_cut_min"].append(
+                    finalCut_data["len_af_cut"].min() == lcut
+                )
 
     # `gtrigs_s['nta']`, `lcycle_per_seq_count_s` `evo_s[key]` converted from list
     # to array (or to list convertible to an array) by filling with nan.
@@ -1043,7 +1048,13 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
         None if `data_s[i][6]` is None (if `parameters["fit"]` is None) or a
         dictionary with entries:
         'len_af_cut' : ndarray or None
-            All telomere lengths right after the cut.
+            1D array of  all telomere lengths right after the cut.
+        'cut_count' : ndarray or None
+            1D array (simulation_count,) of the numbers of lineages that have
+            undergone a cut in each simulation.
+        'p_cut_min' : ndarray or None
+            1D array (simulation_count,) of the proportions, in each simulation,
+            of lineages where the shortest after the cut was the cut telomere.
 
     """
     simus = np.arange(len(data_s))
@@ -1146,16 +1157,16 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
     # Concatenation of FinalCut data if computed.
     if data_s[0][6] is not None:
         if data_s[0][6]["len_af_cut"] is None:
-            finalCut_datas = {"len_af_cut": None}
+            finalCut_datas = {"len_af_cut": None, "cut_count": None, "p_cut_min": None}
         else:
             finalCut_datas = {
                 "len_af_cut": np.concatenate(
-                    [
-                        np.array(data_s[s][6]["len_af_cut"]).flatten()
-                        for s in simus
-                        if data_s[s][6]["len_af_cut"] is not None
-                    ]
-                )
+                    [np.array(data[6]["len_af_cut"]).flatten() for data in data_s]
+                ),
+                "cut_count": np.array([len(data[6]["is_cut_min"]) for data in data_s]),
+                "p_cut_min": np.array(
+                    [np.mean(data[6]["is_cut_min"]) for data in data_s]
+                ),
             }
     else:
         finalCut_datas = None
@@ -1707,19 +1718,21 @@ def compute_lcycle_histogram_data(
 
 
 def compute_finalcut_histogram_data(
-    exp_data,
+    lineage_count,
     simulation_count,
     characteristics,
     par_update=None,
     proc_count=1,
     rng=None,
+    exp_data=None,
 ):
     p_update = {"is_htype_seen": False}  # Similar to `compute_gtrigs`.
     p_update.update(par_update or {})
 
     # Definition of some parameters.
-    exp_data_selected = select_exp_lineages(exp_data, characteristics)
-    lineage_count = len(exp_data_selected[0]["cycle"])
+    if exp_data is not None:
+        exp_data_selected = select_exp_lineages(exp_data, characteristics)
+        lineage_count = len(exp_data_selected[0]["cycle"])
     type_of_sort = type_of_sort_from_characteristics(characteristics)
 
     # Simulation.

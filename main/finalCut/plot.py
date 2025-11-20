@@ -174,7 +174,10 @@ if __name__ == "__main__":
     plt.xticks(np.arange(15))
     plt.legend()
     if FIG_DIR is not None:
-        plt.savefig(os.path.join(FIG_DIR, "fit_prop_cut.pdf"), bbox_inches="tight")
+        plt.savefig(
+            os.path.join(wp.FOLDER_FIG, FIG_DIR, "fit_prop_cut.pdf"),
+            bbox_inches="tight",
+        )
     plt.show()
 
     # > Laws of arrest
@@ -259,19 +262,24 @@ if __name__ == "__main__":
             rng=rng.spawn(1)[0],
         )
 
+        # Distribution of telomere lengths right after a cut.
         if LENGTHS_CUT[key] is not None:
             BIN_MAX = 700
             BIN_WIDTH = 10
+            SIMU_COUNT_DISTRIB = 500
+            LINEAGE_COUNT_DISTRIB = 100
 
-            pl.compute_n_plot_finalcul_hist(
-                data,
-                SIMU_COUNT,
+            pl.compute_n_plot_finalcut_hist(
+                LINEAGE_COUNT_DISTRIB,
+                SIMU_COUNT_DISTRIB,
                 ["senescent"],
                 FORMAT if IS_SAVED else None,
                 BIN_WIDTH,
                 BIN_MAX,
+                proc_count=PROC_COUNT,
                 par_update=par_update,
-            )  # rng not needed, previous computation should be loaded.
+                rng=rng.spawn(1)[0],
+            )
 
         pl.compute_n_plot_gcurve(
             data,
