@@ -25,11 +25,13 @@ Created on Fri Jun 14 13:11:13 2024
 import numpy as np
 from scipy import interpolate
 
-from telomeres.dataset.extract_processed_dataset import \
-    extract_distribution_telomeres_init
+from telomeres.dataset.extract_processed_dataset import (
+    extract_distribution_telomeres_init,
+)
 
 from sys import path
 import os
+
 absolute_path = os.path.abspath(__file__)  # Path to extract_processed_dataset.
 current_dir = os.path.dirname(absolute_path)  # Path to auxiliary directory.
 parent_dir = os.path.dirname(current_dir)  # Path to telomeres directory.
@@ -82,12 +84,15 @@ def transform_l_init(distribution=None, par_l_init=None):
 
     # Transformation of the distribution.
     lengths_tf = np.copy(lengths)
-    lengths_tf[linf_idx:lmod_idx] = (lengths_tf[linf_idx:lmod_idx] - linf) \
-        * (lmod - linf - l0) / (lmod - linf) + linf + l0
-    lengths_tf[lmod_idx:] = (lengths_tf[lmod_idx:] - lmod) * \
-        (lsup + l1 - lmod) / (lsup - lmod) + lmod
-    lengths_tf[:linf_idx] = np.linspace(1, lengths_tf[linf_idx],
-                                        linf_idx+1)[:-1]
+    lengths_tf[linf_idx:lmod_idx] = (
+        (lengths_tf[linf_idx:lmod_idx] - linf) * (lmod - linf - l0) / (lmod - linf)
+        + linf
+        + l0
+    )
+    lengths_tf[lmod_idx:] = (lengths_tf[lmod_idx:] - lmod) * (lsup + l1 - lmod) / (
+        lsup - lmod
+    ) + lmod
+    lengths_tf[:linf_idx] = np.linspace(1, lengths_tf[linf_idx], linf_idx + 1)[:-1]
 
     lengths_new = np.arange(1, np.round(lengths_tf[-1]) + 1)
     densities_new = interpolate.interp1d(lengths_tf, densities)(lengths_new)
@@ -121,12 +126,17 @@ def transform_l_init_old(distribution=None, par_l_init=None):
 
     # Transformation of the distribution.
     lengths_new = np.append(lengths, lengths[-1] + 1)
-    lengths_new[linf_idx:lmod_idx] = (lengths_new[linf_idx:lmod_idx] - linf) \
-        * (lmod - linf - l0) / (lmod - linf) + linf + l0
-    lengths_new[lmod_idx:] = (lengths_new[lmod_idx:] - lmod) * \
-        (lsup + l1 - lmod) / (lsup - lmod) + lmod
-    lengths_new[:linf_idx] = np.linspace(lengths_new[0], lengths_new[linf_idx],
-                                         linf_idx + 1)[:-1]
+    lengths_new[linf_idx:lmod_idx] = (
+        (lengths_new[linf_idx:lmod_idx] - linf) * (lmod - linf - l0) / (lmod - linf)
+        + linf
+        + l0
+    )
+    lengths_new[lmod_idx:] = (lengths_new[lmod_idx:] - lmod) * (lsup + l1 - lmod) / (
+        lsup - lmod
+    ) + lmod
+    lengths_new[:linf_idx] = np.linspace(
+        lengths_new[0], lengths_new[linf_idx], linf_idx + 1
+    )[:-1]
     densities_new = densities / np.sum(np.diff(lengths_new) * densities)
     lengths_new = lengths_new[:-1] + ltrans
     return lengths_new, densities_new

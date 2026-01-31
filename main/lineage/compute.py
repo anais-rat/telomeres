@@ -31,27 +31,31 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     import os
     import numpy as np
 
-    import project_path
-    from telomeres.lineage.simulation import simulate_lineages_evolutions, \
-        compute_postreat_data_vs_exp
+    from telomeres.lineage.simulation import (
+        simulate_lineages_evolutions,
+        compute_postreat_data_vs_exp,
+    )
     import telomeres.model.parameters as par
     from telomeres.lineage.posttreat import count_exp_lineages
 
+    # Reminder
+    # --------
+    # type_of_sort: 'gdeath', 'lmin', 'gnta1', 'gnta2', ..., 'gsen'.
+    # gtrig keys: 'nta', 'sen' 'death'.
+    # gtrig_to_compare: 'nta1', 'nta2', ..., 'sen' 'death'.
+    # characteristics: 'atype', btype', 'htype', 'arrested1', 'arrested2', ...,
+    #                  'senescent', 'dead', dead_accidentally', 'dead_naturally'.
 
-# Reminder
-# --------
-# type_of_sort: 'gdeath', 'lmin', 'gnta1', 'gnta2', ..., 'gsen'.
-# gtrig keys: 'nta', 'sen' 'death'.
-# gtrig_to_compare: 'nta1', 'nta2', ..., 'sen' 'death'.
-# characteristics: 'atype', btype', 'htype', 'arrested1', 'arrested2', ...,
-#                  'senescent', 'dead', dead_accidentally', 'dead_naturally'.
-
-
-# Definition of parameters (common to all jobs)
-# ---------------------------------------------
+    # Definition of parameters (common to all jobs)
+    # ---------------------------------------------
 
     # Adjustable, depending on the machine or cluster from which is run the
     # script.
+
+    # (Reproducibility)
+    # Random seed used to create a parent random generator (RNG), from which "independent" child RNGs will be spawned.
+    SEED = 1
+    rng = np.random.default_rng(SEED)
 
     PROC_COUNT = 11  # Number of processor used for parallel computing.
     # NB: if run form .batch script `cpu-per-task` should be `PROC_COUNT + 1`.
@@ -61,19 +65,23 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
 
     SIMULATION_COUNT = 1000  # Number of simulations used to plot averages.
 
-    CHARAC_S = [['senescent'],
-                ['atype', 'senescent'],
-                ['btype', 'senescent'],
-                ['btype', 'arrested2', 'senescent'],
-                ['btype']]
+    CHARAC_S = [
+        ["senescent"],
+        ["atype", "senescent"],
+        ["btype", "senescent"],
+        ["btype", "arrested2", "senescent"],
+        ["btype"],
+    ]
     i1 = 2 * len(CHARAC_S) + 1
 
-    CHARAC_S_2 = [['senescent'],
-                  ['atype', 'senescent'],
-                  ['btype', 'senescent'],
-                  ['btype']]
+    CHARAC_S_2 = [
+        ["senescent"],
+        ["atype", "senescent"],
+        ["btype", "senescent"],
+        ["btype"],
+    ]
 
-    P_ACC_S = par.P_ACCIDENT * np.array([1., 10., 20, 30., 40., 50.])
+    P_ACC_S = par.P_ACCIDENT * np.array([1.0, 10.0, 20, 30.0, 40.0, 50.0])
     P_ACC_S_TEST = np.array([0.054])  # par.P_ACCIDENT * [25, 34.8, 30, 40]
     P_ACC_S_TEST[0] = 0.054
     L_TRANS_S = np.array([-20, -10, 0, 10, 20, 40])
@@ -85,18 +93,18 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     POSTREAT_DT = par.POSTREAT_DT
 
     i2 = len(P_ACC_S) * len(CHARAC_S_2)
-    i3, i4, i5, i6 = np.array([2 * len(L_TRANS_S), 2 * len(L0_S),
-                               len(L1_S), len(LMODE_S)]) * len(CHARAC_S_2)
+    i3, i4, i5, i6 = np.array(
+        [2 * len(L_TRANS_S), 2 * len(L0_S), len(L1_S), len(LMODE_S)]
+    ) * len(CHARAC_S_2)
     i7 = len(P_ACC_S_TEST)
 
-
-# Computation
-# -----------
+    # Computation
+    # -----------
 
     # > NB Parameters for the job array.
     #  `idx` should ran from 0 to `job_count-1`.
     job_count = i1 + i2 + i3 + i4 + i5 + i6 + i7 + 2
-    print('job_count', job_count)
+    print("job_count", job_count)
     is_run_in_parallel_from_slurm = "SLURM_ARRAY_TASK_ID" in os.environ.keys()
 
     # If parallel computation run from sbacth command, only one idx computed.
@@ -109,151 +117,196 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
 
     # Iteration on all jobs to run.
     for run_idx in idxs:
-        print(f'\n Simulation n° {run_idx + 1} / {job_count}')
+        print(f"\n Simulation n° {run_idx + 1} / {job_count}")
 
         # Best-fit parameters.
         if run_idx < len(CHARAC_S):  # Htype seen, everything saved.
-            print('1: ', run_idx)
+            print("1: ", run_idx)
             characteristics = CHARAC_S[run_idx]
             lineage_count = count_exp_lineages(characteristics)
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         is_lcycle_count_saved=True,
-                                         is_evo_saved=True)
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                is_lcycle_count_saved=True,
+                is_evo_saved=True,
+                rng=rng.spawn(1)[0],
+            )
 
         elif run_idx < i1 - 1:  # Htype unseen, no evolution array.
-            print('2: ', run_idx)
+            print("2: ", run_idx)
             characteristics = CHARAC_S[run_idx - len(CHARAC_S)]
             lineage_count = count_exp_lineages(characteristics)
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         par_update={'is_htype_seen': False},
-                                         is_lcycle_count_saved=True)
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                par_update={"is_htype_seen": False},
+                is_lcycle_count_saved=True,
+                rng=rng.spawn(1)[0],
+            )
 
         elif run_idx < i1:
-            print('2bis: ', run_idx)
-            characteristics = ['senescent', 'dead']
+            print("2bis: ", run_idx)
+            characteristics = ["senescent", "dead"]
             lineage_count = count_exp_lineages(characteristics)
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         par_update={'is_htype_seen': False},
-                                         is_lcycle_count_saved=False,
-                                         is_evo_saved=True)
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                par_update={"is_htype_seen": False},
+                is_lcycle_count_saved=False,
+                is_evo_saved=True,
+                rng=rng.spawn(1)[0],
+            )
 
         # Varying parameters.
         # i) Varying pdeath.
         elif run_idx < i1 + i2:
-            print('3: ', run_idx)
+            print("3: ", run_idx)
             idx_par, idx_char = np.divmod(run_idx - i1, len(CHARAC_S_2))
             characteristics = CHARAC_S_2[idx_char]
             lineage_count = count_exp_lineages(characteristics)
             p_exit = deepcopy(par.P_EXIT)
-            p_exit['accident'] = P_ACC_S[idx_par]
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         par_update={'is_htype_seen': False,
-                                                     'p_exit': p_exit})
+            p_exit["accident"] = P_ACC_S[idx_par]
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                par_update={"is_htype_seen": False, "p_exit": p_exit},
+                rng=rng.spawn(1)[0],
+            )
 
         # ii) Varying ltrans.
         elif run_idx < i1 + i2 + i3:
-            print('4: ', run_idx)
+            print("4: ", run_idx)
             p_exit = deepcopy(par.P_EXIT)
             if run_idx < i1 + i2 + i3 / 2:  # Normal types (TetO2-TLC1).
                 ridx = run_idx
             else:  # Mutants (RAD51 with pacc x5)
                 ridx = run_idx - int(i3 / 2)
-                p_exit['accident'] = par.P_ACCIDENT * 5
+                p_exit["accident"] = par.P_ACCIDENT * 5
             idx_par, idx_char = np.divmod(ridx - (i1 + i2), len(CHARAC_S_2))
             characteristics = CHARAC_S_2[idx_char]
             lineage_count = count_exp_lineages(characteristics)
             parameters = deepcopy(par.PAR)
             parameters[2][0] += L_TRANS_S[idx_par]
 
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         par_update={'is_htype_seen': False,
-                                                     'fit': parameters,
-                                                     'p_exit': p_exit})
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                par_update={
+                    "is_htype_seen": False,
+                    "fit": parameters,
+                    "p_exit": p_exit,
+                },
+                rng=rng.spawn(1)[0],
+            )
 
         # iii) Varying l0.
         elif run_idx < i1 + i2 + i3 + i4:
-            print('5: ', run_idx)
+            print("5: ", run_idx)
             p_exit = deepcopy(par.P_EXIT)
             if run_idx < i1 + i2 + i3 + i4 / 2:  # Normal types (TetO2-TLC1).
                 ridx = run_idx
             else:  # Mutants (RAD51 with pacc x5).
                 ridx = run_idx - int(i3 / 2)
-                p_exit['accident'] = par.P_ACCIDENT * 5
-            idx_par, idx_char = np.divmod(ridx - (i1 + i2 + i3),
-                                          len(CHARAC_S_2))
+                p_exit["accident"] = par.P_ACCIDENT * 5
+            idx_par, idx_char = np.divmod(ridx - (i1 + i2 + i3), len(CHARAC_S_2))
             characteristics = CHARAC_S_2[idx_char]
             lineage_count = count_exp_lineages(characteristics)
             parameters = deepcopy(par.PAR)
             parameters[2][1] += L0_S[idx_par]
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         par_update={'is_htype_seen': False,
-                                                     'fit': parameters,
-                                                     'p_exit': p_exit})
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                par_update={
+                    "is_htype_seen": False,
+                    "fit": parameters,
+                    "p_exit": p_exit,
+                },
+                rng=rng.spawn(1)[0],
+            )
 
         # iv) Varying l1.
         elif run_idx < i1 + i2 + i3 + i4 + i5:
-            print('6: ', run_idx)
-            idx_par, idx_char = np.divmod(run_idx - (i1 + i2 + i3 + i4),
-                                          len(CHARAC_S_2))
+            print("6: ", run_idx)
+            idx_par, idx_char = np.divmod(
+                run_idx - (i1 + i2 + i3 + i4), len(CHARAC_S_2)
+            )
             characteristics = CHARAC_S_2[idx_char]
             lineage_count = count_exp_lineages(characteristics)
             parameters = deepcopy(par.PAR)
             parameters[2][2] += L1_S[idx_par]
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         par_update={'is_htype_seen': False,
-                                                     'fit': parameters})
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                par_update={"is_htype_seen": False, "fit": parameters},
+                rng=rng.spawn(1)[0],
+            )
 
         # v) Varying lmode.
         elif run_idx < i1 + i2 + i3 + i4 + i5 + i6:
-            print('7: ', run_idx)
-            idx_par, idx_char = np.divmod(run_idx - (i1 + i2 + i3 + i4 + i5),
-                                          len(CHARAC_S_2))
+            print("7: ", run_idx)
+            idx_par, idx_char = np.divmod(
+                run_idx - (i1 + i2 + i3 + i4 + i5), len(CHARAC_S_2)
+            )
             characteristics = CHARAC_S_2[idx_char]
             lineage_count = count_exp_lineages(characteristics)
             parameters = deepcopy(par.PAR)
             parameters[2][0] += LMODE_S[idx_par]
             parameters[2][1] -= LMODE_S[idx_par]
             parameters[2][2] -= LMODE_S[idx_par]
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         par_update={'is_htype_seen': False,
-                                                     'fit': parameters})
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                par_update={"is_htype_seen": False, "fit": parameters},
+                rng=rng.spawn(1)[0],
+            )
 
         elif run_idx < i1 + i2 + i3 + i4 + i5 + i6 + i7:
-            print('8: ', run_idx)
+            print("8: ", run_idx)
             idx_par = run_idx - (i1 + i2 + i3 + i4 + i5 + i6)
-            characteristics = ['senescent']
-            lineage_count = count_exp_lineages(characteristics, strain='RAD51')
+            characteristics = ["senescent"]
+            lineage_count = count_exp_lineages(characteristics, strain="RAD51")
             p_exit = deepcopy(par.P_EXIT)
-            p_exit['accident'] = P_ACC_S_TEST[idx_par]
-            simulate_lineages_evolutions(SIMULATION_COUNT, lineage_count,
-                                         characteristics,
-                                         proc_count=PROC_COUNT,
-                                         par_update={'is_htype_seen': False,
-                                                     'p_exit': p_exit})
+            p_exit["accident"] = P_ACC_S_TEST[idx_par]
+            simulate_lineages_evolutions(
+                SIMULATION_COUNT,
+                lineage_count,
+                characteristics,
+                proc_count=PROC_COUNT,
+                par_update={"is_htype_seen": False, "p_exit": p_exit},
+                rng=rng.spawn(1)[0],
+            )
 
         else:  # Time vs generation evo with best-fit parameters.
             if run_idx % 2 == 0:
                 par_update = {}
-                compute_postreat_data_vs_exp(SIMULATION_COUNT, ['senescent'],
-                                             POSTREAT_DT,
-                                             proc_count=PROC_COUNT)
+                compute_postreat_data_vs_exp(
+                    SIMULATION_COUNT,
+                    ["senescent"],
+                    POSTREAT_DT,
+                    proc_count=PROC_COUNT,
+                    rng=rng.spawn(1)[0],
+                )
             else:
-                compute_postreat_data_vs_exp(SIMULATION_COUNT, ['senescent'],
-                                             POSTREAT_DT,
-                                             proc_count=PROC_COUNT)
+                compute_postreat_data_vs_exp(
+                    SIMULATION_COUNT,
+                    ["senescent"],
+                    POSTREAT_DT,
+                    proc_count=PROC_COUNT,
+                    rng=rng.spawn(1)[0],
+                )

@@ -30,22 +30,21 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     import numpy as np
     import seaborn as sns
 
-    import project_path
     import telomeres.dataset.extract_processed_dataset as xtd
     import telomeres.auxiliary.figures_properties as fp
     import telomeres.model.parameters as par
+
     # import telomeres.auxiliary.parameters_functions as parf
     import telomeres.dataset.plot as pd
     import telomeres.model.plot as parp
     import telomeres.population.plot as pp
 
-
-# ----------
-# Parameters
-# ----------
+    # ----------
+    # Parameters
+    # ----------
 
     IS_SAVED = True
-    FORMAT = 'article'
+    FORMAT = "article"
     # FORMAT = 'manuscript'
 
     # Global plotting parameters and figure directory.
@@ -57,34 +56,36 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
         FIG_DIR = FORMAT
     # Global plotting parameters.
     matplotlib.rcParams.update(matplotlib.rcParamsDefault)  # Reset to default.
-    if FORMAT == 'manuscript':
+    if FORMAT == "manuscript":
         sns.set_style("darkgrid")
         sns.set_context("talk", font_scale=1)
         plt.rcParams.update(fp.PAR_RC_UPDATE_MANUSCRIPT)
-    elif FORMAT == 'article':
+    elif FORMAT == "article":
         sns.set_style("ticks")
         sns.set_context("poster", font_scale=1)
         plt.rcParams.update(fp.PAR_RC_UPDATE_ARTICLE)
     else:
         print("Redefine 'Format' correctly")
-    print("Global plotting parameters: \n", sns.plotting_context(), '\n')
+    print("Global plotting parameters: \n", sns.plotting_context(), "\n")
     # .........................................................................
 
+    # -----------------
+    # Experimental data
+    # -----------------
 
-# -----------------
-# Experimental data
-# -----------------
-
-    if FORMAT == 'manuscript':
-        bbox_to_anchor1 = (.4, 1)
+    if FORMAT == "manuscript":
+        bbox_to_anchor1 = (0.4, 1)
         bbox_to_anchor2 = None
         lt, l0, l1 = par.PAR_L_INIT
-        labels = [r'$f_0$', rf"$f_{{init}} (\cdot \, ; {int(lt)}, {int(l0)}, "
-                  rf"{int(l1)})$"]
+        labels = [
+            r"$f_0$",
+            rf"$f_{{init}} (\cdot \, ; {int(lt)}, {int(l0)}, "
+            rf"{int(l1)})$",
+        ]
     else:
-        bbox_to_anchor1 = (.22, .94)
-        bbox_to_anchor2 = (.33, .68)
-        labels = ["(Bourgeron et al., 2015)", r'$f_{init}$']
+        bbox_to_anchor1 = (0.22, 0.94)
+        bbox_to_anchor2 = (0.33, 0.68)
+        labels = ["(Bourgeron et al., 2015)", r"$f_{init}$"]
 
     # Daily concentrations.
     # Import experimental evolution of cell concentration.
@@ -92,51 +93,66 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     CSTAT_TELO_M = xtd.extract_population_concentration_doxP()
     # > Telomerase positive / doxycycline negative.
     CSTAT_TELO_P = xtd.extract_population_concentration_doxM()
-    if FORMAT == 'manuscript':
+    if FORMAT == "manuscript":
         pd.plot_data_exp_concentration_curves(
-            CSTAT_TELO_M['PD'], CSTAT_TELO_P['PD'], FIG_DIR,
-            bbox_to_anchor=bbox_to_anchor1)
+            CSTAT_TELO_M["PD"],
+            CSTAT_TELO_P["PD"],
+            FIG_DIR,
+            bbox_to_anchor=bbox_to_anchor1,
+        )
         pd.plot_data_exp_concentration_curves(
-            CSTAT_TELO_M['c'], CSTAT_TELO_P['c'], None,
-            bbox_to_anchor=bbox_to_anchor1)
+            CSTAT_TELO_M["c"], CSTAT_TELO_P["c"], None, bbox_to_anchor=bbox_to_anchor1
+        )
         pd.plot_data_exp_concentration_curves(
-            CSTAT_TELO_M['OD'], CSTAT_TELO_P['OD'], FIG_DIR,
-            ylabel=fp.LABELS['ax_OD'], bbox_to_anchor=None,
-            fig_name='concentration_OD')
+            CSTAT_TELO_M["OD"],
+            CSTAT_TELO_P["OD"],
+            FIG_DIR,
+            ylabel=fp.LABELS["ax_OD"],
+            bbox_to_anchor=None,
+            fig_name="concentration_OD",
+        )
     else:
         pd.plot_data_exp_concentration_curves(
-            CSTAT_TELO_M['OD'], CSTAT_TELO_P['OD'], FIG_DIR,
-            ylabel=fp.LABELS['ax_OD'], bbox_to_anchor=bbox_to_anchor1)
+            CSTAT_TELO_M["OD"],
+            CSTAT_TELO_P["OD"],
+            FIG_DIR,
+            ylabel=fp.LABELS["ax_OD"],
+            bbox_to_anchor=bbox_to_anchor1,
+        )
 
     # Daily telomere lengths.
     EVO_L_EXP = xtd.extract_population_lmode()
     pd.plot_data_exp_length_curves(
-        np.arange(len(EVO_L_EXP[0])), np.mean(EVO_L_EXP, 0),
-        np.std(EVO_L_EXP, 0), FIG_DIR)
+        np.arange(len(EVO_L_EXP[0])),
+        np.mean(EVO_L_EXP, 0),
+        np.std(EVO_L_EXP, 0),
+        FIG_DIR,
+    )
 
     # Initial telomere lengths.
     pd.plot_ltelomere_init(FIG_DIR)
-    pd.plot_ltelomere_init(FIG_DIR, par_l_init=par.PAR_L_INIT,
-                           bbox_to_anchor=bbox_to_anchor2, labels=labels)
+    pd.plot_ltelomere_init(
+        FIG_DIR,
+        par_l_init=par.PAR_L_INIT,
+        bbox_to_anchor=bbox_to_anchor2,
+        labels=labels,
+    )
 
+    # ---------------------
+    # Sensitivity to N_init
+    # ---------------------
 
-# ---------------------
-# Sensitivity to N_init
-# ---------------------
-
-# Initial distibutions of telomere lengths
-# ----------------------------------------
+    # Initial distibutions of telomere lengths
+    # ----------------------------------------
 
     CELL_COUNTS = np.array([2, 5, 10, 20, 50, 100, 200, 500, 1000, 1e5])
 
-    if FORMAT == 'manuscript':
-        parp.plot_distributions_shortest_min(CELL_COUNTS,
-                                             fig_subdirectory=FIG_DIR)
+    if FORMAT == "manuscript":
+        parp.plot_distributions_shortest_min(CELL_COUNTS, fig_subdirectory=FIG_DIR)
         parp.plot_distributions_shortest(CELL_COUNTS, fig_subdirectory=FIG_DIR)
 
-
-# Comparison
-# ----------
+    # Comparison
+    # ----------
 
     ANC_PROP = 0.5
     TMAX = 7
@@ -147,50 +163,62 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     SIMU_COUNTS[-1] = 15
     DAY_PLOTTED_COUNT = 7
 
-    if FORMAT == 'manuscript':
+    if FORMAT == "manuscript":
         bbox_to_anchor = (1, 1)
         bbox_to_anchor2 = (1, 0.96)
-        fig_size = (5.8, 4.)  # None  # (7.5, 4.8)
+        fig_size = (5.8, 4.0)  # None  # (7.5, 4.8)
     else:
         bbox_to_anchor = (1, 1.16)
         bbox_to_anchor2 = (1, 1.1)
         fig_size = (7.8, 4.5)
 
-    pp.plot_performances_pfixed(CELL_COUNTS, SIMU_COUNTS, FIG_DIR,
-                                xticks=XTICKS, fig_size=fig_size)
-    pp.plot_extinct_pfixed(CELL_COUNTS, SIMU_COUNTS, FIG_DIR, xticks=XTICKS,
-                           fig_size=fig_size)
-    pp.plot_sat_pfixed(CELL_COUNTS, SIMU_COUNTS, FIG_DIR, dsat_count_max=4,
-                       xticks=XTICKS, fig_size=fig_size)
-    pp.plot_p_pfixed(CELL_COUNTS, SIMU_COUNTS, FIG_DIR,
-                     par_sim_update={'day_count': DAY_PLOTTED_COUNT},
-                     xticks=XTICKS, fig_size=fig_size,
-                     bbox_to_anchor=bbox_to_anchor2)
-    pp.plot_evo_pfixed(CELL_COUNTS, SIMU_COUNTS, ANC_PROP, FIG_DIR,
-                       TMAX, bbox_to_anchor=bbox_to_anchor)
+    pp.plot_performances_pfixed(
+        CELL_COUNTS, SIMU_COUNTS, FIG_DIR, xticks=XTICKS, fig_size=fig_size
+    )
+    pp.plot_extinct_pfixed(
+        CELL_COUNTS, SIMU_COUNTS, FIG_DIR, xticks=XTICKS, fig_size=fig_size
+    )
+    pp.plot_sat_pfixed(
+        CELL_COUNTS,
+        SIMU_COUNTS,
+        FIG_DIR,
+        dsat_count_max=4,
+        xticks=XTICKS,
+        fig_size=fig_size,
+    )
+    pp.plot_p_pfixed(
+        CELL_COUNTS,
+        SIMU_COUNTS,
+        FIG_DIR,
+        par_sim_update={"day_count": DAY_PLOTTED_COUNT},
+        xticks=XTICKS,
+        fig_size=fig_size,
+        bbox_to_anchor=bbox_to_anchor2,
+    )
+    pp.plot_evo_pfixed(
+        CELL_COUNTS, SIMU_COUNTS, ANC_PROP, FIG_DIR, TMAX, bbox_to_anchor=bbox_to_anchor
+    )
 
-
-# -------------------------------------
-# Validation + accessing new quantities
-# -------------------------------------
+    # -------------------------------------
+    # Validation + accessing new quantities
+    # -------------------------------------
 
     PARA_COUNT = 1
-    if FORMAT == 'manuscript':
+    if FORMAT == "manuscript":
         IS_ALL_POINTS = False
     else:
         IS_ALL_POINTS = True
 
-
-# Usual strain 'TetO2-TLC1' (Soudet et al. 2014)
-# ----------------------------------------------
+    # Usual strain 'TetO2-TLC1' (Soudet et al. 2014)
+    # ----------------------------------------------
 
     ANC_GROUP_COUNT = 10
-    if FORMAT == 'manuscript':
+    if FORMAT == "manuscript":
         bbox_to_anchor = None
         fig_size = (5, 11)
         fig_size_gen = (6.8, 4.6)
     else:
-        bbox_to_anchor = (1.05, .95)
+        bbox_to_anchor = (1.05, 0.95)
         fig_size = (6, 11)
         fig_size_gen = (5.8, 3.8)
 
@@ -201,19 +229,32 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     SIMU_COUNT = 15
     TMAX_S = [8, 9]  # Maximum time plotted (day).
     for tmax in TMAX_S:
-        pp.plot_evo_c_n_p_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
-                                            FIG_DIR, tmax)
-        pp.plot_evo_l_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
-                                        FIG_DIR, tmax, is_all_points=True)
+        pp.plot_evo_c_n_p_pcfixed_from_stat(
+            CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, tmax
+        )
+        pp.plot_evo_l_pcfixed_from_stat(
+            CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, tmax, is_all_points=True
+        )
 
     TMAX = 8
-    pp.plot_evo_p_anc_pcfixed_from_stat(CELL_COUNT, PARA_COUNT,
-                                        SIMU_COUNT, ANC_GROUP_COUNT,
-                                        FIG_DIR, TMAX, is_old_sim=True)
-    pp.plot_evo_gen_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
-                                      FIG_DIR, TMAX,
-                                      fig_size=fig_size_gen,
-                                      bbox_to_anchor=bbox_to_anchor)
+    pp.plot_evo_p_anc_pcfixed_from_stat(
+        CELL_COUNT,
+        PARA_COUNT,
+        SIMU_COUNT,
+        ANC_GROUP_COUNT,
+        FIG_DIR,
+        TMAX,
+        is_old_sim=True,
+    )
+    pp.plot_evo_gen_pcfixed_from_stat(
+        CELL_COUNT,
+        PARA_COUNT,
+        SIMU_COUNT,
+        FIG_DIR,
+        TMAX,
+        fig_size=fig_size_gen,
+        bbox_to_anchor=bbox_to_anchor,
+    )
 
     # > N_init = 300, k = 30
     # ......................
@@ -223,35 +264,50 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     TMAX = 7
 
     # >> Default r_sat (= 1000).
-    pp.plot_evo_p_anc_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
-                                        ANC_GROUP_COUNT, FIG_DIR, TMAX)
-    pp.plot_hist_lmin_at_sen(CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR,
-                             day_count=TMAX, width=4,
-                             bbox_to_anchor=bbox_to_anchor, fig_size=fig_size)
+    pp.plot_evo_p_anc_pcfixed_from_stat(
+        CELL_COUNT, PARA_COUNT, SIMU_COUNT, ANC_GROUP_COUNT, FIG_DIR, TMAX
+    )
+    pp.plot_hist_lmin_at_sen(
+        CELL_COUNT,
+        PARA_COUNT,
+        SIMU_COUNT,
+        FIG_DIR,
+        day_count=TMAX,
+        width=4,
+        bbox_to_anchor=bbox_to_anchor,
+        fig_size=fig_size,
+    )
 
     # >> r_sat = 720.
     TMAX = 9
     R_SAT_NEW = 720
 
     PAR_SAT_NEW = deepcopy(par.PAR_SAT)
-    PAR_SAT_NEW['prop'] = R_SAT_NEW
-    PAR_UPDATE = {'sat': PAR_SAT_NEW}
-    if FORMAT == 'manuscript':
-        pp.plot_evo_c_n_p_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
-                                            FIG_DIR, TMAX,
-                                            par_update=PAR_UPDATE)
-        pp.plot_evo_l_pcfixed_from_stat(CELL_COUNT, PARA_COUNT, SIMU_COUNT,
-                                        FIG_DIR, TMAX, par_update=PAR_UPDATE)
+    PAR_SAT_NEW["prop"] = R_SAT_NEW
+    PAR_UPDATE = {"sat": PAR_SAT_NEW}
+    if FORMAT == "manuscript":
+        pp.plot_evo_c_n_p_pcfixed_from_stat(
+            CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX, par_update=PAR_UPDATE
+        )
+        pp.plot_evo_l_pcfixed_from_stat(
+            CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX, par_update=PAR_UPDATE
+        )
     else:
         pp.plot_evo_c_n_p_pcfixed_from_stat(
-            CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX,
-            par_update=PAR_UPDATE, is_only_exp=True, is_all_points=True)
+            CELL_COUNT,
+            PARA_COUNT,
+            SIMU_COUNT,
+            FIG_DIR,
+            TMAX,
+            par_update=PAR_UPDATE,
+            is_only_exp=True,
+            is_all_points=True,
+        )
 
+    # Pol32 strain (Lydeard et al., 2007)
+    # -----------------------------------
 
-# Pol32 strain (Lydeard et al., 2007)
-# -----------------------------------
-
-    STRAIN = 'POL32'
+    STRAIN = "POL32"
 
     TMAX_TO_PLOT = 12
 
@@ -261,100 +317,137 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
 
     PROP_SAT_NEW = 402  # New r_sat value to match the experiment.
     PAR_SAT_NEW = deepcopy(par.PAR_SAT)
-    PAR_SAT_NEW['prop'] = PROP_SAT_NEW
+    PAR_SAT_NEW["prop"] = PROP_SAT_NEW
 
-    PAR_UPDATE = {'fit': PAR_NEW, 'sat': PAR_SAT_NEW}
+    PAR_UPDATE = {"fit": PAR_NEW, "sat": PAR_SAT_NEW}
 
     IS_ALL_POINTS = True
     pp.plot_evo_c_n_p_pcfixed_from_stat(
-        CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX_TO_PLOT,
-        par_update=PAR_UPDATE, strain=STRAIN, is_only_exp=True,
-        is_all_points=IS_ALL_POINTS, ysim_scale='log', yexp_scale='log')
+        CELL_COUNT,
+        PARA_COUNT,
+        SIMU_COUNT,
+        FIG_DIR,
+        TMAX_TO_PLOT,
+        par_update=PAR_UPDATE,
+        strain=STRAIN,
+        is_only_exp=True,
+        is_all_points=IS_ALL_POINTS,
+        ysim_scale="log",
+        yexp_scale="log",
+    )
 
+    # Rad51 strain (Rat et al. 2024, data from V. Martinez, T. Teixeira)
+    # ------------------------------------------------------------------
 
-# Rad51 strain (Rat et al. 2024, data from V. Martinez, T. Teixeira)
-# ------------------------------------------------------------------
-
-    STRAIN = 'RAD51'
+    STRAIN = "RAD51"
 
     TMAX_TO_PLOT = 9
 
     PROP_SAT_NEW = 560  # New r_sat value to match the experiment.
     PAR_SAT_NEW = deepcopy(par.PAR_SAT)
-    PAR_SAT_NEW['prop'] = PROP_SAT_NEW
+    PAR_SAT_NEW["prop"] = PROP_SAT_NEW
 
     P_EXIT_NEW = deepcopy(par.P_EXIT)
-    P_EXIT_NEW['accident'] = 5.4 / 100  # New p_accident, the value of RAD51.
+    P_EXIT_NEW["accident"] = 5.4 / 100  # New p_accident, the value of RAD51.
 
-    PAR_UPDATE = {'sat': PAR_SAT_NEW, 'p_exit': P_EXIT_NEW}
+    PAR_UPDATE = {"sat": PAR_SAT_NEW, "p_exit": P_EXIT_NEW}
 
-    PAR_UPDATE_BIS = {'sat': PAR_SAT_NEW}  # Data of the rad51_
-
-    pp.plot_evo_c_n_p_pcfixed_from_stat(
-        CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX_TO_PLOT,
-        par_update=PAR_UPDATE, strain=STRAIN, par_update_bis=PAR_UPDATE_BIS,
-        is_only_exp=True, is_all_points=IS_ALL_POINTS)
+    PAR_UPDATE_BIS = {"sat": PAR_SAT_NEW}  # Data of the rad51_
 
     pp.plot_evo_c_n_p_pcfixed_from_stat(
-        CELL_COUNT, PARA_COUNT, SIMU_COUNT, FIG_DIR, TMAX_TO_PLOT,
-        par_update=PAR_UPDATE, strain=STRAIN, is_only_exp=True,
-        is_all_points=IS_ALL_POINTS)
+        CELL_COUNT,
+        PARA_COUNT,
+        SIMU_COUNT,
+        FIG_DIR,
+        TMAX_TO_PLOT,
+        par_update=PAR_UPDATE,
+        strain=STRAIN,
+        par_update_bis=PAR_UPDATE_BIS,
+        is_only_exp=True,
+        is_all_points=IS_ALL_POINTS,
+    )
 
+    pp.plot_evo_c_n_p_pcfixed_from_stat(
+        CELL_COUNT,
+        PARA_COUNT,
+        SIMU_COUNT,
+        FIG_DIR,
+        TMAX_TO_PLOT,
+        par_update=PAR_UPDATE,
+        strain=STRAIN,
+        is_only_exp=True,
+        is_all_points=IS_ALL_POINTS,
+    )
 
-# --------------------
-# Sensitivity analysis
-# --------------------
+    # --------------------
+    # Sensitivity analysis
+    # --------------------
 
     c = 300
     p = 1
     t_max = 7
     anc_prop = 0.1
 
-
-# Variable saturation ratio
-# -------------------------
+    # Variable saturation ratio
+    # -------------------------
 
     simu_count = 30
 
     R_SAT_S = np.array([500, 750, 1000, 1500, 2000])
-    LINESTYLES = ['-', '-', '--', '-', '-']
+    LINESTYLES = ["-", "-", "--", "-", "-"]
 
     par_sat = deepcopy(par.PAR_SAT)
     par_updates = []
     for r_sat in R_SAT_S:
-        par_sat['prop'] = r_sat
-        par_updates.append({'sat': deepcopy(par_sat)})
+        par_sat["prop"] = r_sat
+        par_updates.append({"sat": deepcopy(par_sat)})
 
     curve_labels = [str(int(rsat)) for rsat in R_SAT_S]
-    pp.plot_evo_w_variable(c, p, simu_count, par_updates, 'prop',
-                           curve_labels, anc_prop, FIG_DIR, t_max,
-                           linestyles=LINESTYLES, is_interpolated=False)
+    pp.plot_evo_w_variable(
+        c,
+        p,
+        simu_count,
+        par_updates,
+        "prop",
+        curve_labels,
+        anc_prop,
+        FIG_DIR,
+        t_max,
+        linestyles=LINESTYLES,
+        is_interpolated=False,
+    )
 
-
-# Parameters redefinition.
+    # Parameters redefinition.
     simu_count = 25
 
+    # Variable death rate
+    # -------------------
 
-# Variable death rate
-# -------------------
-
-    P_DEATH_S = par.P_ACCIDENT * np.array([1., 10., 20, 30., 40., 50.])
-    LINESTYLES = ['-', '-', '--', '-', '-', '-']
+    P_DEATH_S = par.P_ACCIDENT * np.array([1.0, 10.0, 20, 30.0, 40.0, 50.0])
+    LINESTYLES = ["-", "-", "--", "-", "-", "-"]
 
     p_exit = deepcopy(par.P_EXIT)
     par_updates = []
     curve_labels = []
     for p_death in P_DEATH_S:
-        p_exit['accident'] = p_death
-        par_updates.append({'p_exit': deepcopy(p_exit)})
-        curve_labels.append(r'$\times$' + str(int(p_death / P_DEATH_S[0])))
-    pp.plot_evo_w_variable(c, p, simu_count, par_updates, 'accident',
-                           curve_labels, anc_prop, FIG_DIR, t_max,
-                           linestyles=LINESTYLES)
+        p_exit["accident"] = p_death
+        par_updates.append({"p_exit": deepcopy(p_exit)})
+        curve_labels.append(r"$\times$" + str(int(p_death / P_DEATH_S[0])))
+    pp.plot_evo_w_variable(
+        c,
+        p,
+        simu_count,
+        par_updates,
+        "accident",
+        curve_labels,
+        anc_prop,
+        FIG_DIR,
+        t_max,
+        linestyles=LINESTYLES,
+    )
 
-
-# Variable maximum number of senescencent cycles
-# -----------------------------------------------
+    # Variable maximum number of senescencent cycles
+    # -----------------------------------------------
 
     MAX_SEN_COUNT = np.array([2, 6, 10, math.inf])
 
@@ -362,83 +455,117 @@ if __name__ == "__main__":  # Required on mac to use multiprocessing called in
     par_updates = []
     curve_labels = []
     for max_sen_count in MAX_SEN_COUNT:
-        p_exit['sen_limit'] = max_sen_count
-        par_updates.append({'p_exit': deepcopy(p_exit)})
+        p_exit["sen_limit"] = max_sen_count
+        par_updates.append({"p_exit": deepcopy(p_exit)})
         if max_sen_count == math.inf:
-            curve_labels.append(r'$+\infty$')
+            curve_labels.append(r"$+\infty$")
         else:
-            curve_labels.append(rf'{int(max_sen_count)}')
-    pp.plot_evo_w_variable(c, p, simu_count, par_updates, 'sen_limit',
-                           curve_labels, anc_prop, FIG_DIR, t_max)
+            curve_labels.append(rf"{int(max_sen_count)}")
+    pp.plot_evo_w_variable(
+        c,
+        p,
+        simu_count,
+        par_updates,
+        "sen_limit",
+        curve_labels,
+        anc_prop,
+        FIG_DIR,
+        t_max,
+    )
 
-
-# Variable initial distribution
-# -----------------------------
+    # Variable initial distribution
+    # -----------------------------
 
     LTRANS, L0, L1 = par.PAR_L_INIT
 
-
-# > Variable ltrans.
-# ..................
+    # > Variable ltrans.
+    # ..................
 
     LTRANS_S = np.array([-20, -10, 0, 10, 20, 40])
-    LINESTYLES = ['-', '-', '--', '-', '-', '-']
+    LINESTYLES = ["-", "-", "--", "-", "-", "-"]
 
     parameters = deepcopy(par.PAR)
     par_updates = []
     curve_labels = []
     for ltrans_add in LTRANS_S:
         parameters[2][0] = LTRANS + ltrans_add
-        par_updates.append({'fit': deepcopy(parameters)})
+        par_updates.append({"fit": deepcopy(parameters)})
         if ltrans_add <= 0:
             curve_labels.append(str(ltrans_add))
         else:
-            curve_labels.append('+' + str(ltrans_add))
-    pp.plot_evo_w_variable(c, p, simu_count, par_updates, 'ltrans',
-                           curve_labels, anc_prop, FIG_DIR, t_max,
-                           linestyles=LINESTYLES)
+            curve_labels.append("+" + str(ltrans_add))
+    pp.plot_evo_w_variable(
+        c,
+        p,
+        simu_count,
+        par_updates,
+        "ltrans",
+        curve_labels,
+        anc_prop,
+        FIG_DIR,
+        t_max,
+        linestyles=LINESTYLES,
+    )
 
-
-# > Variable l0.
-# ..............
+    # > Variable l0.
+    # ..............
 
     L0_S = np.array([-40, -20, -10, 0, 10, 20])
-    LINESTYLES = ['-', '-', '-', '--', '-', '-']
+    LINESTYLES = ["-", "-", "-", "--", "-", "-"]
 
     parameters = deepcopy(par.PAR)
     par_updates = []
     curve_labels = []
     for l0_add in L0_S:
         parameters[2][1] = L0 + l0_add
-        par_updates.append({'fit': deepcopy(parameters)})
+        par_updates.append({"fit": deepcopy(parameters)})
         if l0_add <= 0:
             curve_labels.append(str(l0_add))
         else:
-            curve_labels.append('+' + str(l0_add))
+            curve_labels.append("+" + str(l0_add))
 
-    pp.plot_evo_w_variable(c, p, simu_count, par_updates, 'l0', curve_labels,
-                           anc_prop, FIG_DIR, t_max, linestyles=LINESTYLES)
+    pp.plot_evo_w_variable(
+        c,
+        p,
+        simu_count,
+        par_updates,
+        "l0",
+        curve_labels,
+        anc_prop,
+        FIG_DIR,
+        t_max,
+        linestyles=LINESTYLES,
+    )
 
-
-# > Variable l1.
-# ..............
+    # > Variable l1.
+    # ..............
 
     L1_S = np.array([-168, -84, -42, 0, 42, 84])
     # l1_s = np.array([-80, -40, -20, -10, 0, 10, 20])
-    LINESTYLES = ['-', '-', '-', '--', '-', '-']
+    LINESTYLES = ["-", "-", "-", "--", "-", "-"]
 
     parameters = deepcopy(par.PAR)
     par_updates = []
     curve_labels = []
     for l1_add in L1_S:
         parameters[2][2] = L1 + l1_add
-        par_updates.append({'fit': deepcopy(parameters)})
+        par_updates.append({"fit": deepcopy(parameters)})
         if l1_add <= 0:
             curve_labels.append(str(l1_add))
         else:
-            curve_labels.append('+' + str(l1_add))
-    pp.plot_evo_w_variable(c, p, simu_count, par_updates, 'l1', curve_labels,
-                           anc_prop, FIG_DIR, t_max, linestyles=LINESTYLES)
+            curve_labels.append("+" + str(l1_add))
+    pp.plot_evo_w_variable(
+        c,
+        p,
+        simu_count,
+        par_updates,
+        "l1",
+        curve_labels,
+        anc_prop,
+        FIG_DIR,
+        t_max,
+        linestyles=LINESTYLES,
+    )
 
 
 # # > Variable mode.

@@ -26,31 +26,34 @@ from copy import deepcopy
 import glob
 import multiprocessing as mp
 import numpy as np
-import numpy.random as rd
 import os
 import warnings
-import numpy.random as rd
-# NB: for parallelization issues need to use rd.RandomState() rather than rd.
-# rd.RandomState() replaced by rd. but seeds initilize for reproducinility.
-# idem with population_simulation
 
 import telomeres.auxiliary.figures_properties as fp
 import telomeres.auxiliary.functions as afct
 import telomeres.model.functions as mfct
 import telomeres.finalCut.functions as fc_fct
 import telomeres.auxiliary.write_paths as wp
-from telomeres.model.parameters import PAR_DEFAULT_LIN, PAR_DEFAULT_SIM_LIN, \
-    OVERHANG, CHROMOSOME_COUNT
-from telomeres.lineage.posttreat import select_exp_lineages, \
-    count_exp_lineages, type_of_sort_from_characteristics, \
-    is_as_expected_lineage, sort_lineages
+from telomeres.model.parameters import (
+    PAR_DEFAULT_LIN,
+    PAR_DEFAULT_SIM_LIN,
+    OVERHANG,
+    CHROMOSOME_COUNT,
+)
+from telomeres.lineage.posttreat import (
+    select_exp_lineages,
+    count_exp_lineages,
+    type_of_sort_from_characteristics,
+    is_as_expected_lineage,
+    sort_lineages,
+)
 
 SIMU_COUNT_MIN_TO_SAVE = 2  # Strict minimum.
 IS_LOAD_PRINTED = False
 IS_TO_SIM_PRINTED = False
 
 
-def simulate_lineage_evolution(parameters):
+def simulate_lineage_evolution(parameters, rng):
     """Simulate the evolution of one lineage from after addition of the DOX to
     death (the cell before DOX addition is type A non-senescent with telomere
     lengths drawn from telomerase-positive distribution at equilibrium).
@@ -91,244 +94,236 @@ def simulate_lineage_evolution(parameters):
               `par_finalCut['lcut']` bp with constant probability in time
               (exponential law). Galactose also affects cell growth. It is
               removed at frame `par_finalCut['idxs_frame'][2]`.
+        rng : `numpy.random.Generator`
+            Pseudorandom number generator state.
 
     Returns
     -------
     evo : dict
-        Dictionnary of evolution arrays, with entry:
-        cycle : ndarray
-            1D array (gen_count,) of cells' cycle times (min) over generations.
-        lengths : ndarray
+        Dictionary of evolution arrays/lists, with entry:
+        cycle : list
+            List (gen_count,) of cells' cycle times (min) over generations.
+        lengths : ndarray  # REMOVED (add with evo_s["lengths"] = evo_lengths[1:]).
             3D array (gen_count, 2, 16) of cell's telomere lengths over gens.
         lavg : ndarray
             1D array (gen_count,) of cells' average telo length over gens.
-        lmin : ndarray
-            1D array (gen_count,) of cells' shortest telo length over gens.
+        lmin : list
+            List (gen_count,) of cells' shortest telo length over gens.
     gtrigs : dict
-        Dictionnary of generations at which an event is triggered, with entires
-        nta : ndarray
-            1D array (nta_count,) of generations at which a sequence of
-            non-terminal arrests (nta) is triggered, NaN if no such sequence.
-        senescence : int or NaN
+        Dictionary of generations at which an event is triggered, with entries
+        nta : list
+            List (nta_count,) of generations at which a sequence of
+            non-terminal arrests (nta) is triggered.
+        senescence : int or nan
             Generation at which senescence is triggered, nan if accidently
             dead before the onset of senescence.
         death : int
             Generation at which death is triggered.
     lineage_type : str
-        Type of the lineage (0 for A type, 1 for B or np.NaN for H).
+        Type of the lineage (0 for A type, 1 for B or np.nan for H).
     is_unseen_htype : bool or NoneType
         Indicate if the lineage is a type H classified A or B.
         If no type H (i.e. `parameters['is_htype_accounted']` is False) or
         `is_htype_seen` is True, always None, otherwise True if the lineage was
         H but classified as A or B, and False if the lineage was a "true"A or B
-        type (NB: NaN in the case of experimental lineages for unknown).
+        type (NB: nan in the case of experimental lineages for unknown).
     is_accidental_death : bool
         True if the lineage has died accidentally, False otherwise.
     lcycle_per_seq_count : dict
         Length / number of long cycles per sequence of arrest. Keys are:
         'sen': integer
             Number of senescent cycles / length of senescence.
-        'nta': ndarray
+        'nta': list
             lcycle_per_seq_count['nta'][i] length of the ith sequence of nta.
 
     """
-    par_nta, par_sen, par_l_init = parameters['fit']
-    p_exit = parameters['p_exit']
+    par_nta, par_sen, par_l_init = parameters["fit"]
+    p_exit = parameters["p_exit"]
 
     # Initialization of <evo_*> arrays (t = 0) with the data of the first cell:
     # non-sencescent type A with generation -1 (s.t the 1st cell born under DOX
     # has generation 0). At t=0: Dox addition, no Galactose (and thus no cut).
     is_unseen_htype = False
-    if parameters['is_htype_seen'] or (not parameters['is_htype_accounted']):
+    if parameters["is_htype_seen"] or not parameters["is_htype_accounted"]:
         is_unseen_htype = None
     is_galactose = False
     is_accidental_death = False
     is_senescent = False
     nta_count = 0
     generation = -1
-    evo_lengths = mfct.draw_cells_lengths(1, par_l_init)
-    evo_lavg = [np.mean(evo_lengths)]
-    evo_lmin = [np.min(evo_lengths)]
-    gtrigs = {'nta': np.array([]), 'sen': np.NaN}
-    lcycle_per_seq_count = {'nta': np.array([]), 'sen': np.nan}
+    evo_lengths = list(mfct.draw_cells_lengths(1, par_l_init, rng))
+    evo_lmin = [np.min(evo_lengths[0])]
+    gtrigs = {"nta": [], "sen": np.nan}
+    lcycle_per_seq_count = {"nta": [], "sen": np.nan}
     # > Final cut exp conditions.
     # gen_cut = math.inf  # Generation at wich a cut happens.
-    if not isinstance(parameters['finalCut'], type(None)):
+    if parameters["finalCut"] is not None:
         # Cell cycles [min] under rafinose conditions.
-        evo_cycle = np.array([fc_fct.draw_cycle_finalCut(
-            nta_count, is_senescent, is_galactose)])
+        evo_cycle = [
+            fc_fct.draw_cycle_finalCut(nta_count, is_senescent, is_galactose, rng)
+        ]
         # Time at the end of the 1st cycle.
-        t_current = evo_cycle[0] * rd.uniform()  # Time since Dox addition.
+        t_current = evo_cycle[0] * rng.uniform()  # Time since Dox addition.
         # Times [min] of change in experimental conditions.
-        idx_dox, idxf_gal, idxf_raf = parameters['finalCut']['idxs_frame']
-        delay = parameters['finalCut']['delay'] * 60
+        idx_dox, idxf_gal, idxf_raf = parameters["finalCut"]["idxs_frame"]
+        delay = parameters["finalCut"]["delay"] * 60
         t_gal = (idxf_gal - idx_dox) * 10  # (1 frame every 10 min).
         t_raf = (idxf_raf - idx_dox) * 10
     else:  # Cell cycle [min] under usual conditions.
-        evo_cycle = mfct.draw_cycles_atype(1)
+        evo_cycle = list(mfct.draw_cycles_atype(1, rng))
     is_telo_cut = False  # No cut initially.
 
     # While the lineage is not extinct.
-    lineage_is_alive = True
-    while lineage_is_alive:
+    while True:
         # If the current cell dies accidentally, we store it with its state
         #    (senescent or not) and generation of death, and the lineage dies.
         # Plus we update the lineage data depending on `is_unseen_acc`.
-        if (generation >= 0 and mfct.is_accidentally_dead(p_exit['accident'])):
+        if generation >= 0 and mfct.is_accidentally_dead(p_exit["accident"], rng):
             is_accidental_death = True
-            gtrigs['death'] = generation
-            lineage_is_alive = False
+            gtrigs["death"] = generation
             # If H-type accounted but not recognized and the lineage is not H.
             if is_unseen_htype is False:
                 # If the lineage was arrested non-senescent at its death.
                 if nta_count > 0:
                     is_senescent = True
                     # Then its last arrest is recognized as a terminal arrest.
-                    gtrigs['sen'] = gtrigs['nta'][-1]
-                    gtrigs['nta'] = gtrigs['nta'][:-1]
-                    nta_count = - nta_count + 1
-                    lcycle_per_seq_count['sen'] = \
-                        lcycle_per_seq_count['nta'][-1]
-                    lcycle_per_seq_count['nta'] = \
-                        lcycle_per_seq_count['nta'][:-1]
+                    gtrigs["sen"] = gtrigs["nta"][-1]
+                    gtrigs["nta"] = gtrigs["nta"][:-1]
+                    nta_count = -nta_count + 1
+                    lcycle_per_seq_count["sen"] = lcycle_per_seq_count["nta"][-1]
+                    lcycle_per_seq_count["nta"] = lcycle_per_seq_count["nta"][:-1]
+            break
 
         # If it is senescent we test if it dies.
-        elif is_senescent and mfct.is_dead(lcycle_per_seq_count['sen'],
-                                           p_exit):
-            lineage_is_alive = False  # If so the lineage extincts.
-            gtrigs['death'] = generation  # We strore the gen of death.
+        if is_senescent and mfct.is_dead(lcycle_per_seq_count["sen"], p_exit, rng):
+            gtrigs["death"] = generation  # We strore the gen of death.
+            break
 
         # Otherwise it divides, we add one generation and create the next cell.
+        generation += 1
+
+        # Computation of telomere lengths following the shortening model.
+        loss = rng.binomial(1, 0.5, 16)
+        evo_lengths.append(evo_lengths[-1] - OVERHANG * np.array([loss, 1 - loss]))
+        lmin = np.min(evo_lengths[-1])
+        evo_lmin.append(lmin)
+
+        # Update of other new-born cell's data depending its mother's data
+        # (current or previous data) and its telomere lengths.
+        if is_senescent:
+            # If the cell is senescent, keeps same data than its mother.
+            # New sen cycle, we update the count.
+            lcycle_per_seq_count["sen"] += 1
         else:
-            generation += 1
-            # Extend evolution arrays at the new generation w default values.
-            evo_lengths = np.append(evo_lengths, [evo_lengths[-1]], axis=0)
-            evo_cycle = np.append(evo_cycle, evo_cycle[-1])
-
-            # Computation of telomere lengths following the shortening model.
-            loss = rd.RandomState().binomial(1, .5, 16)
-            evo_lengths[-1] -= OVERHANG * np.array([loss, 1 - loss])
-            # Update of other length-related evolution arrays.
-            evo_lavg = np.append(evo_lavg, np.mean(evo_lengths[-1]))
-            evo_lmin = np.append(evo_lmin, np.min(evo_lengths[-1]))
-
-            # Update of other new-born cell's data depending its mother's data
-            # (current or previous data) and its telomere lengths.
             # > If non-senescent mother.
-            if not is_senescent:
-                # If the mother is (non-senescent) type A.
-                if nta_count == 0:
-                    # If senescence is triggered, the cell enters senescence.
-                    if mfct.is_sen_trig(evo_lmin[-1], par_sen[0]):
-                        is_senescent = True
-                        gtrigs['sen'] = generation
-                        lcycle_per_seq_count['sen'] = 1
-                    # Otherwise, if a 1st arrest triggered, it becomes type B.
-                    elif mfct.is_nta_trig(evo_lmin[-1], par_nta):
-                        nta_count = 1
-                        gtrigs['nta'] = np.array([generation])
-                        # 1st sequence of nta.
-                        lcycle_per_seq_count['nta'] = np.append(
-                            lcycle_per_seq_count['nta'], 1)
-                # Otherwise mother was (non-senescent) type B.
-                elif nta_count < 0:  # > If not arrested type B.
-                    # If senescence is triggered, the cell enters sen.
-                    if mfct.is_sen_trig(evo_lmin[-1], par_sen[1]):
-                        is_senescent = True
-                        gtrigs['sen'] = generation
-                        lcycle_per_seq_count['sen'] = 1
-                    # Elif new arrest triggered, enters a new arrest.
-                    elif mfct.is_nta_trig(evo_lmin[-1], par_nta):
-                        nta_count = 1 - nta_count
-                        gtrigs['nta'] = np.append(gtrigs['nta'],
-                                                  generation)
-                        # New sequence of nta.
-                        lcycle_per_seq_count['nta'] = np.append(
-                            lcycle_per_seq_count['nta'], 1)
-                else:  # > Otherwise mother was (non-senescent) arrested B.
-                    # If H type taken into account, cell can turn sen (H).
-                    if parameters['is_htype_accounted'] and mfct.is_sen_trig(
-                            evo_lmin[-1], par_sen[1]):
-                        is_senescent = True
-                        if parameters['is_htype_seen']:
-                            gtrigs['sen'] = generation
-                            lcycle_per_seq_count['sen'] = 1
-                        else:
-                            is_unseen_htype = True
-                            gtrigs['sen'] = gtrigs['nta'][-1]
-                            gtrigs['nta'] = gtrigs['nta'][:-1]
-                            nta_count = - nta_count + 1
-                            # The sequence of nta is considered as sen.
-                            lcycle_per_seq_count['sen'] = \
-                                lcycle_per_seq_count['nta'][-1] + 1
-                        # And the last seq of nta is forgotten.
-                        lcycle_per_seq_count['nta'] = \
-                            lcycle_per_seq_count['nta'][:-1]
-                    # Else, if it adapts/repairs it exits arrest.
-                    elif mfct.is_repaired(p_exit['repair']):
-                        nta_count *= - 1
-                    # Otherwise it stays arrested.
+            # If the mother is (non-senescent) type A.
+            if nta_count == 0:
+                # If senescence is triggered, the cell enters senescence.
+                if mfct.is_sen_trig(lmin, par_sen[0], rng):
+                    is_senescent = True
+                    gtrigs["sen"] = generation
+                    lcycle_per_seq_count["sen"] = 1
+                # Otherwise, if a 1st arrest triggered, it becomes type B.
+                elif mfct.is_nta_trig(lmin, par_nta, rng):
+                    nta_count = 1
+                    gtrigs["nta"] = [generation]
+                    # 1st sequence of nta.
+                    lcycle_per_seq_count["nta"].append(1)
+            # Otherwise mother was (non-senescent) type B.
+            elif nta_count < 0:  # > If not arrested type B.
+                # If senescence is triggered, the cell enters sen.
+                if mfct.is_sen_trig(lmin, par_sen[1], rng):
+                    is_senescent = True
+                    gtrigs["sen"] = generation
+                    lcycle_per_seq_count["sen"] = 1
+                # Elif new arrest triggered, enters a new arrest.
+                elif mfct.is_nta_trig(lmin, par_nta, rng):
+                    nta_count = 1 - nta_count
+                    gtrigs["nta"].append(generation)
+                    # New sequence of nta.
+                    lcycle_per_seq_count["nta"].append(1)
+            else:  # > Otherwise mother was (non-senescent) arrested B.
+                # If H type taken into account, cell can turn sen (H).
+                if parameters["is_htype_accounted"] and mfct.is_sen_trig(
+                    lmin, par_sen[1], rng
+                ):
+                    is_senescent = True
+                    if parameters["is_htype_seen"]:
+                        gtrigs["sen"] = generation
+                        lcycle_per_seq_count["sen"] = 1
                     else:
-                        # Update of the length of current seq of lcycles.
-                        lcycle_per_seq_count['nta'][-1] += 1
-            # Otherwise the cell is senescent, keeps same data than its mother.
-            else:
-                # New sen cycle, we update the count.
-                lcycle_per_seq_count['sen'] += 1
+                        is_unseen_htype = True
+                        gtrigs["sen"] = gtrigs["nta"][-1]
+                        gtrigs["nta"] = gtrigs["nta"][:-1]
+                        nta_count = -nta_count + 1
+                        # The sequence of nta is considered as sen.
+                        lcycle_per_seq_count["sen"] = (
+                            lcycle_per_seq_count["nta"][-1] + 1
+                        )
+                    # And the last seq of nta is forgotten.
+                    lcycle_per_seq_count["nta"] = lcycle_per_seq_count["nta"][:-1]
+                # Else, if it adapts/repairs it exits arrest.
+                elif mfct.is_repaired(p_exit["repair"], rng):
+                    nta_count *= -1
+                # Otherwise it stays arrested.
+                else:
+                    # Update of the length of current seq of lcycles.
+                    lcycle_per_seq_count["nta"][-1] += 1
 
-            # Update of the cell cycle duration time and array of cyle times.
-            if isinstance(parameters['finalCut'], type(None)):
-                evo_cycle[-1] = mfct.draw_cycle(nta_count, is_senescent)
-            else:  # Experimental conditions of the fincalCut experiment.
-                evo_cycle[-1] = fc_fct.draw_cycle_finalCut(
-                    nta_count, is_senescent, is_galactose)
+        # Draw and store the cell cycle duration time.
+        if parameters["finalCut"] is None:
+            evo_cycle.append(mfct.draw_cycle(nta_count, is_senescent, rng))
+        else:  # Experimental conditions of the finalCut experiment.
+            evo_cycle.append(
+                fc_fct.draw_cycle_finalCut(nta_count, is_senescent, is_galactose, rng)
+            )
             # If finalcut experiment, possible change of condition and cut.
-            if not isinstance(parameters['finalCut'], type(None)):
-                t_current += evo_cycle[-1]  # Time just bf div of current cell.
-                cdt_after_gal = evo_cycle[-1]
-                # cdt_w_gal = evo_cycle[-1]  # When Gal is active: the time
-                # # spent under Gal.
-                if t_current >= t_raf:  # If Galactose has been removed.
-                    if is_galactose:  # If during the current cycle.
-                        is_galactose = False
-                        # cdt_w_gal -= t_current - t_raf
-                elif t_current >= t_gal:  # Otherwise if Galactose is active.
-                    if not is_galactose:  # If cell is 1st to experience it
-                        # If the cell (gen =- 1, that experiences Gal) is
-                        # arrested the lin is excluded from data: new lin simu.
-                        if nta_count > 0 or is_senescent:
-                            return simulate_lineage_evolution(parameters)
-                        is_galactose = True
-                        # cdt_w_gal = t_current - t_gal
-                        cdt_after_gal = t_current - t_gal
-                        # We reset the generation and forget ancestors.
-                        evo_cycle = evo_cycle[-1:]
-                        evo_lengths = evo_lengths[-1:]
-                        evo_lavg = evo_lavg[-1:]
-                        evo_lmin = evo_lmin[-1:]
-                        for key, gtrig in gtrigs.items():
-                            gtrigs[key] = gtrig - np.abs(generation)
-                        generation = -1  # = generation - dgen_rescale
-                # Possible cut if the length after cut is not None (ie there
-                # is a Cas9 cut), ...
-                # NB: We assume that the cut happens at the end of the cycle,
-                #     and will thus influence only the next generation.
-                if not isinstance(parameters['finalCut']['lcut'], type(None)):
-                    # and that cut not already done  # & gal still present.
-                    # if (not is_telo_cut) and is_galactose:
-                    #     if fc_fct.is_cut_exponential(
-                    #             cdt_w_gal, dt_w_gal=t_current - t_gal):
-                    if (not is_telo_cut) and np.logical_and(
-                            t_gal <= t_current, t_current<= t_raf + delay):
-                        if fc_fct.is_cut_exponential(
-                                cdt_after_gal=cdt_after_gal,
-                                dt_since_gal=t_current - t_gal):
-                            is_telo_cut = True
-                            # Index of the chromosome cut...
-                            t2 = rd.randint(CHROMOSOME_COUNT)
-                            t1 = rd.randint(2)  # ... and extremity cut.
-                            evo_lengths[-1][t1, t2] = \
-                                parameters['finalCut']['lcut']
+            t_current += evo_cycle[-1]  # Time just bf div of current cell.
+            cdt_after_gal = evo_cycle[-1]
+            # cdt_w_gal = evo_cycle[-1]  # When Gal is active: the time
+            # # spent under Gal.
+            if t_current >= t_raf:  # If Galactose has been removed.
+                if is_galactose:  # If during the current cycle.
+                    is_galactose = False
+                    # cdt_w_gal -= t_current - t_raf
+            elif t_current >= t_gal and not is_galactose:
+                # Otherwise if Galactose is active and cell is 1st to experience it
+                # If the cell (gen =- 1, that experiences Gal) is
+                # arrested the lin is excluded from data: new lin simu.
+                if nta_count > 0 or is_senescent:
+                    return simulate_lineage_evolution(parameters, rng)
+                is_galactose = True
+                # cdt_w_gal = t_current - t_gal
+                cdt_after_gal = t_current - t_gal
+                # We reset the generation and forget ancestors.
+                evo_cycle = evo_cycle[-1:]
+                evo_lengths = evo_lengths[-1:]
+                for key, gtrig in gtrigs.items():
+                    gen_abs = np.abs(generation)
+                    if key == "nta":
+                        gtrigs[key] = [gen - gen_abs for gen in gtrig]
+                    else:
+                        gtrigs[key] = gtrig - gen_abs
+                generation = -1  # = generation - dgen_rescale
+            # Possible cut if the length after cut is not None (ie there
+            # is a Cas9 cut), ...
+            # NB: We assume that the cut happens at the end of the cycle,
+            #     and will thus influence only the next generation.
+            if parameters["finalCut"]["lcut"] is not None:
+                # and that cut not already done  # & gal still present.
+                # if (not is_telo_cut) and is_galactose:
+                #     if fc_fct.is_cut_exponential(
+                #             cdt_w_gal, dt_w_gal=t_current - t_gal):
+                if not is_telo_cut and t_gal <= t_current <= t_raf + delay:
+                    if fc_fct.is_cut_exponential(
+                        cdt_after_gal=cdt_after_gal,
+                        dt_since_gal=t_current - t_gal,
+                        rng=rng,
+                    ):
+                        is_telo_cut = True
+                        # Index of the extremity cut, and of the chromosome cut.
+                        t1, t2 = rng.integers((2, CHROMOSOME_COUNT))
+                        evo_lengths[-1][t1, t2] = parameters["finalCut"]["lcut"]
 
     # Computation of the type of the lineage (ie of the last cell).
     if nta_count == 0:
@@ -336,17 +331,30 @@ def simulate_lineage_evolution(parameters):
     elif nta_count < 0:
         lineage_type = 1
     else:
-        lineage_type = np.NaN
+        lineage_type = np.nan
 
-    # Return data removing data of the 1st cell (born before DOX addition).
-    return ({'cycle': evo_cycle[1:], 'lavg': evo_lavg[1:],
-             'lmin': evo_lmin[1:]}, gtrigs, lineage_type, is_unseen_htype,
-            is_accidental_death, lcycle_per_seq_count)
+    evo_lavg = np.mean(evo_lengths[1:], axis=(1, 2))  # Remove 1st day.
+
+    # Return data removing data of the 1st cell (born before DOX addition)
+    # if not already done.
+    return (
+        {"cycle": evo_cycle[1:], "lavg": evo_lavg, "lmin": evo_lmin[1:]},
+        gtrigs,
+        lineage_type,
+        is_unseen_htype,
+        is_accidental_death,
+        lcycle_per_seq_count,
+    )
 
 
-def simulate_lineages_evolution(lineage_count, characteristics, parameters,
-                                is_lcycle_count_returned=False,
-                                is_evo_returned=False, seed=None):
+def simulate_lineages_evolution(
+    lineage_count,
+    characteristics,
+    parameters,
+    is_lcycle_count_returned=False,
+    is_evo_returned=False,
+    rng=None,
+):
     """Simulate the independent evolution of `lineage_count` lineages having
     characteristics `characteristics`.
 
@@ -366,6 +374,13 @@ def simulate_lineages_evolution(lineage_count, characteristics, parameters,
     is_evo_returned : bool
         If True, evolution arrays computed of every lineages are concatenated
         and returned, otherwise `is_evo_returned` is set to None.
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
 
     Returns
     -------
@@ -377,8 +392,17 @@ def simulate_lineages_evolution(lineage_count, characteristics, parameters,
         arrays evo[key] (dimension *), extended by Nan values if needed, of all
         the lineages simulated and kept.
     gtrigs_s : dict
-        Dictionnary of the generation for each kept lineage at which an event
-        is triggered. Same description as `evo_s` replacing `evo` by `gtrigs`.
+        Dictionary of the generation for each kept lineage at which an event
+        is triggered, with entries:
+        nta : ndarray
+            2D array (lineage_count, max_nta_count) s.t. in [i,j]: the generation
+            at which the jth sequence of non-terminal arrests (nta) is triggered
+            in the ith lineage (is nan if no such sequence).
+        senescence : int or nan
+            1D array (lineage_count,) of the generations at which senescence is
+            triggered in each lineage (nan if accidentally dead before senescence).
+        death : int
+            1D array (lineage_count,) of the generations of death in each lineage.
     lineage_types : ndarray
         1D array (lineage_count,) of lineages types (0, 1 or NaN for A B or H).
     is_unseen_htypes : ndarray or Nonetype
@@ -403,99 +427,110 @@ def simulate_lineages_evolution(lineage_count, characteristics, parameters,
 
     """
     # Initialization.
-    print('New subsimulation.')
-    lineage_types = np.array([])
-    is_unseen_htypes = np.array([])
-    is_accidental_deaths = np.array([])
+    print("New subsimulation.")
+    rng = np.random.default_rng(rng)
+    lineage_types = []
+    # If H type seen or are not accounted by the model: `is_unseen_htypes` is None.
+    is_none = parameters["is_htype_seen"] or (not parameters["is_htype_accounted"])
+    if is_none:
+        is_unseen_htypes = None
+    else:
+        is_unseen_htypes = []
+    is_accidental_deaths = []
     if is_lcycle_count_returned:
-        lcycle_per_seq_count_s = {'nta': [], 'sen': []}
-    nta_counts = np.array([])
+        lcycle_per_seq_count_s = {"nta": [], "sen": []}
+    nta_counts = []
     evo_s = None
     if is_evo_returned:
-        evo_s = {}
-    gtrigs_s = {'nta': [], 'sen': np.array([]), 'death': np.array([])}
+        evo_s = {"cycle": [], "lavg": [], "lmin": []}
+    gtrigs_s = {"nta": [], "sen": [], "death": []}
 
     # While all lineages have not been simulated.
-    count = 0
-    while count < lineage_count:
+    while len(lineage_types) < lineage_count:
         # We simulate another lineage.
-        evos, gtrigs, lineage_type, is_unseen_htype, is_accidental_death, \
-            lcycle_per_seq_count = simulate_lineage_evolution(parameters)
+        (
+            evos,
+            gtrigs,
+            lineage_type,
+            is_unseen_htype,
+            is_accidental_death,
+            lcycle_per_seq_count,
+        ) = simulate_lineage_evolution(parameters, rng)
 
         # And keep it only if it has the expected characteristic.
-        if not is_as_expected_lineage(gtrigs, lineage_type,
-                                      is_accidental_death, characteristics):
-            pass
-        else:
-            count += 1
+        if not is_as_expected_lineage(
+            gtrigs, lineage_type, is_accidental_death, characteristics
+        ):
+            continue
 
-            # > Update of `is_accidental_deaths` `lineage_types` `nta_counts`.
-            lineage_types = np.append(lineage_types, lineage_type)
-            is_unseen_htypes = np.append(is_unseen_htypes, is_unseen_htype)
-            is_accidental_deaths = np.append(is_accidental_deaths,
-                                             is_accidental_death)
-            nta_counts = np.append(nta_counts, len(gtrigs['nta']))
-            # and the number of generations in the lineage (gen of death + 1).
-            gen_count_temp = gtrigs['death'] + 1
+        # > Update of `is_accidental_deaths` `lineage_types` `nta_counts`.
+        lineage_types.append(lineage_type)
+        if not is_none:
+            is_unseen_htypes.append(is_unseen_htype)
+        is_accidental_deaths.append(is_accidental_death)
+        nta_counts.append(len(gtrigs["nta"]))
 
-            # > Update of `gtrigs_s`.
-            gtrigs_s['nta'].append(gtrigs['nta'])
-            gtrigs_s['sen'] = np.append(gtrigs_s['sen'], gtrigs['sen'])
-            gtrigs_s['death'] = np.append(gtrigs_s['death'], gtrigs['death'])
+        # > Update of `gtrigs_s`.
+        gtrigs_s["nta"].append(gtrigs["nta"])
+        gtrigs_s["sen"].append(gtrigs["sen"])
+        gtrigs_s["death"].append(gtrigs["death"])
 
-            # Update of `lcycle_per_seq_counts` if asked to be computed.
-            if is_lcycle_count_returned:
-                for key in ['nta', 'sen']:
-                    lcycle_per_seq_count_s[key].append(
-                        lcycle_per_seq_count[key])
+        # Update of `lcycle_per_seq_counts` if asked to be computed.
+        if is_lcycle_count_returned:
+            for key in ["nta", "sen"]:
+                lcycle_per_seq_count_s[key].append(lcycle_per_seq_count[key])
 
-            # > Update of `evo_s`, iterating on all keys, if asked.
-            if is_evo_returned:
-                if count == 1:
-                    gen_count = gen_count_temp
-                    for key, evo in evos.items():
-                        evo_s[key] = [evo]
-                else:
-                    # > We reshaphe either `evos` either `evo_s` if necessary.
-                    if gen_count > gen_count_temp:
-                        for key, evo in evos.items():
-                            evos[key] = afct.reshape_with_nan(evo, gen_count)
-                            # > And add the current lineage to previous ones.
-                            evo_s[key] = np.append(evo_s[key], [evos[key]], 0)
-                    # If `evo_s` reshape, update of current max number of gen.
-                    elif gen_count < gen_count_temp:
-                        gen_count = gen_count_temp
-                        for key, evo in evos.items():
-                            evo_s[key] = afct.reshape_with_nan(evo_s[key],
-                                                               gen_count, 1)
-                            evo_s[key] = np.append(evo_s[key], [evo], 0)
-                    # Otherwise we add directly, no need to reshape first.
-                    else:
-                        for key, evo in evos.items():
-                            evo_s[key] = np.append(evo_s[key], [evo], 0)
-    # `gtrigs_s['nta']` and `lcycle_per_seq_count_s` converted from list to
-    #  array extending with NaN.
+        # > Update of `evo_s`, iterating on all keys, if asked.
+        if is_evo_returned:
+            for key in ["cycle", "lavg", "lmin"]:
+                evo_s[key].append(evos[key])
+
+    # `gtrigs_s['nta']`, `lcycle_per_seq_count_s` `evo_s[key]` converted from list
+    # to array (or to list convertible to an array) by filling with nan.
     nta_count = int(max(nta_counts))
-    gtrigs_s['nta'] = np.array([afct.reshape_with_nan(gtrigs, nta_count) for
-                                gtrigs in gtrigs_s['nta']])
-    lcycle_per_seq_counts = {'nta': None, 'sen': None}
+    gtrigs_s["nta"] = [
+        afct.reshape_list_with_nan(gtrigs, nta_count) for gtrigs in gtrigs_s["nta"]
+    ]
+    lcycle_per_seq_counts = {"nta": None, "sen": None}
     if is_lcycle_count_returned:
-        seq_count = max([len(lc) for lc in lcycle_per_seq_count_s['nta']])
         lcycle_per_seq_counts = {
-            'nta': np.array([afct.reshape_with_nan(count, seq_count) for count
-                             in lcycle_per_seq_count_s['nta']]),
-            'sen': np.array(lcycle_per_seq_count_s['sen'])}
-    # If no type H to keep track of `is_unseen_htypes` simply set to nan.
-    if parameters['is_htype_seen'] or (not parameters['is_htype_accounted']):
-        is_unseen_htypes = None
-    return (evo_s, gtrigs_s, lineage_types, is_unseen_htypes,
-            is_accidental_deaths, lcycle_per_seq_counts)
+            "nta": np.array(
+                [
+                    afct.reshape_list_with_nan(count, nta_count)
+                    for count in lcycle_per_seq_count_s["nta"]
+                ]
+            ),
+            "sen": np.array(lcycle_per_seq_count_s["sen"]),
+        }
+    if is_evo_returned:
+        gen_max = max([len(value) for value in evo_s["cycle"]])
+        evo_s["lavg"] = np.array(
+            [afct.reshape_with_nan(value, gen_max) for value in evo_s["lavg"]]
+        )
+        for key in ["cycle", "lmin"]:
+            evo_s[key] = np.array(
+                [afct.reshape_list_with_nan(value, gen_max) for value in evo_s[key]]
+            )
+    return (
+        evo_s,
+        {key: np.array(value) for key, value in gtrigs_s.items()},
+        np.array(lineage_types),
+        is_unseen_htypes if is_none else np.array(is_unseen_htypes),
+        np.array(is_accidental_deaths),
+        lcycle_per_seq_counts,
+    )
 
 
-def simulate_lineages_evolutions(simulation_count, lineage_count,
-                                 characteristics, par_update=None,
-                                 proc_count=1, is_lcycle_count_saved=False,
-                                 is_evo_saved=False):
+def simulate_lineages_evolutions(
+    simulation_count,
+    lineage_count,
+    characteristics,
+    par_update=None,
+    proc_count=1,
+    is_lcycle_count_saved=False,
+    is_evo_saved=False,
+    rng=None,
+):
     """Simulate (possibly in parallel) `simu_count` times
     `simulate_lineages_evolutions` (with parameters entered as argument).
 
@@ -506,6 +541,13 @@ def simulate_lineages_evolutions(simulation_count, lineage_count,
     proc_count : int, optional
         Number of processors used for parallel computation (if 1 no parallel
         computation).
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
 
     Returns
     -------
@@ -513,6 +555,7 @@ def simulate_lineages_evolutions(simulation_count, lineage_count,
         List of `simulation_count` outputs of `simulate_lineages_evolutions`.
 
     """
+    rng = np.random.default_rng(rng)
     # Updatatable parameters.
     p = deepcopy(PAR_DEFAULT_LIN)
     if isinstance(par_update, dict):
@@ -520,10 +563,15 @@ def simulate_lineages_evolutions(simulation_count, lineage_count,
 
     is_saved = simulation_count > SIMU_COUNT_MIN_TO_SAVE
     simus = np.arange(simulation_count)
-    paths = wp.write_lineages_paths(simulation_count, lineage_count,
-                                    characteristics, is_lcycle_count_saved,
-                                    is_evo_saved, par_update=par_update,
-                                    make_dir=is_saved)
+    paths = wp.write_lineages_paths(
+        simulation_count,
+        lineage_count,
+        characteristics,
+        is_lcycle_count_saved,
+        is_evo_saved,
+        par_update=par_update,
+        make_dir=is_saved,
+    )
     for path in paths:
         if os.path.exists(path):
             print("\n Lineages loaded from \n", path)
@@ -531,25 +579,38 @@ def simulate_lineages_evolutions(simulation_count, lineage_count,
             return output_s
 
     # > If proc_count is 1, no parallelization.
-    print('proc_count: ', proc_count)
-    print('cpu_count: ', os.cpu_count())
+    print("proc_count: ", proc_count)
+    print("cpu_count: ", os.cpu_count())
     print(paths[0])
     # stop
-    kwargs = {'is_lcycle_count_returned': is_lcycle_count_saved,
-              'is_evo_returned': is_evo_saved}
+    kwargs = {
+        "is_lcycle_count_returned": is_lcycle_count_saved,
+        "is_evo_returned": is_evo_saved,
+    }
+    rng_children = rng.spawn(simulation_count)
     if proc_count == 1:
-        output_s = [simulate_lineages_evolution(lineage_count, characteristics,
-                                                p, **kwargs) for s in simus]
+        output_s = [
+            simulate_lineages_evolution(
+                lineage_count, characteristics, p, **kwargs, rng=rng_children[s]
+            )
+            for s in simus
+        ]
     # > Otherwise, initialization of the parallelization.
     else:
         if proc_count > os.cpu_count() - 1:
-            raise Exception("`proc_count` is too big for your computing "
-                            f"capacity of {os.cpu_count()} processors.")
+            raise Exception(
+                "`proc_count` is too big for your computing "
+                f"capacity of {os.cpu_count()} processors."
+            )
         pool = mp.Pool(processes=proc_count)
-        pool_s = [pool.apply_async(simulate_lineages_evolution,
-                                   args=(lineage_count, characteristics, p),
-                                   kwds=kwargs)
-                  for i in simus]
+        pool_s = [
+            pool.apply_async(
+                simulate_lineages_evolution,
+                args=(lineage_count, characteristics, p),
+                kwds=kwargs | {"rng": rng_children[i]},
+            )
+            for i in simus
+        ]
         # > Results retrieval from pool_s (list of pool.ApplyResult obj).
         output_s = [r.get() for r in pool_s]
         # > We prevent the current process to put more data on the queue.
@@ -565,8 +626,10 @@ def simulate_lineages_evolutions(simulation_count, lineage_count,
 # Postreat
 # --------
 
-def compute_lineage_type_stats(lineage_types_s, is_unseen_htypes_s,
-                               is_accidental_deaths_s, is_htype_accounted):
+
+def compute_lineage_type_stats(
+    lineage_types_s, is_unseen_htypes_s, is_accidental_deaths_s, is_htype_accounted
+):
     """Compute statistics on the types of lineages: average and percentile of
     simulations having ith lineage type-A, -B and -H, and accidental death for
     all lineage i (dict `lineage_types_stat_on_sim` with entries arrays of len
@@ -577,26 +640,27 @@ def compute_lineage_type_stats(lineage_types_s, is_unseen_htypes_s,
     """
     is_atype = lineage_types_s == 0
     is_btype = lineage_types_s == 1
-    type_lineage_stat_on_sim = \
-        {'atype': afct.stat(is_atype.astype(int), fp.P_UP, fp.P_DOWN, 0),
-         'btype': afct.stat(is_btype.astype(int), fp.P_UP, fp.P_DOWN, 0),
-         'accidental_death': np.mean(is_accidental_deaths_s.astype(int), 0)}
+    type_lineage_stat_on_sim = {
+        "atype": afct.stat(is_atype.astype(int), fp.P_UP, fp.P_DOWN, 0),
+        "btype": afct.stat(is_btype.astype(int), fp.P_UP, fp.P_DOWN, 0),
+        "accidental_death": np.mean(is_accidental_deaths_s.astype(int), 0),
+    }
     if is_htype_accounted:
         is_htype_seen = isinstance(is_unseen_htypes_s, type(None))
         if not is_htype_seen:
             is_htype = np.isnan(lineage_types_s)
         else:
             is_htype = is_unseen_htypes_s
-        type_lineage_stat_on_sim['htype'] = afct.stat(is_htype.astype(int),
-                                                      fp.P_UP, fp.P_DOWN, 0)
+        type_lineage_stat_on_sim["htype"] = afct.stat(
+            is_htype.astype(int), fp.P_UP, fp.P_DOWN, 0
+        )
     type_per_sim = {}
-    type_per_sim['atype'] = np.mean(is_atype, 1)  # Shape (simu_count, ).
-    type_per_sim['btype'] = np.mean(is_btype, 1)
-    type_per_sim['accidental_death'] = np.mean(is_accidental_deaths_s, 1)
+    type_per_sim["atype"] = np.mean(is_atype, 1)  # Shape (simu_count, ).
+    type_per_sim["btype"] = np.mean(is_btype, 1)
+    type_per_sim["accidental_death"] = np.mean(is_accidental_deaths_s, 1)
     type_proportion_stat = {}
     for key, stats in type_per_sim.items():
-        type_proportion_stat[key] = afct.stat_all(type_per_sim[key], fp.P_UP,
-                                                  fp.P_DOWN)
+        type_proportion_stat[key] = afct.stat_all(type_per_sim[key], fp.P_UP, fp.P_DOWN)
     return type_lineage_stat_on_sim, type_proportion_stat
 
 
@@ -657,21 +721,23 @@ def is_alive_n_times_from_cycles(div_times, times=None):
     if isinstance(times, type(None)):
         times = np.unique(div_times)
         times = np.append(0, times[~np.isnan(times)])
-    is_alive = np.concatenate([[is_alive_at_time(time, div_times)] for time in
-                               times], 0)
+    is_alive = np.concatenate(
+        [[is_alive_at_time(time, div_times)] for time in times], 0
+    )
     return times, is_alive
 
 
-def cell_types_from_gtrigs_n_lin_types(cycles, gtrigs, lineage_types,
-                                       data_type, gmax=None):
+def cell_types_from_gtrigs_n_lin_types(
+    cycles, gtrigs, lineage_types, data_type, gmax=None
+):
     """Compute the type of all cells in a set of lineages with generations of
     event given by `gtrigs` and llineage types by `lineage_types`.
 
     Parameters
     ----------
     gtrigs : dict
-        Dictionnary with generations of event (nta, senescence and death) of
-        the format returned by `simulate_lineage_evolution`.
+        Dictionary with generations of event (nta, senescence and death) of
+        the format returned by `simulate_lineages_evolution`.
     lineage_types : ndarray
         1D array (lineage_count,) of lineages types: 0, 1 or NaN respectively
         for A, B and H (if simulated lineages with is_unseen_htypes False),
@@ -696,29 +762,31 @@ def cell_types_from_gtrigs_n_lin_types(cycles, gtrigs, lineage_types,
 
     # > Type B lineages are made of type A cells and B from the 1st nta.
     for b_lin_idx in lineages[lineage_types == 1]:
-        nta1_idx = int(gtrigs['nta'][b_lin_idx, 0])
+        nta1_idx = int(gtrigs["nta"][b_lin_idx, 0])
         cell_types[b_lin_idx, nta1_idx:] = 1
 
     nan_lin_idxs = lineages[np.isnan(lineage_types)]
     for nan_lin_idx in nan_lin_idxs:
         # > Unknown lineages in the case of experimental data.
-        if data_type == 'exp':
+        if data_type == "exp":
             # Cells of unknow lin are unknown type after 1st arrest, A before.
             # Computation of idx of arrest if arrested lineage (nan if not).
-            arrest_idx = gtrigs['sen'][nan_lin_idx]
+            arrest_idx = gtrigs["sen"][nan_lin_idx]
             # If arrest at generation `arrest_idx`, cells after are unknown.
             if not np.isnan(arrest_idx):
-                cell_types[nan_lin_idx][int(arrest_idx):] = np.nan
+                cell_types[nan_lin_idx][int(arrest_idx) :] = np.nan
         # > Type H lineages in the case of simulated data.
-        elif data_type == 'sim':
+        elif data_type == "sim":
             # Type A before 1st arest, H after senescence, B in between.
-            nta1_idx = int(gtrigs['nta'][nan_lin_idx, 0])
-            sen_idx = int(gtrigs['sen'][nan_lin_idx])
+            nta1_idx = int(gtrigs["nta"][nan_lin_idx, 0])
+            sen_idx = int(gtrigs["sen"][nan_lin_idx])
             cell_types[nan_lin_idx, nta1_idx:] = 1
             cell_types[nan_lin_idx, sen_idx:] = np.nan
         else:
-            raise ValueError("ERROR: wrong `data_exp` argument for "
-                             "`cell_types_from_gtrigs_n_lin_types` function")
+            raise ValueError(
+                "ERROR: wrong `data_exp` argument for "
+                "`cell_types_from_gtrigs_n_lin_types` function"
+            )
 
     # > -1  values at every generation where no cell (lineage already extinct).
     cycles_extended = afct.reshape_with_nan(cycles, gmax, 1)
@@ -771,12 +839,12 @@ def evo_in_gen_n_time(data, div_times, gen_count=None, times=None):
     # Determination of the type of data.
     # > If the dictionnary of evolution arrays has only one entry.
     if len(data[0]) == 0:  # Experimental data.
-        data_type = 'exp'
+        data_type = "exp"
     else:  # Otherwise, simulated.
-        data_type = 'sim'
+        data_type = "sim"
 
     # Definition of `gen_count` if not given as argument.
-    lineage_count, gmax = np.shape(data[0]['cycle'])
+    lineage_count, gmax = np.shape(data[0]["cycle"])
     if isinstance(gen_count, type(None)):
         gen_count = gmax
     generations = np.arange(gen_count)
@@ -800,35 +868,36 @@ def evo_in_gen_n_time(data, div_times, gen_count=None, times=None):
                 else:
                     evo_t[key] = np.append(evo_t[key], np.nanmean(evo_data[a]))
             # > New key 'lmin_min'.
-            if key == 'lmin':
-                evo_g['lmin_min'] = np.nanmin(evo_data_reshaped, 0)
-                evo_t['lmin_min'] = np.array([])
+            if key == "lmin":
+                evo_g["lmin_min"] = np.nanmin(evo_data_reshaped, 0)
+                evo_t["lmin_min"] = np.array([])
                 for a in is_alive:
                     if len(evo_data[a]) == 0:
                         evo_temp = np.nan
                     else:
                         evo_temp = np.nanmin(evo_data[a], axis=0)
-                    evo_t['lmin_min'] = np.append(evo_t['lmin_min'], evo_temp)
+                    evo_t["lmin_min"] = np.append(evo_t["lmin_min"], evo_temp)
 
     # Proportion of each type, senescent, ...
-    if 'cell_types' in data[0].keys():
-        cell_types = data[0]['cell_types']
+    if "cell_types" in data[0].keys():
+        cell_types = data[0]["cell_types"]
     else:
-        cell_types = cell_types_from_gtrigs_n_lin_types(data[0]['cycle'],
-                                                        *data[1:3], data_type)
+        cell_types = cell_types_from_gtrigs_n_lin_types(
+            data[0]["cycle"], *data[1:3], data_type
+        )
     is_senescent = np.empty((0, gmax))
     for i in range(lineage_count):
-        temp = np.arange(gmax) >= data[1]['sen'][i]
+        temp = np.arange(gmax) >= data[1]["sen"][i]
         is_senescent = np.append(is_senescent, [temp], 0)
     # Add nan to the bool matrix at every generation after death.
-    is_senescent_alive = is_senescent + 0 * data[0]['cycle']
+    is_senescent_alive = is_senescent + 0 * data[0]["cycle"]
 
     # > Evolution in generation, iteration on generations.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
-        evo_g['prop_sen'] = np.nanmean(is_senescent_alive, 0)
-    evo_g['prop_type'] = np.empty((3, 0))
-    evo_g['prop_type_sen'] = np.empty((3, 0))
+        evo_g["prop_sen"] = np.nanmean(is_senescent_alive, 0)
+    evo_g["prop_type"] = np.empty((3, 0))
+    evo_g["prop_type_sen"] = np.empty((3, 0))
     for gen in range(gmax):
         # Average on alive cell at `gen`, i.e. those with type not equal to -1.
         is_galive = cell_types[:, gen] != -1
@@ -838,48 +907,69 @@ def evo_in_gen_n_time(data, div_times, gen_count=None, times=None):
         with warnings.catch_warnings():
             # For mean to return nan for empty array w.o. printing a warning.
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            temp = np.concatenate([[[np.mean(types_alive == 0, 0)]],
-                                   [[np.mean(types_alive == 1, 0)]],
-                                   [[np.mean(np.isnan(types_alive), 0)]]], 0)
-            temp_sen = np.concatenate([[[np.mean(types_alive_sen == 0, 0)]],
-                                       [[np.mean(types_alive_sen == 1, 0)]],
-                                       [[np.mean(np.isnan(types_alive_sen),
-                                                 0)]]], axis=0)
-        evo_g['prop_type'] = np.append(evo_g['prop_type'], temp, 1)
-        evo_g['prop_type_sen'] = np.append(evo_g['prop_type_sen'], temp_sen, 1)
+            temp = np.concatenate(
+                [
+                    [[np.mean(types_alive == 0, 0)]],
+                    [[np.mean(types_alive == 1, 0)]],
+                    [[np.mean(np.isnan(types_alive), 0)]],
+                ],
+                0,
+            )
+            temp_sen = np.concatenate(
+                [
+                    [[np.mean(types_alive_sen == 0, 0)]],
+                    [[np.mean(types_alive_sen == 1, 0)]],
+                    [[np.mean(np.isnan(types_alive_sen), 0)]],
+                ],
+                axis=0,
+            )
+        evo_g["prop_type"] = np.append(evo_g["prop_type"], temp, 1)
+        evo_g["prop_type_sen"] = np.append(evo_g["prop_type_sen"], temp_sen, 1)
     # Reshape.
-    for key in ['prop_sen', 'prop_type', 'prop_type_sen']:
+    for key in ["prop_sen", "prop_type", "prop_type_sen"]:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             evo_g[key] = afct.reshape_with_nan(evo_g[key], gen_count, -1)
 
     # > Iteration on all times, averaging only omong alive cells.
-    evo_t['prop_sen'] = np.array([])
-    evo_t['prop_type'] = np.empty((3, 0))
-    evo_t['prop_type_sen'] = np.empty((3, 0))
+    evo_t["prop_sen"] = np.array([])
+    evo_t["prop_type"] = np.empty((3, 0))
+    evo_t["prop_type_sen"] = np.empty((3, 0))
     for a in is_alive:
         a_sen = np.logical_and(a, is_senescent)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             temp = np.mean(is_senescent[a])
-            temp_t = np.concatenate([[[np.mean(cell_types[a] == 0)]],
-                                     [[np.mean(cell_types[a] == 1)]],
-                                     [[np.mean(np.isnan(cell_types[a]))]]], 0)
-            temp_tsen = np.concatenate([[[np.mean(cell_types[a_sen] == 0, 0)]],
-                                        [[np.mean(cell_types[a_sen] == 1, 0)]],
-                                        [[np.mean(np.isnan(
-                                            cell_types[a_sen]))]]], axis=0)
-        evo_t['prop_sen'] = np.append(evo_t['prop_sen'], temp)
-        evo_t['prop_type'] = np.append(evo_t['prop_type'], temp_t, 1)
-        evo_t['prop_type_sen'] = np.append(evo_t['prop_type_sen'], temp_tsen,
-                                           1)
-    return {'gen': [generations, evo_g], 'time': [times, evo_t],
-            'cell_types': cell_types}
+            temp_t = np.concatenate(
+                [
+                    [[np.mean(cell_types[a] == 0)]],
+                    [[np.mean(cell_types[a] == 1)]],
+                    [[np.mean(np.isnan(cell_types[a]))]],
+                ],
+                0,
+            )
+            temp_tsen = np.concatenate(
+                [
+                    [[np.mean(cell_types[a_sen] == 0, 0)]],
+                    [[np.mean(cell_types[a_sen] == 1, 0)]],
+                    [[np.mean(np.isnan(cell_types[a_sen]))]],
+                ],
+                axis=0,
+            )
+        evo_t["prop_sen"] = np.append(evo_t["prop_sen"], temp)
+        evo_t["prop_type"] = np.append(evo_t["prop_type"], temp_t, 1)
+        evo_t["prop_type_sen"] = np.append(evo_t["prop_type_sen"], temp_tsen, 1)
+    return {
+        "gen": [generations, evo_g],
+        "time": [times, evo_t],
+        "cell_types": cell_types,
+    }
 
 
 # ----------------------------------------------
 # Statistics on evolutions of simulated lineages
 # ----------------------------------------------
+
 
 def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
     """Return statistics on a set of simulations with common number of
@@ -917,16 +1007,16 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
 
     """
     simus = np.arange(len(data_s))
-    nta_counts = np.array([np.shape(data_s[s][1]['nta'])[1] for s in simus])
+    nta_counts = np.array([np.shape(data_s[s][1]["nta"])[1] for s in simus])
     nta_count = int(max(nta_counts))
 
     # Time/gen evolution postreatment of data if asked.
     evo_avg = None
-    postreat_stat = {'gen': None, 'time': None}
-    postreat_dt = parameters_sim['postreat_dt']
-    if parameters_sim['is_evo_saved']:
+    postreat_stat = {"gen": None, "time": None}
+    postreat_dt = parameters_sim["postreat_dt"]
+    if parameters_sim["is_evo_saved"]:
         evo_avg = {}
-        gen_counts = [np.shape(data_s[s][0]['lavg'])[1] for s in simus]
+        gen_counts = [np.shape(data_s[s][0]["lavg"])[1] for s in simus]
         gen_count = int(max(gen_counts))
 
         # Average (only on simulations) all evolution arrays.
@@ -934,59 +1024,94 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
             # We prevent RuntimeWarnings print when nanmean of empty arr.
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
-                evo_avg[evo_key] = np.nanmean(np.concatenate([[
-                    afct.reshape_with_nan(data_s[s][0][evo_key], gen_count, 1)]
-                    for s in simus], 0), axis=0)
+                evo_avg[evo_key] = np.nanmean(
+                    np.concatenate(
+                        [
+                            [afct.reshape_with_nan(data_s[s][0][evo_key], gen_count, 1)]
+                            for s in simus
+                        ],
+                        0,
+                    ),
+                    axis=0,
+                )
         # Add proportions by type to evolution arrays (dead:-1 H:nan A:0 B:1).
-        cell_types_s = np.concatenate([[cell_types_from_gtrigs_n_lin_types(
-                        data_s[s][0]['cycle'], *data_s[s][1:3], 'sim',
-                        gmax=gen_count)] for s in simus], 0)
+        cell_types_s = np.concatenate(
+            [
+                [
+                    cell_types_from_gtrigs_n_lin_types(
+                        data_s[s][0]["cycle"], *data_s[s][1:3], "sim", gmax=gen_count
+                    )
+                ]
+                for s in simus
+            ],
+            0,
+        )
         cell_counts = np.sum(cell_types_s != -1, 0).astype(float)
         # Not to divide by zero and have nan values where no cells.
         cell_counts[cell_counts == 0] = np.nan
-        evo_avg['prop_atype'] = np.sum(cell_types_s == 0, 0) / cell_counts
-        evo_avg['prop_btype'] = np.sum(cell_types_s == 1, 0) / cell_counts
-        evo_avg['prop_htype'] = np.sum(np.isnan(cell_types_s), 0) / cell_counts
+        evo_avg["prop_atype"] = np.sum(cell_types_s == 0, 0) / cell_counts
+        evo_avg["prop_btype"] = np.sum(cell_types_s == 1, 0) / cell_counts
+        evo_avg["prop_htype"] = np.sum(np.isnan(cell_types_s), 0) / cell_counts
         if not isinstance(postreat_dt, type(None)):  # Postreat.
             # Computation of division times of all sets of lineages.
-            div_times_s = [np.concatenate([np.sum(
-                data_s[s][0]['cycle'][:, :i+1], 1)[:, None] for i in
-                range(gen_counts[s])], 1) for s in simus]
+            div_times_s = [
+                np.concatenate(
+                    [
+                        np.sum(data_s[s][0]["cycle"][:, : i + 1], 1)[:, None]
+                        for i in range(gen_counts[s])
+                    ],
+                    1,
+                )
+                for s in simus
+            ]
             tmax = np.max([np.nanmax(div_times_s[s]) for s in simus])
             times = np.arange(0, tmax + postreat_dt * 10, postreat_dt * 10)
-            postreat_data_s = [evo_in_gen_n_time(data_s[s], div_times_s[s],
-                               gen_count, times) for s in simus]
+            postreat_data_s = [
+                evo_in_gen_n_time(data_s[s], div_times_s[s], gen_count, times)
+                for s in simus
+            ]
             # 1st argument of `postreat_stat`'s entries: gen & time arrays.
-            postreat_stat = {'gen': [np.arange(gen_count)], 'time': [times]}
-            for key in ['gen', 'time']:
+            postreat_stat = {"gen": [np.arange(gen_count)], "time": [times]}
+            for key in ["gen", "time"]:
                 # 2nd argument: dictionary of evo arrays.
                 postreat_stat[key].append({})
                 for evo_key in postreat_data_s[0][key][1].keys():
-                    if evo_key == 'lmin_min':
+                    if evo_key == "lmin_min":
                         with warnings.catch_warnings():
-                            warnings.simplefilter("ignore",
-                                                  category=RuntimeWarning)
-                            postreat_stat[key][1]['lmin_min'] = np.nanmin(
-                                [postreat_data_s[s][key][1][evo_key] for s in
-                                 simus], 0)
+                            warnings.simplefilter("ignore", category=RuntimeWarning)
+                            postreat_stat[key][1]["lmin_min"] = np.nanmin(
+                                [postreat_data_s[s][key][1][evo_key] for s in simus], 0
+                            )
                     else:
                         postreat_stat[key][1][evo_key] = afct.nanstat(
-                            [postreat_data_s[s][key][1][evo_key] for s in
-                             simus], fp.P_UP, fp.P_DOWN, 0)
+                            [postreat_data_s[s][key][1][evo_key] for s in simus],
+                            fp.P_UP,
+                            fp.P_DOWN,
+                            0,
+                        )
     # Concatenation of `lcycle_counts` if computed for each/the 1st simulation.
-    lcycle_counts_s = {'nta': None, 'sen': None}
-    if not isinstance(data_s[0][5]['nta'], type(None)):
-        seq_count = max([np.shape(data_s[s][5]['nta'])[1] for s in simus])
-        lcycle_counts_s = {'nta': np.array([afct.reshape_with_nan(
-                                            data_s[s][5]['nta'], seq_count, 1)
-                                            for s in simus]),
-                           'sen': np.array([data_s[s][5]['sen'] for s in
-                                            simus])}
+    lcycle_counts_s = {"nta": None, "sen": None}
+    if not isinstance(data_s[0][5]["nta"], type(None)):
+        seq_count = max([np.shape(data_s[s][5]["nta"])[1] for s in simus])
+        lcycle_counts_s = {
+            "nta": np.array(
+                [
+                    afct.reshape_with_nan(data_s[s][5]["nta"], seq_count, 1)
+                    for s in simus
+                ]
+            ),
+            "sen": np.array([data_s[s][5]["sen"] for s in simus]),
+        }
     gtrigs_stat = {}
     for trig_key in data_s[0][1]:
-        if trig_key == 'nta':
-            gtrigs = np.concatenate([[afct.reshape_with_nan(
-                data_s[s][1]['nta'], nta_count, axis=1)] for s in simus], 0)
+        if trig_key == "nta":
+            gtrigs = np.concatenate(
+                [
+                    [afct.reshape_with_nan(data_s[s][1]["nta"], nta_count, axis=1)]
+                    for s in simus
+                ],
+                0,
+            )
         else:
             gtrigs = [data_s[s][1][trig_key] for s in simus]
         gtrigs_stat[trig_key] = afct.nanstat(gtrigs, fp.P_UP, fp.P_DOWN, 0)
@@ -995,27 +1120,33 @@ def statistics_on_sorted_lineages(data_s, is_htype_accounted, parameters_sim):
     is_unseen_htypes_s = np.concatenate([[data_s[s][3]] for s in simus], 0)
     is_accidental_deaths_s = np.concatenate([[data_s[s][4]] for s in simus], 0)
     lineage_type_stat = compute_lineage_type_stats(
-        lineage_types_s, is_unseen_htypes_s, is_accidental_deaths_s,
-        is_htype_accounted)
+        lineage_types_s, is_unseen_htypes_s, is_accidental_deaths_s, is_htype_accounted
+    )
     # Statistics on histograms of lmin triggering senescence.
     hist_lmins = None
-    if not isinstance(parameters_sim['hist_lmins_axis'], type(None)):
+    if not isinstance(parameters_sim["hist_lmins_axis"], type(None)):
         lmin_max = 0
         lmins_s = []
         for s in simus:
-            gsens = data_s[s][1]['sen']
+            gsens = data_s[s][1]["sen"]
             sen_lin_idxs = np.arange(len(gsens))[~np.isnan(gsens)]
-            lmins = [data_s[s][0]['lmin'][lmin, int(gsens[lmin])] for lmin in
-                     sen_lin_idxs]  # int(gsens[l] - 1) !!!
+            lmins = [
+                data_s[s][0]["lmin"][lmin, int(gsens[lmin])] for lmin in sen_lin_idxs
+            ]  # int(gsens[l] - 1) !!!
             lmins_s.append(lmins)
             lmin_max = max(lmin_max, max(lmins))
         hist_axis = np.arange(lmin_max + 2)
-        hist_s = [afct.make_histogram(lmins, hist_axis) for lmins in
-                  lmins_s]
+        hist_s = [afct.make_histogram(lmins, hist_axis) for lmins in lmins_s]
         hist = afct.stat_all(hist_s, fp.P_UP, fp.P_DOWN)
         hist_lmins = [hist_axis, hist]
-    return (evo_avg, gtrigs_stat, lineage_type_stat, postreat_stat,
-            lcycle_counts_s, hist_lmins)
+    return (
+        evo_avg,
+        gtrigs_stat,
+        lineage_type_stat,
+        postreat_stat,
+        lcycle_counts_s,
+        hist_lmins,
+    )
 
 
 def run_with_limited_time(func, time_limit, args, kwargs={}):
@@ -1071,23 +1202,33 @@ def file_names_w_expected_data(path, parameters_sim):
 
 
     """
-    is_tpostreat = not isinstance(parameters_sim['postreat_dt'], type(None))
-    is_hist_lmins = not isinstance(parameters_sim['hist_lmins_axis'],
-                                   type(None))
+    is_tpostreat = not isinstance(parameters_sim["postreat_dt"], type(None))
+    is_hist_lmins = not isinstance(parameters_sim["hist_lmins_axis"], type(None))
     names = []
-    if parameters_sim['is_evo_saved'] and not is_tpostreat:
-        names = glob.glob(path.replace('.npy', '-dt*.npy'))
-    elif not (is_tpostreat or is_hist_lmins or
-              parameters_sim['is_lcycle_count_saved'] or
-              parameters_sim['is_evo_saved']):
-        names = glob.glob(path.replace('.npy', '*.npy'))
+    if parameters_sim["is_evo_saved"] and not is_tpostreat:
+        names = glob.glob(path.replace(".npy", "-dt*.npy"))
+    elif not (
+        is_tpostreat
+        or is_hist_lmins
+        or parameters_sim["is_lcycle_count_saved"]
+        or parameters_sim["is_evo_saved"]
+    ):
+        names = glob.glob(path.replace(".npy", "*.npy"))
     return names
 
 
-def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
-                                characteristics, par_update=None,
-                                par_sim_update=None, parameters_comput=None,
-                                proc_count=1, is_saved=None):
+def simulate_n_average_lineages(
+    lineage_count,
+    simulation_count,
+    types_of_sort,
+    characteristics,
+    par_update=None,
+    par_sim_update=None,
+    parameters_comput=None,
+    proc_count=1,
+    is_saved=None,
+    rng=None,
+):
     """Simulates `simulation_count` times the evolution, through
     `simulate_lineages_evolution`, of `lineage_count` lineages with given
     characteristics (corresponding to `characteristics`) and return statistics
@@ -1133,7 +1274,14 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
         to compute `simulate_lineages_evolution` with `parameters_comput[0]`
         lineages is greater than `parameters_comput[1]` (sec) the whole
         simulation (with a priori more) is not run (None result instead).
-    
+    rng : `numpy.random.Generator` or None (optional)
+        Pseudorandom number generator state. When `rng` is None, a new
+        `numpy.random.Generator` is created using entropy from the
+        operating system. Other types are accepted to instantiate a Generator:
+        - SeedLike = int | np.integer | Sequence[int] | np.random.SeedSequence
+        - RNGLike = np.random.Generator | np.random.BitGenerator
+        (from https://scientific-python.org/specs/spec-0007/).
+
     Returns
     -------
     stats : dict
@@ -1150,13 +1298,17 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
     if isinstance(par_sim_update, dict):
         psim.update(par_sim_update)
     is_saved = is_saved or simulation_count > SIMU_COUNT_MIN_TO_SAVE
-    if not isinstance(psim['postreat_dt'], type(None)):
-        psim['is_evo_saved'] = True
-    stats_path = wp.write_stat_path(simulation_count, lineage_count,
-                                    types_of_sort, characteristics,
-                                    par_update=par_update,
-                                    par_sim_update=par_sim_update,
-                                    make_dir=is_saved)
+    if not isinstance(psim["postreat_dt"], type(None)):
+        psim["is_evo_saved"] = True
+    stats_path = wp.write_stat_path(
+        simulation_count,
+        lineage_count,
+        types_of_sort,
+        characteristics,
+        par_update=par_update,
+        par_sim_update=par_sim_update,
+        make_dir=is_saved,
+    )
     if IS_TO_SIM_PRINTED:
         print(stats_path)
     # Creation of directories where to save if not existing.
@@ -1180,66 +1332,85 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
     # Parameters for simulation.
     is_simulated = False
     is_too_long = False
-    is_time_tested = isinstance(parameters_comput,
-                                type(None))  # True if not to test.
+    is_time_tested = isinstance(parameters_comput, type(None))  # True if not to test.
     simus = np.arange(simulation_count)
-    is_evo_temp = psim['is_evo_saved'] or \
-        not isinstance(psim['hist_lmins_axis'], type(None))
+    is_evo_temp = psim["is_evo_saved"] or not isinstance(
+        psim["hist_lmins_axis"], type(None)
+    )
     # Orderring and statistics.
     for type_of_sort in types_of_sort:
         if isinstance(stats[type_of_sort], type(None)):
-            path = wp.write_stat_path(simulation_count, lineage_count,
-                                      [type_of_sort], characteristics,
-                                      par_update=par_update,
-                                      par_sim_update=par_sim_update,
-                                      make_dir=is_saved)
+            path = wp.write_stat_path(
+                simulation_count,
+                lineage_count,
+                [type_of_sort],
+                characteristics,
+                par_update=par_update,
+                par_sim_update=par_sim_update,
+                make_dir=is_saved,
+            )
             files_w_data = file_names_w_expected_data(path, psim)
             if len(files_w_data) != 0:
                 if IS_LOAD_PRINTED:
                     print("3) Loaded from ", files_w_data[0])
                 stats[type_of_sort] = np.load(
-                    files_w_data[0], allow_pickle=True).item()[type_of_sort]
+                    files_w_data[0], allow_pickle=True
+                ).item()[type_of_sort]
                 np.save(path, {type_of_sort: stats[type_of_sort]})
             if os.path.exists(path):
-                stats[type_of_sort] = np.load(
-                    path, allow_pickle=True).item()[type_of_sort]
+                stats[type_of_sort] = np.load(path, allow_pickle=True).item()[
+                    type_of_sort
+                ]
             if isinstance(stats[type_of_sort], type(None)):
                 if not is_simulated:
                     if not is_time_tested:
                         args = [parameters_comput[0], characteristics, p]
-                        if run_with_limited_time(simulate_lineages_evolution,
-                                                 parameters_comput[1], args):
-                            print('Too long')
+                        if run_with_limited_time(
+                            simulate_lineages_evolution,
+                            parameters_comput[1],
+                            args,
+                        ):
+                            print("Too long")
                             is_too_long = True
                         is_time_tested = True
                     if not is_too_long:
-                        print('Simulation running...', is_saved)
+                        print("Simulation running...", is_saved)
                         if is_saved:
                             # If lineages have to be sorted by lmin or lavg,
                             # need to store data in a first time.
-                            is_evo_saved = (is_evo_temp or
-                                            type_of_sort[0] == 'l')
+                            is_evo_saved = is_evo_temp or type_of_sort[0] == "l"
                             print(is_evo_temp, is_evo_saved)
                             data_s_0 = simulate_lineages_evolutions(
-                                simulation_count, lineage_count,
-                                characteristics, par_update=par_update,
+                                simulation_count,
+                                lineage_count,
+                                characteristics,
+                                par_update=par_update,
                                 proc_count=proc_count,
-                                is_lcycle_count_saved=psim[
-                                    'is_lcycle_count_saved'],
-                                is_evo_saved=is_evo_saved)
+                                is_lcycle_count_saved=psim["is_lcycle_count_saved"],
+                                is_evo_saved=is_evo_saved,
+                                rng=rng,
+                            )
                         else:
-                            data_s_0 = [simulate_lineages_evolution(
-                                lineage_count, characteristics, p,
-                                is_lcycle_count_returned=psim[
-                                    'is_lcycle_count_saved'],
-                                is_evo_returned=is_evo_temp)
-                                for s in simus]
+                            rng_children = rng.spawn(simulation_count)
+                            data_s_0 = [
+                                simulate_lineages_evolution(
+                                    lineage_count,
+                                    characteristics,
+                                    p,
+                                    is_lcycle_count_returned=psim[
+                                        "is_lcycle_count_saved"
+                                    ],
+                                    is_evo_returned=is_evo_temp,
+                                    rng=rng_children[s],
+                                )
+                                for s in simus
+                            ]
                     is_simulated = True
                 if not is_too_long:
-                    data_s = [sort_lineages(data_s_0[s], type_of_sort) for s in
-                              simus]
+                    data_s = [sort_lineages(data_s_0[s], type_of_sort) for s in simus]
                     stats[type_of_sort] = statistics_on_sorted_lineages(
-                        data_s, p['is_htype_accounted'], psim)
+                        data_s, p["is_htype_accounted"], psim
+                    )
                 else:
                     stats[type_of_sort] = None
                 if is_saved:
@@ -1274,17 +1445,27 @@ def simulate_n_average_lineages(lineage_count, simulation_count, types_of_sort,
 # Gcurves.
 # --------
 
-def compute_gtrigs(exp_data, simu_count, characteristics, gcurve, type_of_sort,
-                   par_update=None, proc_count=1, is_propB=False):
-    p_update = {'is_htype_seen': False}  # Default to compare with exp.
+
+def compute_gtrigs(
+    exp_data,
+    simu_count,
+    characteristics,
+    gcurve,
+    type_of_sort,
+    par_update=None,
+    proc_count=1,
+    is_propB=False,
+    rng=None,
+):
+    p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
 
     # Experimental data.
     gtrigs_exp = select_exp_lineages(exp_data, characteristics)
-    lineage_count = len(gtrigs_exp[0]['cycle'])
+    lineage_count = len(gtrigs_exp[0]["cycle"])
     if is_propB:
         exp_bprop = np.mean(exp_data[2][~np.isnan(exp_data[2])] == 1)
-    if type_of_sort[0] != 'l':
+    if type_of_sort[0] != "l":
         gtrigs_exp = sort_lineages(gtrigs_exp, type_of_sort)[1]
     else:
         gtrigs_exp = gtrigs_exp[1]
@@ -1292,14 +1473,20 @@ def compute_gtrigs(exp_data, simu_count, characteristics, gcurve, type_of_sort,
 
     # Simulated data.
     gtrigs_sim = simulate_n_average_lineages(
-        lineage_count, simu_count, [type_of_sort], characteristics,
-        par_update=p_update, proc_count=proc_count)[type_of_sort]
+        lineage_count,
+        simu_count,
+        [type_of_sort],
+        characteristics,
+        par_update=p_update,
+        proc_count=proc_count,
+        rng=rng,
+    )[type_of_sort]
     if is_propB:
-        sim_bprop = gtrigs_sim[2][1]['btype']['mean']
+        sim_bprop = gtrigs_sim[2][1]["btype"]["mean"]
     gtrigs_sim = gtrigs_sim[1]
-    if 'nta' in gcurve:
-        gtrigs_exp = gtrigs_exp['nta'][:, int(gcurve[-1]) - 1]
-        for stat_key, gtrigs in gtrigs_sim['nta'].items():
+    if "nta" in gcurve:
+        gtrigs_exp = gtrigs_exp["nta"][:, int(gcurve[-1]) - 1]
+        for stat_key, gtrigs in gtrigs_sim["nta"].items():
             gtrigs_sim[stat_key] = gtrigs[:, int(gcurve[-1]) - 1]
     else:
         gtrigs_exp = gtrigs_exp[gcurve[1:]]
@@ -1313,15 +1500,24 @@ def compute_gtrigs(exp_data, simu_count, characteristics, gcurve, type_of_sort,
 # Lineage types.
 # --------------
 
-def compute_lineage_types(exp_data, simu_count, characteristics, type_of_sort,
-                          gcurve, par_update=None, proc_count=1):
-    p_update = {'is_htype_seen': False}  # Default to compare with exp.
+
+def compute_lineage_types(
+    exp_data,
+    simu_count,
+    characteristics,
+    type_of_sort,
+    gcurve,
+    par_update=None,
+    proc_count=1,
+    rng=None,
+):
+    p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
 
     # Experimental data.
     lin_types_exp = select_exp_lineages(exp_data, characteristics)
-    lineage_count = len(lin_types_exp[0]['cycle'])
-    if type_of_sort[0] != 'l':
+    lineage_count = len(lin_types_exp[0]["cycle"])
+    if type_of_sort[0] != "l":
         lin_types_exp = sort_lineages(lin_types_exp, type_of_sort)[2]
     else:
         lin_types_exp = lin_types_exp[2]
@@ -1329,14 +1525,20 @@ def compute_lineage_types(exp_data, simu_count, characteristics, type_of_sort,
 
     # Simulated data.
     data = simulate_n_average_lineages(
-        lineage_count, simu_count, [type_of_sort], characteristics,
-        par_update=p_update, proc_count=proc_count)[type_of_sort]
+        lineage_count,
+        simu_count,
+        [type_of_sort],
+        characteristics,
+        par_update=p_update,
+        proc_count=proc_count,
+        rng=rng,
+    )[type_of_sort]
     lin_types_sim = data[2]
 
-    if 'nta' in gcurve:
-        gtrigs_exp = data[1]['nta'][:, int(gcurve[-1]) - 1]
+    if "nta" in gcurve:
+        gtrigs_exp = data[1]["nta"][:, int(gcurve[-1]) - 1]
         gtrigs_sim = {}
-        for stat_key, gtrigs in data[1]['nta'].items():
+        for stat_key, gtrigs in data[1]["nta"].items():
             gtrigs_sim[stat_key] = gtrigs[:, int(gcurve[-1]) - 1]
     else:
         gtrigs_exp = data[1][gcurve[1:]]
@@ -1347,24 +1549,31 @@ def compute_lineage_types(exp_data, simu_count, characteristics, type_of_sort,
 # Histograms.
 # -----------
 
-def compute_lmin_histogram_data(exp_data, simulation_count, characteristics_s,
-                                hist_lmins_axis,
-                                lineage_count_on_all_simu=None,
-                                par_update=None, proc_count=1):
+
+def compute_lmin_histogram_data(
+    exp_data,
+    simulation_count,
+    characteristics_s,
+    hist_lmins_axis,
+    lineage_count_on_all_simu=None,
+    par_update=None,
+    proc_count=1,
+    rng=None,
+):
     """Warning: the number of experimental lineages having the given
     characteristics must be identical to all the types of sort given.
 
     """
-    p_update = {'is_htype_seen': False}  # Default to compare with exp.
+    p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
-    psim_update = {'hist_lmins_axis': hist_lmins_axis}
+    psim_update = {"hist_lmins_axis": hist_lmins_axis}
 
     data = []
     lineage_counts = []
     for characs in characteristics_s:
         # We keep only exp lineages having required characteristics.
         exp_data_selected = select_exp_lineages(exp_data, characs)
-        lineage_count = len(exp_data_selected[0]['cycle'])
+        lineage_count = len(exp_data_selected[0]["cycle"])
         lineage_counts.append(lineage_count)
         if not isinstance(lineage_count_on_all_simu, type(None)):
             simulation_count = int(lineage_count_on_all_simu / lineage_count)
@@ -1373,33 +1582,51 @@ def compute_lmin_histogram_data(exp_data, simulation_count, characteristics_s,
         #     unseen, thus htype unseen for simulations as well.
         type_of_sort = type_of_sort_from_characteristics(characs)
         axis, hist = simulate_n_average_lineages(
-            lineage_count, simulation_count, [type_of_sort], characs,
-            par_update=p_update, par_sim_update=psim_update,
-            proc_count=proc_count)[type_of_sort][5]
+            lineage_count,
+            simulation_count,
+            [type_of_sort],
+            characs,
+            par_update=p_update,
+            par_sim_update=psim_update,
+            proc_count=proc_count,
+            rng=rng,
+        )[type_of_sort][5]
         data.append([axis, hist])
     return lineage_counts, data
 
 
-def compute_lcycle_histogram_data(exp_data, simulation_count, characteristics,
-                                  par_update=None, proc_count=1):
+def compute_lcycle_histogram_data(
+    exp_data,
+    simulation_count,
+    characteristics,
+    par_update=None,
+    proc_count=1,
+    rng=None,
+):
     p_update = deepcopy(par_update) or {}
-    if 'is_htype_accounted' in list(p_update.keys()):
-        is_htype_accounted = p_update['is_htype_accounted']
+    if "is_htype_accounted" in list(p_update.keys()):
+        is_htype_accounted = p_update["is_htype_accounted"]
     else:
-        is_htype_accounted = PAR_DEFAULT_LIN['is_htype_accounted']
-    psim_update = {'is_lcycle_count_saved': True}
+        is_htype_accounted = PAR_DEFAULT_LIN["is_htype_accounted"]
+    psim_update = {"is_lcycle_count_saved": True}
 
     # Definition of some parameters
     exp_data_selected = select_exp_lineages(exp_data, characteristics)
-    lineage_count = len(exp_data_selected[0]['cycle'])
+    lineage_count = len(exp_data_selected[0]["cycle"])
     type_of_sort = type_of_sort_from_characteristics(characteristics)
 
     # Simulation.
-    p_update['is_htype_seen'] = False
+    p_update["is_htype_seen"] = False
     data_sim = simulate_n_average_lineages(
-        lineage_count, simulation_count, [type_of_sort], characteristics,
-        par_update=p_update, par_sim_update=psim_update,
-        proc_count=proc_count)[type_of_sort]
+        lineage_count,
+        simulation_count,
+        [type_of_sort],
+        characteristics,
+        par_update=p_update,
+        par_sim_update=psim_update,
+        proc_count=proc_count,
+        rng=rng,
+    )[type_of_sort]
     # Extraction of data on the number of long cycless.
     lcycle_counts_exp = exp_data_selected[5]
     lcycle_counts_sim = data_sim[4]
@@ -1407,61 +1634,99 @@ def compute_lcycle_histogram_data(exp_data, simulation_count, characteristics,
     # Same if type H accounted but simulating their "detection."
     data_sim_h = None
     if is_htype_accounted:
-        p_update['is_htype_seen'] = True
+        p_update["is_htype_seen"] = True
         data_sim_h = simulate_n_average_lineages(
-            lineage_count, simulation_count, [type_of_sort], characteristics,
-            par_update=p_update, par_sim_update=psim_update,
-            proc_count=proc_count)[type_of_sort]
+            lineage_count,
+            simulation_count,
+            [type_of_sort],
+            characteristics,
+            par_update=p_update,
+            par_sim_update=psim_update,
+            proc_count=proc_count,
+            rng=rng,
+        )[type_of_sort]
         lcycle_counts_sim_h = data_sim_h[4]
-    return (lineage_count, lcycle_counts_exp, lcycle_counts_sim,
-            lcycle_counts_sim_h)
+    return (lineage_count, lcycle_counts_exp, lcycle_counts_sim, lcycle_counts_sim_h)
 
 
 # Evolution 2D arrays
 # --------------------
 
-def compute_evo_avg_data(exp_data, simulation_count, characteristics,
-                         types_of_sort=['lmin'], par_update=None,
-                         proc_count=1):
-    p_update = {'is_htype_seen': False}  # Default to compare with exp.
+
+def compute_evo_avg_data(
+    exp_data,
+    simulation_count,
+    characteristics,
+    types_of_sort=["lmin"],
+    par_update=None,
+    proc_count=1,
+    rng=None,
+):
+    p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
-    psim_update = {'is_evo_saved': True}
+    psim_update = {"is_evo_saved": True}
     # Definition of some parameters
     exp_data_selected = select_exp_lineages(exp_data, characteristics)
-    lineage_count = len(exp_data_selected[0]['cycle'])
+    lineage_count = len(exp_data_selected[0]["cycle"])
 
     # Simulation.
     data_s = simulate_n_average_lineages(
-        lineage_count, simulation_count, types_of_sort, characteristics,
-        par_update=p_update, par_sim_update=psim_update, proc_count=proc_count)
+        lineage_count,
+        simulation_count,
+        types_of_sort,
+        characteristics,
+        par_update=p_update,
+        par_sim_update=psim_update,
+        proc_count=proc_count,
+        rng=rng,
+    )
     return {key: data[:2] for key, data in data_s.items()}
 
 
 # Time / gen postreat
 # -------------------
 
-def compute_postreat_data(exp_data, simulation_count, characteristics,
-                          postreat_dt, par_update=None, proc_count=1):
-    p_update = {'is_htype_seen': False}  # Default to compare with exp.
+
+def compute_postreat_data(
+    exp_data,
+    simulation_count,
+    characteristics,
+    postreat_dt,
+    par_update=None,
+    proc_count=1,
+    rng=None,
+):
+    p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
-    psim_update = {'postreat_dt': postreat_dt,
-                   'is_evo_saved': True}
+    psim_update = {"postreat_dt": postreat_dt, "is_evo_saved": True}
     # Definition of some parameters
     exp_data_selected = select_exp_lineages(exp_data, characteristics)
-    lineage_count = len(exp_data_selected[0]['cycle'])
+    lineage_count = len(exp_data_selected[0]["cycle"])
     type_of_sort = type_of_sort_from_characteristics(characteristics)
 
     # Simulation.
     data_s = simulate_n_average_lineages(
-        lineage_count, simulation_count, [type_of_sort], characteristics,
-        par_update=p_update, par_sim_update=psim_update,
-        proc_count=proc_count)[type_of_sort]
+        lineage_count,
+        simulation_count,
+        [type_of_sort],
+        characteristics,
+        par_update=p_update,
+        par_sim_update=psim_update,
+        proc_count=proc_count,
+        rng=rng,
+    )[type_of_sort]
     return data_s[3]
 
 
-def compute_postreat_data_vs_exp(simulation_count, characteristics,
-                                 postreat_dt, par_update=None, proc_count=1,
-                                 strain='TetO2-TLC1'):
+def compute_postreat_data_vs_exp(
+    simulation_count,
+    characteristics,
+    postreat_dt,
+    par_update=None,
+    proc_count=1,
+    strain="TetO2-TLC1",
+    rng=None,
+):
     """Simulate lineages and return average time evolutions.
 
     Each simulation gather the evolution of `lineage_count` lineages having
@@ -1483,17 +1748,22 @@ def compute_postreat_data_vs_exp(simulation_count, characteristics,
         Experimental dataset: 'TetO2-TLC1' (default) or 'RAD51'.
 
     """
-    p_update = {'is_htype_seen': False}  # Default to compare with exp.
+    p_update = {"is_htype_seen": False}  # Default to compare with exp.
     p_update.update(par_update or {})
-    psim_update = {'postreat_dt': postreat_dt,
-                   'is_evo_saved': True}
+    psim_update = {"postreat_dt": postreat_dt, "is_evo_saved": True}
     # Definition of some parameters
     lineage_count = count_exp_lineages(characteristics)
     type_of_sort = type_of_sort_from_characteristics(characteristics)
 
     # Simulation.
     data_s = simulate_n_average_lineages(
-        lineage_count, simulation_count, [type_of_sort], characteristics,
-        par_update=p_update, par_sim_update=psim_update,
-        proc_count=proc_count)[type_of_sort]
+        lineage_count,
+        simulation_count,
+        [type_of_sort],
+        characteristics,
+        par_update=p_update,
+        par_sim_update=psim_update,
+        proc_count=proc_count,
+        rng=rng,
+    )[type_of_sort]
     return data_s[3]

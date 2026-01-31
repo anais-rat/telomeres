@@ -31,11 +31,9 @@ import multiprocessing as mp
 import os
 # import pickle
 
-import project_path
 from telomeres.lineage.plot import compute_n_plot_gcurve_error
 from telomeres.lineage.simulation import type_of_sort_from_characteristics
-from telomeres.dataset.extract_processed_dataset import \
-    extract_postreat_lineages
+from telomeres.dataset.extract_processed_dataset import extract_postreat_lineages
 
 
 # Number of processor used for simulation.
@@ -85,8 +83,16 @@ PAR_L_INIT = [LTRANS, L0, L1]
 # -------------------------------
 
 # Initial point.
-# NB: if None chosen randomly, uniformly in the parameters domain.
+# NB: If None is chosen, the initial point is generated randomly, uniformly
+#  over the parameter domain using the Numpy Generator `RNG` defined below.
+#  > To explore the parameter domain from different starting point accros runs
+#    of this script, `RNG` is initialized  randomly.
+#  > Since we did not use the CMAES `seed` argument to produce reproducible
+#    fits, reproducibility of `RNG` is not a concern here.
+#  > For future estimation procedures, proper handling of `RNG` initialization and
+#    CMAES function arguments should be implemented to enable reproducible fits.
 POINT_0 = None
+RNG = np.random.default_rng()
 
 # Initial standard deviation.
 # NB: the value expected is the value scaled for the set [0, 1] (the sigma
@@ -104,6 +110,7 @@ POPSIZES = [32, 52, 72]
 # Computation of resulting useful parameters.
 # -------------------------------------------
 
+
 def transform_bounds_of_int_values(bounds):
     """Return the "maximal" (up to 1e-9) interval such that `np.round(bounds)`
     is `bounds`.
@@ -114,15 +121,18 @@ def transform_bounds_of_int_values(bounds):
         weight than 1 for CMAES.
 
     """
-    return [bounds[0] - .5 + 1e-9, bounds[1] + .5]
+    return [bounds[0] - 0.5 + 1e-9, bounds[1] + 0.5]
 
 
-PAR_SPACE_CHOICE = {"is_sen_commun_to_types": IS_SEN_COMMUN_TO_TYPES,
-                    "is_lmin_a_fixed": IS_LMIN_A_FIXED,
-                    "is_ltrans_fixed": IS_LTRANS_FIXED,
-                    "is_l0_fixed": IS_L0_FIXED, "is_l1_fixed": IS_L1_FIXED,
-                    "lmin_a": LMIN_A,
-                    "par_l_init": PAR_L_INIT}
+PAR_SPACE_CHOICE = {
+    "is_sen_commun_to_types": IS_SEN_COMMUN_TO_TYPES,
+    "is_lmin_a_fixed": IS_LMIN_A_FIXED,
+    "is_ltrans_fixed": IS_LTRANS_FIXED,
+    "is_l0_fixed": IS_L0_FIXED,
+    "is_l1_fixed": IS_L1_FIXED,
+    "lmin_a": LMIN_A,
+    "par_l_init": PAR_L_INIT,
+}
 
 
 def gather_bounds_with_int_index(kwarg=PAR_SPACE_CHOICE):
@@ -183,12 +193,13 @@ PARAMETER_COUNT = len(BOUNDS[0])
 if __name__ == "__main__":
     print(f"Fit on {PARAMETER_COUNT} parameters.")
 
-CMAES_KWARGS = {'maxiter': MAXITER,
-                'bounds': BOUNDS,
-                'integer_variables': INT_PAR_IDXS
-                # 'transformation': [transform_point_flat, None]
-                # 'popsize': PARA_COUNT_MAX - 2
-                }
+CMAES_KWARGS = {
+    "maxiter": MAXITER,
+    "bounds": BOUNDS,
+    "integer_variables": INT_PAR_IDXS,
+    # 'transformation': [transform_point_flat, None]
+    # 'popsize': PARA_COUNT_MAX - 2
+}
 
 
 # Definition of the cost function.
@@ -209,20 +220,19 @@ LINEAGE_COUNT_ON_ALL_SIM = 1200  # 1200 seems good ratio error/t_computation.
 LINEAGE_COUNT_ON_ALL_SIM_MAX = 3000
 
 
-BPROP_ERROR_MAX_1SIMU = .25
-BPROP_ERROR_MAX = .27  # bprop exp:  0.5675675675675675 & err = exp - sim.
+BPROP_ERROR_MAX_1SIMU = 0.25
+BPROP_ERROR_MAX = 0.27  # bprop exp:  0.5675675675675675 & err = exp - sim.
 
 # .................................
 # > Parameters of error computation (should not require modification).
 
 # Types of curves used to fit.
-CHARAC_S = [['senescent'], ['btype', 'senescent'], ['atype', 'senescent'],
-            ['btype']]
+CHARAC_S = [["senescent"], ["btype", "senescent"], ["atype", "senescent"], ["btype"]]
 
 # Respective weights for the error of each curve.
 # LINEAGE_COUNTS = np.array([148, 84, 64, 115])
 # WEIGHTS = LINEAGE_COUNTS / np.sum(LINEAGE_COUNTS)
-WEIGHTS = np.array([.3, 1, 1, 1])  # .3,1,1,1/ 1,1,1,1/ .5,.5,.5,1/ .5,.9,.9,1
+WEIGHTS = np.array([0.3, 1, 1, 1])  # .3,1,1,1/ 1,1,1,1/ .5,.5,.5,1/ .5,.9,.9,1
 # WEIGHTS = np.array([.5,.5,.5,1])
 WEIGHTS = WEIGHTS / np.sum(WEIGHTS)
 
@@ -232,6 +242,7 @@ L2_ERROR_TYPE = 0
 # If True, the error take into account the error.
 IS_BPROP_ACCOUNTED = False
 WEIGHT_BPROP_ERROR = 75
+
 
 def point_to_cost_fct_parameters(point, kwarg=PAR_SPACE_CHOICE):
     """From a point in the space of parameters to explore return the
@@ -244,8 +255,11 @@ def point_to_cost_fct_parameters(point, kwarg=PAR_SPACE_CHOICE):
     for idx in int_par_idxs:
         point_rounded[idx] = np.round(point_rounded[idx])
     if kwarg["is_lmin_a_fixed"]:
-        point_rounded = [*point_rounded[:4], deepcopy(kwarg["lmin_a"]),
-                         *point_rounded[4:]]
+        point_rounded = [
+            *point_rounded[:4],
+            deepcopy(kwarg["lmin_a"]),
+            *point_rounded[4:],
+        ]
     # NTA parameters.
     par_nta = point_rounded[:2]
     # SEN parameters.
@@ -266,20 +280,26 @@ def point_to_cost_fct_parameters(point, kwarg=PAR_SPACE_CHOICE):
         par_l_init[0] = point_rounded[-1 - par_l_init_unfixed_count]
     return par_nta, par_sen, par_l_init
 
+
 def cost_function(point, is_plotted=False):
     parameters = point_to_cost_fct_parameters(point)
-    p_update = {'fit': parameters}
+    p_update = {"fit": parameters}
     sum_costs = 0
     btype_prop = 0
     for i in range(len(CHARAC_S)):
         gcurve = type_of_sort_from_characteristics(CHARAC_S[i])
         cost = compute_n_plot_gcurve_error(
-            DATA_EXP, LINEAGE_COUNT_ON_ALL_SIM_MIN, [gcurve], CHARAC_S[i],
-            par_update=p_update, error_types=[0, 1],
-            is_plotted=is_plotted)[gcurve]
+            DATA_EXP,
+            LINEAGE_COUNT_ON_ALL_SIM_MIN,
+            [gcurve],
+            CHARAC_S[i],
+            par_update=p_update,
+            error_types=[0, 1],
+            is_plotted=is_plotted,
+        )[gcurve]
         btype_prop = max(btype_prop, cost[1])
         if btype_prop > BPROP_ERROR_MAX_1SIMU or np.isnan(cost[1]):
-            return np.NaN
+            return np.nan
         sum_costs += cost[0] * WEIGHTS[i]
     is_to_recompute = False
     if sum_costs < COST_MIN_FOR_PRECISION_MIN:
@@ -295,12 +315,17 @@ def cost_function(point, is_plotted=False):
         for i in range(len(CHARAC_S)):
             gcurve = type_of_sort_from_characteristics(CHARAC_S[i])
             cost = compute_n_plot_gcurve_error(
-                DATA_EXP, lineage_count_on_all_simu, [gcurve], CHARAC_S[i],
-                par_update=p_update, error_types=[0, 1],
-                is_plotted=is_plotted)[gcurve]
+                DATA_EXP,
+                lineage_count_on_all_simu,
+                [gcurve],
+                CHARAC_S[i],
+                par_update=p_update,
+                error_types=[0, 1],
+                is_plotted=is_plotted,
+            )[gcurve]
             btype_prop = max(btype_prop, cost[1])
             if btype_prop > BPROP_ERROR_MAX or np.isnan(cost[1]):
-                return np.NaN
+                return np.nan
             sum_costs += cost[0] * WEIGHTS[i]
     if IS_BPROP_ACCOUNTED:
         sum_costs += btype_prop * WEIGHT_BPROP_ERROR
@@ -332,8 +357,9 @@ def parallize_until_no_nan(function, point_count, optimizer, proc_count):
     return points, outs
 
 
-def optimize_w_cmaes_multiple(par_bounds, sigma, cmaes_kwargs, popsizes,
-                              initial_point=None, proc_count=1):
+def optimize_w_cmaes_multiple(
+    par_bounds, sigma, cmaes_kwargs, popsizes, initial_point=None, proc_count=1
+):
     """Run CMAES `len(popsizes)` times in a raw (with the functions specified
     by `cmaes_kwargs`), updating each time the 'bestever' parameters. The ith
     run of CMAES evaluate, at each iteration, `popsizes[i]` times the cost
@@ -352,13 +378,12 @@ def optimize_w_cmaes_multiple(par_bounds, sigma, cmaes_kwargs, popsizes,
     run_count = len(popsizes)
     point = initial_point
     for i in range(run_count):
-        cmaes_kwargs['popsize'] = int(popsizes[i])
-        cmaes_kwargs['verb_append'] = bestever.evalsall
-        cmaes_kwargs['CMA_stds'] = np.array(par_bounds[1]) - \
-            np.array(par_bounds[0])
+        cmaes_kwargs["popsize"] = int(popsizes[i])
+        cmaes_kwargs["verb_append"] = bestever.evalsall
+        cmaes_kwargs["CMA_stds"] = np.array(par_bounds[1]) - np.array(par_bounds[0])
         if isinstance(point, type(None)) or i > 0:
             # For non-indidicated 1st run / following runs initial point drawn.
-            point = np.random.uniform(low=par_bounds[0], high=par_bounds[1])
+            point = RNG.uniform(low=par_bounds[0], high=par_bounds[1])
         optimizer = cma.CMAEvolutionStrategy(point, sigma, cmaes_kwargs)
         optimizer.disp()
         # logger = cma.CMADataLogger().register(optimizer,
@@ -367,8 +392,9 @@ def optimize_w_cmaes_multiple(par_bounds, sigma, cmaes_kwargs, popsizes,
             para_count = int(popsizes[i])
             points = []
             costs = []
-            out = parallize_until_no_nan(cost_function, para_count, optimizer,
-                                         proc_count=proc_count)
+            out = parallize_until_no_nan(
+                cost_function, para_count, optimizer, proc_count=proc_count
+            )
             points.extend(out[0])
             costs.extend(out[1])
             optimizer.tell(points, costs)
@@ -385,9 +411,14 @@ def optimize_w_cmaes_multiple(par_bounds, sigma, cmaes_kwargs, popsizes,
 
 if __name__ == "__main__":
     if os.cpu_count() > POPSIZES[0]:
-        res = optimize_w_cmaes_multiple(BOUNDS, SIGMA_0, CMAES_KWARGS,
-                                        POPSIZES, initial_point=POINT_0,
-                                        proc_count=PROC_COUNT)
+        res = optimize_w_cmaes_multiple(
+            BOUNDS,
+            SIGMA_0,
+            CMAES_KWARGS,
+            POPSIZES,
+            initial_point=POINT_0,
+            proc_count=PROC_COUNT,
+        )
 
 # text_file = open(join("outcmaes", "history.txt"), "rb")
 # optimizer = pickle.loads(text_file.read())
@@ -401,25 +432,33 @@ if __name__ == "__main__":
 LINEAGE_COUNT_ON_ALL_SIM_TO_PLOT = 1e4
 
 
-def compute_n_plot_gcurves(point, kwarg, is_plotted=True, proc_count=1,
-                           simulation_count=None, is_printed=True):
+def compute_n_plot_gcurves(
+    point, kwarg, is_plotted=True, proc_count=1, simulation_count=None, is_printed=True
+):
     """Plot the curves fitted."""
     parameters = point_to_cost_fct_parameters(point, kwarg)
-    p_update = {'fit': parameters}
+    p_update = {"fit": parameters}
     sum_costs = 0
     btype_prop = 0
     for i in range(len(CHARAC_S)):
         gcurve = type_of_sort_from_characteristics(CHARAC_S[i])
         cost = compute_n_plot_gcurve_error(
-            DATA_EXP, LINEAGE_COUNT_ON_ALL_SIM_TO_PLOT, [gcurve], CHARAC_S[i],
-            par_update=p_update, error_types=[0, 1], is_printed=is_plotted,
-            simulation_count=simulation_count, proc_count=proc_count)[gcurve]
+            DATA_EXP,
+            LINEAGE_COUNT_ON_ALL_SIM_TO_PLOT,
+            [gcurve],
+            CHARAC_S[i],
+            par_update=p_update,
+            error_types=[0, 1],
+            is_printed=is_plotted,
+            simulation_count=simulation_count,
+            proc_count=proc_count,
+        )[gcurve]
         btype_prop = max(btype_prop, cost[1])
         sum_costs += cost[0] * WEIGHTS[i]
         if is_printed:
-            print('\n Errors for individual gcurves:', btype_prop, cost[0])
+            print("\n Errors for individual gcurves:", btype_prop, cost[0])
     if IS_BPROP_ACCOUNTED:
         sum_costs += btype_prop * WEIGHT_BPROP_ERROR
     if is_printed:
-        print('Total cost', sum_costs)
+        print("Total cost", sum_costs)
     return sum_costs

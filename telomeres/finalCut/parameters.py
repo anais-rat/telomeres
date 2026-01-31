@@ -14,7 +14,8 @@ CURRENT_DIR = op.dirname(ABSOLUTE_PATH)  # Path to auxiliary directory.
 PARENT_DIR = op.dirname(CURRENT_DIR)  # Path to telomeres directory.
 PROJECT_DIR = op.dirname(PARENT_DIR)
 
-FOLDER = op.join(PROJECT_DIR, 'data_finalCut', 'processed')
+FOLDER = op.join(PROJECT_DIR, "data_finalCut", "processed")
+
 
 def extract_cycles_dataset_finalCut(folder=FOLDER):
     """Extract the data postreated by `finalCut.make_dataset_cycles.py`.
@@ -25,14 +26,14 @@ def extract_cycles_dataset_finalCut(folder=FOLDER):
     absolutly need to be run first.
 
     """
-    cdts = {'raf': {}, 'gal': {}}
-    sdir = op.join(folder, 'noFc_n2')
+    cdts = {"raf": {}, "gal": {}}
+    sdir = op.join(folder, "noFc_n2")
     if not op.exists(op.join(sdir, "cycles_normal_raf_dox.csv")):
         return None
-    cdts['raf']['nor'] = np.loadtxt(op.join(sdir, "cycles_normal_raf_dox.csv"))
-    cdts['raf']['arr'] = np.loadtxt(op.join(sdir, "cycles_arrest_raf_dox.csv"))
-    cdts['gal']['nor'] = np.loadtxt(op.join(sdir, "cycles_normal_gal.csv"))
-    cdts['gal']['arr'] = np.loadtxt(op.join(sdir, "cycles_arrest_gal.csv"))
+    cdts["raf"]["nor"] = np.loadtxt(op.join(sdir, "cycles_normal_raf_dox.csv"))
+    cdts["raf"]["arr"] = np.loadtxt(op.join(sdir, "cycles_arrest_raf_dox.csv"))
+    cdts["gal"]["nor"] = np.loadtxt(op.join(sdir, "cycles_normal_gal.csv"))
+    cdts["gal"]["arr"] = np.loadtxt(op.join(sdir, "cycles_arrest_gal.csv"))
     return cdts
 
 
@@ -47,7 +48,6 @@ IDXS_FRAME = [IDX_DOX, IDX_GAL, IDX_RAF]
 # CDTS Dataset for finalCul experiment [10 min].
 CDTS_FINALCUT = extract_cycles_dataset_finalCut()
 
-PAR_FINAL_CUT = {'idxs_frame': IDXS_FRAME,
-                 'edlyay': 9}
+PAR_FINAL_CUT = {"idxs_frame": IDXS_FRAME, "edlyay": 9}
 
 PAR_FINAL_CUT_POP = None  # Temporary

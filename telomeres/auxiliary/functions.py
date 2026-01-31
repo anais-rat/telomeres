@@ -32,6 +32,7 @@ import warnings
 
 # Statistical quantities.
 
+
 def stat(arr_stat, p_up, p_down, axis=0):
     """Calculate statistics (mean, percentiles) of an array.
 
@@ -54,22 +55,24 @@ def stat(arr_stat, p_up, p_down, axis=0):
         - 'perup': Upper percentile value along the specified axis.
         - 'perdown': Lower percentile value along the specified axis.
     """
-    stats = {'mean': np.mean(arr_stat, axis=axis),
-             'perup': np.percentile(arr_stat, p_up, axis=axis),
-             'perdown': np.percentile(arr_stat, p_down, axis=axis)}
+    stats = {
+        "mean": np.mean(arr_stat, axis=axis),
+        "perup": np.percentile(arr_stat, p_up, axis=axis),
+        "perdown": np.percentile(arr_stat, p_down, axis=axis),
+    }
     return stats
 
 
 def nanstat(arr_stat, p_up, p_down, axis=0):
-    """Same function as `stat`, except that `nanstat` handles NaN values.
-
-    """
+    """Same function as `stat`, except that `nanstat` handles NaN values."""
     with warnings.catch_warnings():  # Prevent printing warnings comming from
         # applying np.nanmean, etc., to arrays full of NaN values.
         warnings.simplefilter("ignore", category=RuntimeWarning)
-        stats = {'mean': np.nanmean(arr_stat, axis=axis),
-                 'perup': np.nanpercentile(arr_stat, p_up, axis=axis),
-                 'perdown': np.nanpercentile(arr_stat, p_down, axis=axis)}
+        stats = {
+            "mean": np.nanmean(arr_stat, axis=axis),
+            "perup": np.nanpercentile(arr_stat, p_up, axis=axis),
+            "perdown": np.nanpercentile(arr_stat, p_down, axis=axis),
+        }
     return stats
 
 
@@ -87,15 +90,19 @@ def stat_all(arr_stat, p_up, p_down, axis=0):
         - 'ext': List containing the minimum and maximum values along...
 
     """
-    stats = {'mean': np.mean(arr_stat, axis=axis),
-             'per': [np.percentile(arr_stat, p_down, axis=axis),
-                     np.percentile(arr_stat, p_up, axis=axis)],
-             'ext': [np.min(arr_stat, axis=axis),
-                     np.max(arr_stat, axis=axis)]}
+    stats = {
+        "mean": np.mean(arr_stat, axis=axis),
+        "per": [
+            np.percentile(arr_stat, p_down, axis=axis),
+            np.percentile(arr_stat, p_up, axis=axis),
+        ],
+        "ext": [np.min(arr_stat, axis=axis), np.max(arr_stat, axis=axis)],
+    }
     return stats
 
 
 # Sum, product...
+
 
 def nansum(arr, axis=None, keepdims=False):
     """Similar to `np.nansum`, except that if there are only NaN values along
@@ -109,22 +116,8 @@ def nansum(arr, axis=None, keepdims=False):
         if isinstance(arr_sum, np.ndarray):  # If arr_sum is an array.
             arr_sum[arr_isnan] = np.nan  # Array returned.
         else:  # Otherwise arr_sum = 0, is int or float, not array!
-            return np.NaN
+            return np.nan
     return arr_sum
-
-
-def prod(arr):
-    """Return the product of the components of the 1D array `arr` (equivalent
-    of `np.sum` function) with convention `prod(arr)` is 1 if `arr` is empty.
-
-    """
-    if len(arr) == 0:
-        product = 1
-    else:
-        product = arr[0]
-        for i in range(1, len(arr)):
-            product = product * arr[i]
-    return product
 
 
 # Modification of arrays
@@ -133,10 +126,9 @@ def prod(arr):
 
 # Sorting.
 
-def nanargsort1D(arr):
-    """Similar to `np.argsort` for 1D array, except that NaN are not orderred.
 
-    """
+def nanargsort1D(arr):
+    """Similar to `np.argsort` for 1D array, except that NaN are not orderred."""
     # Compute indexes corresponding to the usual sorting (NaN at the end).
     idxs_sorted = np.argsort(arr)
     # And return only indexes corresponding to non NaN values.
@@ -145,6 +137,7 @@ def nanargsort1D(arr):
 
 
 # Reshaping.
+
 
 def reshape_with_nan(arr, len_new, axis=-1):
     """Return the array `arr` reshaped along the axis `axis`, turning it from
@@ -157,11 +150,24 @@ def reshape_with_nan(arr, len_new, axis=-1):
     if to_add > 0:
         new_dimensions = list(np.shape(arr))
         new_dimensions[axis] = to_add
-        new_dimensions = tuple(np.array(new_dimensions).astype('int'))
+        new_dimensions = tuple(np.array(new_dimensions).astype("int"))
         return np.append(arr, np.nan * np.ones(new_dimensions), axis=axis)
     if to_add < 0:
         return np.delete(arr, np.arange(len_new, len_current), axis=axis)
     return arr
+
+
+def reshape_list_with_nan(lst, len_new):
+    """Return the list `lst` reshaped from length `len_current` to `len_new`
+    either by removing values or adding nan.
+
+    """
+    len_current = len(lst)
+    if len_new > len_current:
+        lst.extend([np.nan] * (len_new - len_current))
+    elif len_new < len_current:
+        lst = lst[:len_new]
+    return lst
 
 
 def reshape2D_along1_with_0_or_NaN(arr, col_len_new):
@@ -174,7 +180,7 @@ def reshape2D_along1_with_0_or_NaN(arr, col_len_new):
     len_to_add = col_len_new - col_len
     if len_to_add > 0:
         last_col = np.transpose([arr[:, -1]])
-        return np.append(arr, last_col*np.zeros((row_len, len_to_add)), axis=1)
+        return np.append(arr, last_col * np.zeros((row_len, len_to_add)), axis=1)
     if len_to_add < 0:
         return np.delete(arr, np.arange(col_len_new, col_len), axis=1)
     return arr
@@ -191,8 +197,7 @@ def reshape2D_along0_w_NaN_along1_w_0_or_NaN(arr, row_len_new, col_len_new):
     arr = reshape2D_along1_with_0_or_NaN(arr, col_len_new)
     len_to_add = row_len_new - row_len
     if len_to_add > 0:
-        return np.append(arr, np.nan * np.ones((len_to_add, col_len_new)),
-                         axis=0)
+        return np.append(arr, np.nan * np.ones((len_to_add, col_len_new)), axis=0)
     if len_to_add < 0:
         return np.delete(arr, np.arange(row_len_new, row_len), axis=0)
     return arr
@@ -257,6 +262,7 @@ def convert_idxs_pop_to_subpop(idxs_pop, c_s):
 
 # Computing histograms out of general data.
 
+
 def make_histogram(data, x_axis=None, normalized=True):
     """Generate a histogram from the given data.
 
@@ -278,7 +284,7 @@ def make_histogram(data, x_axis=None, normalized=True):
     """
     if x_axis is None:  # If no x-axis given.
         x_axis = np.arange(int(np.max(data) + 1))
-    hist = 0. * x_axis
+    hist = 0.0 * x_axis
     for datum in data:
         idx = np.where(x_axis == datum)[0]
         if len(idx) > 0:
@@ -350,7 +356,7 @@ def make_average_histogram(data_s, x_axis=None):
     std_hist = np.zeros(bin_count)
     # Computation of y-axes and associated error iterating on `x_axis`.
     for i in range(bin_count):
-        where_is_x = (data_s == x_axis[i]).astype('float')
+        where_is_x = (data_s == x_axis[i]).astype("float")
         # NB: we keep track of NaN values to average on non-NaN values.
         where_is_x[np.isnan(data_s)] = np.nan
         with warnings.catch_warnings():
@@ -404,8 +410,8 @@ def make_stacked_average_histogram(data_s, x_axis=None):
 
 # Computing specific histograms.
 
-def make_cell_count_histograms(traits, nta_counts, sen_counts, bin_count,
-                               htype_choice):
+
+def make_cell_count_histograms(traits, nta_counts, sen_counts, bin_count, htype_choice):
     """Assume the population is structured w.r.t. a certain trait (typically
     generation or ancestor index) as described by `traits`. Compute the
     histograms of the number of: cells, type B cells, senescent type B, type H
@@ -467,6 +473,7 @@ def make_cell_count_histograms(traits, nta_counts, sen_counts, bin_count,
 
 # Postreating histograms.
 
+
 def rescale_histogram_bin(x_axis, hist, width_rescale):
     """Resample the input histogram to change its bin width by combining
     adjacent bins.
@@ -490,70 +497,12 @@ def rescale_histogram_bin(x_axis, hist, width_rescale):
     """
     x_count, dx = len(x_axis), x_axis[1] - x_axis[0]
     x_count_new, dx_new = x_count // width_rescale, dx * width_rescale
-    x_axis_new = np.linspace(x_axis[0], x_axis[0] + dx_new * (x_count_new - 1),
-                             x_count_new)
-    if np.all(x_axis_new == x_axis_new.astype('int')):
-        x_axis_new = x_axis_new.astype('int')
+    x_axis_new = np.linspace(
+        x_axis[0], x_axis[0] + dx_new * (x_count_new - 1), x_count_new
+    )
+    if np.all(x_axis_new == x_axis_new.astype("int")):
+        x_axis_new = x_axis_new.astype("int")
     hist_new = np.zeros(x_count_new)
     for i in range(x_count_new):
-        hist_new[i] = np.sum(hist[i * width_rescale:(i+1) * width_rescale])
+        hist_new[i] = np.sum(hist[i * width_rescale : (i + 1) * width_rescale])
     return x_axis_new, hist_new
-
-
-# Using Cumulative distribution function (cdt)
-# --------------------------------------------
-
-def cdf_to_distribution(cdfs, distrib_x=None):
-    """Convert a cumulative distribution function (CDF) to a probability
-    distribution.
-
-    Parameters
-    ----------
-    cdfs : ndarray
-        1D array (x_count,) representing the cumulative distribution function.
-    distrib_x : ndarray, optional
-        1D array (x_count,) representing the x-axis values of the distribution.
-        If None (default value), unique values from the CDF are used.
-
-    Returns
-    -------
-    distrib_x : ndarray
-        1D array (x_count,) representing the x-axis values of the probability
-        distribution.
-    distrib_y : ndarray
-        1D array (x_count,) representing the y-axis values (probabilities) of
-        the probability distribution.
-
-    """
-    if isinstance(distrib_x, type(None)):
-        distrib_x = np.unique(cdfs)
-    x_count = len(distrib_x)
-    distrib_y = np.zeros(x_count)
-    for i in range(x_count - 1):
-        distrib_y[i] = sum(np.logical_and(distrib_x[i] <= cdfs,
-                                          cdfs < distrib_x[i + 1]))
-    return distrib_x, distrib_y / x_count
-
-
-def inverse_cdf(u, x_values, probas):
-    """Return cdf^{-1}_X(u): the inverse of the cumulative distribution
-    function, of a discrete random variable X, whose law is described by
-    `x_values` and `probas`, evaluated at u.
-
-    Parameters
-    ----------
-    u : float
-        Float in [0, 1], argument of F^{-1}.
-    x_values : nd array
-        ORDERED 1D array (1, ) of the values taken by the (discrete) random
-        variable of interest.
-    probas : ndarray
-        Probabilities associated to the values of X `x_values`, s.t.
-        `proba[i] == P(X = x_values[i])`.
-    """
-    inv_idx = 0
-    cdf = probas[0]
-    while cdf < u and inv_idx < len(probas) - 1:
-        inv_idx = inv_idx + 1
-        cdf = cdf + probas[inv_idx]
-    return x_values[inv_idx]
