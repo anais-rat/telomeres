@@ -50,7 +50,7 @@ The code has been tested on the following systems:
 
 - **Linux**: Ubuntu 22.04.5 LTS, 24.04 LTS
 - **Mac**: MacOS Big Sur 11.6.2
-- **Windows**:
+- **Windows**: not tested; users may consider running the code via **WSL2 (Linux)**
 
 The project requires several Python packages, all listed in the `[project.dependencies]` field of the [pyproject.toml🡕](./pyproject.toml) file.
 They are automatically installed with the [telomeres🡕](./telomeres/) package when following the installation instructions below.
