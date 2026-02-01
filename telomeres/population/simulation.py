@@ -217,7 +217,7 @@ def population_evolution(
             the list of telo length that have triggered senescence in type A
             cells and at time `times[time_saved_idxs[i]]`.
 
-        > Computation ressources.
+        > Computation resources.
         'memory' : int
             Memory (byte) used during the execution of `population_evolution`.
 
@@ -808,7 +808,7 @@ def gather_evo_and_dilute(output_s, c_dilution, para_count, gen_count_previous, 
              'btype' possibly 'htype') and time s.t.`evo_lmin_gsen['atype'][i]`
              is the list of telo lengths that have triggered senescence in type
              A cells at the ith saved time.
-         3. Computational ressources
+         3. Computational resources
         Out is thus of the same format that an output of `population_evolution`
         (see its docstring for detail), except for the key 'evo_lmode' (see
         above), the key 'sat_prop' that is new; and 'extinction_time' that is
@@ -1068,7 +1068,7 @@ def simu_parallel(
             list of the telomere lengths that have triggered senescence in type
             A cells, at the jth time of the ith day.
 
-        4. Computation ressources.
+        4. Computation resources.
         'memory' : int
             Memory (byte) used during the execution of `population_evolution`.
             (Only for `para_count` equal to 1)

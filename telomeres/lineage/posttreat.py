@@ -232,7 +232,7 @@ def sort_lineages(data, type_of_sort):
     output of `simulate_lineages_evolution` or
     `lineage.posttreat.postreat_experimental_lineages`)
     accordingly to `type_of_sort`.
-    WARNING : also forget the lineages than cannot be sorted (for exemple if we
+    WARNING : also forget the lineages than cannot be sorted (for example if we
         ask to sort by generation of the onset of the 1st nta, the data of
         lineages that did not experienced a 1st arrest is not returned).
 
@@ -478,7 +478,7 @@ def postreat_experimental_lineages(
     lineage_count = len(data["endlineage"][0])
     lineages = np.arange(lineage_count)
 
-    # Array, for each lineage, of the time of the fisrt generation of interest.
+    # Array, for each lineage, of the time of the first generation of interest.
     # Under usual conditions, it is when DOX was added.
     init_times = data["DOXaddition"][0].astype(int)
     # NB: for finalCut data 'DOXaddition' corresponds to Gal addition.

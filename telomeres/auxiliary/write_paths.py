@@ -36,11 +36,11 @@ from telomeres.dataset.extract_processed_dataset import write_parameters_linit
 absolute_path = os.path.abspath(__file__)  # Path to extract_processed_dataset.
 current_dir = os.path.dirname(absolute_path)  # Path to auxiliary directory.
 parent_dir = os.path.dirname(current_dir)  # Path to telomeres directory.
-projet_dir = os.path.dirname(parent_dir)
+project_dir = os.path.dirname(parent_dir)
 
-FOLDER_SIM = join(projet_dir, "simulations")
-FOLDER_FIG = join(projet_dir, "figures")
-FOLDER_DATA = join(projet_dir, "data")
+FOLDER_SIM = join(project_dir, "simulations")
+FOLDER_FIG = join(project_dir, "figures")
+FOLDER_DATA = join(project_dir, "data")
 
 FOLDER_L = "lineage"
 FOLDER_P = "population"

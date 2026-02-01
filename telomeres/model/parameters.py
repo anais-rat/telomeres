@@ -124,7 +124,7 @@ PAR_FINAL_CUT_P = None  # Temporary
 #     to the end. Otherwise it must be the same length that `DAY_COUNT`.
 SAT_CHOICE = ["prop"]
 
-# Exemple. For rule 'time' (times of saturation) on days 1 and 2 and rule
+# Example. For rule 'time' (times of saturation) on days 1 and 2 and rule
 #   'prop' (concentration of saturation) from day 3 onwards, use:
 #   SAT_CHOICE = ['time', 'time', 'prop']
 #   PROP_SAT = 1e3  # r_sat used for days 3, 4, ...

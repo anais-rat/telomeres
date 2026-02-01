@@ -86,7 +86,7 @@ PAR_L_INIT = [LTRANS, L0, L1]
 # Initial point.
 # NB: If None is chosen, the initial point is generated randomly, uniformly
 #  over the parameter domain using the Numpy Generator `RNG` defined below.
-#  > To explore the parameter domain from different starting point accros runs
+#  > To explore the parameter domain from different starting point across runs
 #    of this script, `RNG` is initialized  randomly.
 #  > Since we did not use the CMAES `seed` argument to produce reproducible
 #    fits, reproducibility of `RNG` is not a concern here.

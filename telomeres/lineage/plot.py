@@ -1573,7 +1573,7 @@ def plot_histogram_from_lcycle_counts(
     ----------
     lcycle_per_seq_counts : dict
         Output of `lineage.posttreat.compute_exp_lcycle_counts` or
-        `lineage.simulation.simulate_lineages_evolution`: dictionnary of
+        `lineage.simulation.simulate_lineages_evolution`: dictionary of
         the number of long cycles per sequence of long cycles gathered by
         entries st.:
         nta : ndarray
@@ -1892,7 +1892,7 @@ def compute_n_plot_finalcut_hist(
         plt.savefig(path, bbox_inches="tight")
     plt.show()
 
-    # Proportion of cells whose shortest telomere is not the cutted one.
+    # Proportion of cells whose shortest telomere is not the cut one.
     count_cut_min = np.sum(lengths_af_cut["p_cut_min"] * lengths_af_cut["cut_count"])
     count_cut = np.sum(lengths_af_cut["cut_count"])
     print(

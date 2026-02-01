@@ -237,7 +237,7 @@ def plot_evo_curves_w_stats(x, y_s, axis_labels, is_stat, kwargs=None):
         plt.yscale(kw["y_scale"])
     imax = len(x)
 
-    # > First set of data with legend fo statistics.
+    # > First set of data with legend for statistics.
     if kw["curve_labels"] is None:
         kw["curve_labels"] = [None] * len(y_s)
     if kw["curve_labels"][0] is None:
@@ -563,7 +563,7 @@ def plot_hist_lmin_at_sen(
                 bottom = bottom + y_ax
             axes[i].text(0.85, 0.76, LEGENDS[i], transform=axes[i].transAxes)
             axes[i].set_ylim(bottom=0, top=None)
-            # Format 'sci' infor big data for no ytick and ylabel overlap.
+            # Format 'sci' is for big data for no ytick and ylabel overlap.
             axes[i].ticklabel_format(
                 style="sci", axis="y", scilimits=(-4, 4), useMathText=True
             )
@@ -631,7 +631,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
     t_max : float
         Maximum time (in day) up to which evolution curves are plotted.
     strain : str
-        'TetO2-TLC1' for the clasical experimental data, or 'RAD51' or 'POL32'.
+        'TetO2-TLC1' for the classical experimental data, or 'RAD51' or 'POL32'.
     is_only_exp : bool
         True to plot only curves of comparison with experimental data.
     ysim_scale : str or None
@@ -746,7 +746,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
         def fpath(*_):
             return None
 
-    # Genearal data.
+    # General data.
     # > Paths to data.
     sim_paths = [wp.write_simu_pop_subdirectory(c, p, par_update)]
     if par_update_bis is not None:
@@ -804,7 +804,7 @@ def plot_evo_c_n_p_pcfixed_from_stat(
     # ..... Plot .....
     # Day-to-day evolution of the concentration.
     # ------------------------------------------
-    # > Discrete comparison to experimental curves: Fisrt version.
+    # > Discrete comparison to experimental curves: First version.
     # NB: MANUALLY ADJUSTED (from ymax_sim).
     if "PD" in CSIM.keys():
         fig, ax1 = plt.subplots()
@@ -2168,7 +2168,7 @@ def plot_evo_pfixed(
         def fpath(*_):
             return None
 
-    # Genearal data.
+    # General data.
     # > Paths to simulated data.
     sim_paths = [
         wp.write_simu_pop_subdirectory(c, para_count, par_update) for c in cell_counts
@@ -2555,7 +2555,7 @@ def plot_evo_w_variable(
         def fpath(*_):
             return None
 
-    # Genearal data.
+    # General data.
     # > Paths to simulated data.
     sim_paths = [wp.write_simu_pop_subdirectory(c, p, par_) for par_ in par_updates]
     stat_data_paths = [

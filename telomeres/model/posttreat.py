@@ -35,8 +35,8 @@ import os
 absolute_path = os.path.abspath(__file__)  # Path to extract_processed_dataset.
 current_dir = os.path.dirname(absolute_path)  # Path to auxiliary directory.
 parent_dir = os.path.dirname(current_dir)  # Path to telomeres directory.
-projet_dir = os.path.dirname(parent_dir)
-path.append(os.path.join(projet_dir))
+project_dir = os.path.dirname(parent_dir)
+path.append(os.path.join(project_dir))
 
 DISTRIBUTION_RAW = extract_distribution_telomeres_init()
 

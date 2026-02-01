@@ -466,7 +466,7 @@ def plot_cycles_from_dataset(fig_subdirectory, is_saved=False):
         plt.savefig(path, bbox_inches="tight")
     plt.show()
 
-    # > Other (to remore?).
+    # > Other (to remove?).
     # >> Legend in full text.
     keys = ["norA", "norB", "nta", "sen"]
     fig, axes = plt.subplots(1, 1)

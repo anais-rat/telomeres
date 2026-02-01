@@ -93,22 +93,22 @@ IS_DATA_EXTRACTED_TO_CSV = True
 
 
 # Modification of default model parameters given by `par.PAR_DEFAULT_POP`.
-# Exemple 1. No updates, default parameters:
+# Example 1. No updates, default parameters:
 #    PAR_UPDATES = None
 #
-# Exemple 2. To modify p_accident, the rate of accidental death, one should use
+# Example 2. To modify p_accident, the rate of accidental death, one should use
 #    P_EXIT_NEW = par.P_EXIT.deepcopy()
 #    P_EXIT_NEW['accident'] = p_accident_new
 #    PAR_UPDATES = {'p_exit': P_EXIT_NEW}
 #
-# Exemple 3. To modify whether or not type H are accounted:
+# Example 3. To modify whether or not type H are accounted:
 #    PAR_UPDATES = {'is_htype_accounted': False}
 #
-# Exemple 4. To modified both previous:
+# Example 4. To modified both previous:
 #    PAR_UPDATES = {'is_htype_accounted': False,
 #                   'p_exit': P_EXIT_NEW}
 #
-# ect.. for every key of `PAR_DEFAULT_POP`, making sure that the updated
+# etc.. for every key of `PAR_DEFAULT_POP`, making sure that the updated
 # parameter conforms to the original format given by `PAR_DEFAULT_POP`.
 
 # > Default Case.
