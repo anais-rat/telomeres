@@ -1,15 +1,20 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14525443.svg)](https://doi.org/10.5281/zenodo.14525443)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14525443.svg)](https://doi.org/10.5281/zenodo.14525443) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18454274.svg)](https://doi.org/10.5281/zenodo.18454274)
 
 # Telomeres
 
 ## Overview
 
-Code associated with "**Mathematical model linking telomeres to senescence
-in _Saccharomyces cerevisiae_ reveals cell lineage versus population
-dynamics**".
+Code associated with
 
-- Published and preprint versions: [Nat Commun 16, 1024 (2025)↗](https://www.nature.com/articles/s41467-025-56196-z) and [biorxiv.org↗](https://doi.org/10.1101/2023.11.22.568287)
-- See also Chapter 3 of the PhD thesis: [HAL theses↗](https://theses.hal.science/tel-04250492)
+<a id="ref-1"></a>
+
+- [1]: "_Both Genome Instability and Replicative Senescence Stem from the Shortest Telomere in Telomerase-Negative Cells_": [BioRxiv↗](https://www.biorxiv.org/content/10.1101/2025.01.27.635053v2)
+  <a id="ref-2"></a>
+- [2]: "_Mathematical model linking telomeres to senescence
+  in *Saccharomyces cerevisiae* reveals cell lineage versus population
+  dynamics_": [Nat Commun 16, 1024 (2025)↗](https://www.nature.com/articles/s41467-025-56196-z), [BioRxiv↗](https://doi.org/10.1101/2023.11.22.568287)
+  <a id="ref-2"></a>
+- [3]: Chapter 3 of the PhD thesis: [HAL theses↗](https://theses.hal.science/tel-04250492)
 
 The `telomeres` package contains all the necessary auxiliary code.
 This is where the mathematical model is encoded, with its
@@ -65,9 +70,12 @@ cd telomeres
 ```
 
 Or download a archived version either from Zenodo or the corresponding tagged GitHub release:
-| Version | Zenodo DOI | GitHub Release |
-|---------|------------|----------------|
-| v1 | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14525443.svg)](https://doi.org/10.5281/zenodo.14525443) | [![GitHub Release](https://img.shields.io/badge/GitHub-v1_release-blue)](https://github.com/anais-rat/telomeres/releases/tag/v1-publication) |
+| Version | Zenodo DOI | GitHub Release | Related work |
+| ---------| -------------------------------------------------------------------------------------------------------------| ----------------------------------------------------------------------------------------------------------------------------------------------| -------------------|
+| v1 | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14525443.svg)](https://doi.org/10.5281/zenodo.14525443) | [![GitHub Release](https://img.shields.io/badge/GitHub-v1_release-blue)](https://github.com/anais-rat/telomeres/releases/tag/v1-publication) | [\[2,3\]](#ref-2) |
+| v2 | [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18454274.svg)](https://doi.org/10.5281/zenodo.18454274) | [![GitHub Release](https://img.shields.io/badge/GitHub-v2_release-blue)](https://github.com/anais-rat/telomeres/releases/tag/v2-publication) | [\[1\]](#ref-1) |
+
+> _Note._ We recommend using the latest version, including for simulations related to references [\[2,3\]](#ref-2), as it provides better performances.
 
 ### Installation
 
